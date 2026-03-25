@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import BottomNav from '@/components/BottomNav'
 
 interface Event {
   id: string
@@ -33,17 +34,15 @@ export default function HomePage() {
     })
   }, [router])
 
- const fetchEvents = async () => {
-  const { data, error } = await supabase
-    .from('events')
-    .select('*')
-    .eq('visibility', 'public')
-    .order('start_datetime', { ascending: true })
-  console.log('Events:', data)
-  console.log('Error:', error)
-  if (data) setEvents(data)
-  setLoading(false)
-}
+  const fetchEvents = async () => {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('visibility', 'public')
+      .order('start_datetime', { ascending: true })
+    if (data) setEvents(data)
+    setLoading(false)
+  }
 
   const formatDate = (dt: string) => {
     const d = new Date(dt)
@@ -59,8 +58,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
-
-      {/* Header */}
       <div className="px-4 pt-14 pb-0 bg-[#0D110D]">
         <div className="flex items-center justify-between mb-3">
           <h1 className="font-bold text-[#F0EDE6] text-xl" style={{fontFamily:'sans-serif'}}>
@@ -77,15 +74,11 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-
-        {/* Search */}
         <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-3 cursor-pointer" onClick={() => router.push('/search')}>
           <span className="text-[#F0EDE6] opacity-30 text-sm">🔍</span>
           <span className="text-[#F0EDE6] opacity-30 text-sm flex-1">Search events, people, vibes...</span>
           <span className="bg-[#1E3A1E] border border-[#E8B84B]/15 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">Filter</span>
         </div>
-
-        {/* Tabs */}
         <div className="flex border-b border-white/10 -mx-4 px-4 overflow-x-auto">
           {['🔥 Trending', '✦ For You', '🏙 City', '👥 Friends', '📌 My Events'].map((tab, i) => (
             <button key={tab} className={`px-3 py-2.5 text-xs whitespace-nowrap border-b-2 -mb-px transition-colors ${i === 0 ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent'}`}>
@@ -95,7 +88,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Feed */}
       <div className="px-4 pt-4">
         <div className="mb-3">
           <h2 className="text-lg font-bold text-[#F0EDE6]">What's Happening in Bellingham</h2>
@@ -117,8 +109,6 @@ export default function HomePage() {
               <div key={event.id}
                 onClick={() => router.push(`/events/${event.id}`)}
                 className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden cursor-pointer active:scale-98 transition-transform">
-
-                {/* Hero */}
                 <div className="h-32 flex items-center justify-center text-5xl relative"
                   style={{background: i % 3 === 0 ? 'linear-gradient(135deg,#1E3A1E,#2A1A0E)' : i % 3 === 1 ? 'linear-gradient(135deg,#1A1E2A,#0E1A0E)' : 'linear-gradient(135deg,#2A1A1A,#1A0E0E)'}}>
                   {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : event.category === 'Outdoors' ? '🥾' : event.category === 'Arts & Culture' ? '🎨' : '🎉'}
@@ -128,8 +118,6 @@ export default function HomePage() {
                     <span className="ml-auto bg-[#0E1E0E]/90 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded-full border border-[#7EC87E]/20">◉ Public</span>
                   </div>
                 </div>
-
-                {/* Body */}
                 <div className="p-3">
                   <h3 className="font-bold text-[#F0EDE6] text-sm mb-1.5 leading-snug">{event.title}</h3>
                   <div className="flex items-center gap-1 text-[10px] text-white/45 mb-1">
@@ -156,25 +144,7 @@ export default function HomePage() {
           </div>
         )}
       </div>
-
-      {/* Bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0D110D]/97 border-t border-white/10 flex items-center px-2 pb-6 pt-2">
-        <button className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-lg">🏠</span><span className="text-[9px] text-[#E8B84B]">Home</span>
-        </button>
-        <button className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-lg">👥</span><span className="text-[9px] text-white/30">Communities</span>
-        </button>
-        <button className="flex-1 flex flex-col items-center justify-center -mt-3" onClick={() => router.push('/create')}>
-          <div className="w-11 h-11 bg-[#E8B84B] rounded-2xl flex items-center justify-center text-xl text-[#0D110D] shadow-lg">＋</div>
-        </button>
-        <button className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-lg">💬</span><span className="text-[9px] text-white/30">Messages</span>
-        </button>
-        <button className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-lg">👤</span><span className="text-[9px] text-white/30">Profile</span>
-        </button>
-      </div>
+      <BottomNav />
     </div>
   )
 }

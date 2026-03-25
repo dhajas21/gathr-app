@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import BottomNav from '@/components/BottomNav'
 
 interface Event {
   id: string
@@ -43,14 +44,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     })
   }, [])
 
-  
-
-const fetchEvent = async (id: string, userId: string) => {
-  const { data: eventData } = await supabase
-    .from('events')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const fetchEvent = async (id: string, userId: string) => {
+    const { data: eventData } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', id)
+      .single()
 
     if (!eventData) { router.push('/home'); return }
     setEvent(eventData)
@@ -65,7 +64,7 @@ const fetchEvent = async (id: string, userId: string) => {
     const { data: rsvpData } = await supabase
       .from('rsvps')
       .select('id')
-      .eq('event_id', params.id)
+      .eq('event_id', id)
       .eq('user_id', userId)
       .single()
     if (rsvpData) setRsvped(true)
@@ -129,7 +128,7 @@ const fetchEvent = async (id: string, userId: string) => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-28">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-40">
 
         <h1 className="font-bold text-[#F0EDE6] text-lg leading-snug mb-4" style={{fontFamily:'sans-serif'}}>
           {event.title}
@@ -212,14 +211,16 @@ const fetchEvent = async (id: string, userId: string) => {
         )}
       </div>
 
-      {/* RSVP CTA */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-10 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
+      {/* RSVP CTA — sits above BottomNav */}
+      <div className="fixed bottom-16 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
         <button onClick={handleRsvp} disabled={rsvpLoading}
-          className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]' : 'bg-[#E8B84B] text-[#0D110D] shadow-lg'}`}
+          className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]' : 'bg-[#E8B84B] text-[#0D110D]'}`}
           style={{boxShadow: rsvped ? 'none' : '0 5px 22px rgba(232,184,75,0.3)'}}>
           {rsvpLoading ? 'Loading...' : rsvped ? '✓ You\'re going · Cancel RSVP' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
         </button>
       </div>
+
+      <BottomNav />
     </div>
   )
 }

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-
+import BottomNav from '@/components/BottomNav'
 export default function CreateEventPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
@@ -276,7 +276,7 @@ export default function CreateEventPage() {
             </button>
           </div>
         )}
-      </div>
+      <BottomNav />
     </div>
   )
 }
