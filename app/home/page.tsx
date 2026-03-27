@@ -43,6 +43,7 @@ export default function HomePage() {
   const [connectionIds, setConnectionIds] = useState<string[]>([])
   const [showCityPicker, setShowCityPicker] = useState(false)
   const [citySearch, setCitySearch] = useState('')
+  const [notifCount, setNotifCount] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -83,6 +84,13 @@ export default function HomePage() {
       const ids = connData.map(c => c.requester_id === userId ? c.addressee_id : c.requester_id)
       setConnectionIds(ids)
     }
+
+    const { count } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('read', false)
+    if (count !== null) setNotifCount(count)
 
     setLoading(false)
   }
@@ -178,6 +186,8 @@ export default function HomePage() {
       case 'Tech': return '💻'
       case 'Outdoors': return '🥾'
       case 'Arts & Culture': return '🎨'
+      case 'Networking': return '💼'
+      case 'Social': return '🎉'
       default: return '🎉'
     }
   }
@@ -203,7 +213,11 @@ export default function HomePage() {
             <button onClick={() => router.push('/notifications')}
               className="w-8 h-8 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-base relative">
               🔔
-              <div className="absolute -top-1 -right-1 bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center border border-[#0D110D]">4</div>
+              {notifCount > 0 && (
+                <div className="absolute -top-1 -right-1 bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center border border-[#0D110D]">
+                  {notifCount > 9 ? '9+' : notifCount}
+                </div>
+              )}
             </button>
           </div>
         </div>
