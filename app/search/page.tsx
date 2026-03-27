@@ -1,14 +1,116 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 
 const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech', 'Outdoors', 'Arts & Culture', 'Social', 'Networking']
 
+const DAY_KEYWORDS: Record<string, number> = {
+  'today': 0, 'tonight': 0, 'tomorrow': 1,
+  'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4,
+  'friday': 5, 'saturday': 6, 'sunday': 0,
+  'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6, 'sun': 0,
+}
+
+const TIME_KEYWORDS = ['morning', 'afternoon', 'evening', 'night', 'tonight', 'late']
+const CATEGORY_SYNONYMS: Record<string, string> = {
+  'live music': 'Music', 'concert': 'Music', 'gig': 'Music', 'show': 'Music', 'band': 'Music', 'open mic': 'Music',
+  'run': 'Fitness', 'running': 'Fitness', 'workout': 'Fitness', 'gym': 'Fitness', 'yoga': 'Fitness', 'hike': 'Outdoors', 'hiking': 'Outdoors',
+  'coffee': 'Food & Drink', 'food': 'Food & Drink', 'drinks': 'Food & Drink', 'brunch': 'Food & Drink', 'dinner': 'Food & Drink', 'bar': 'Food & Drink',
+  'tech': 'Tech', 'coding': 'Tech', 'startup': 'Tech', 'hackathon': 'Tech', 'ai': 'Tech',
+  'art': 'Arts & Culture', 'gallery': 'Arts & Culture', 'painting': 'Arts & Culture', 'design': 'Arts & Culture',
+  'meetup': 'Social', 'hangout': 'Social', 'social': 'Social', 'party': 'Social',
+  'networking': 'Networking', 'professional': 'Networking', 'founders': 'Networking',
+  'outdoor': 'Outdoors', 'nature': 'Outdoors', 'camping': 'Outdoors', 'trail': 'Outdoors',
+}
+
+function parseVibeQuery(query: string) {
+  const lower = query.toLowerCase()
+  const words = lower.split(/\s+/)
+
+  // Detect day
+  let targetDay: number | null = null
+  let dayLabel = ''
+  for (const word of words) {
+    if (DAY_KEYWORDS[word] !== undefined) {
+      if (word === 'today' || word === 'tonight') {
+        targetDay = new Date().getDay()
+        dayLabel = 'today'
+      } else if (word === 'tomorrow') {
+        targetDay = (new Date().getDay() + 1) % 7
+        dayLabel = 'tomorrow'
+      } else {
+        targetDay = DAY_KEYWORDS[word]
+        dayLabel = word.charAt(0).toUpperCase() + word.slice(1)
+      }
+      break
+    }
+  }
+  // Also check "this weekend"
+  if (lower.includes('this weekend') || lower.includes('weekend')) {
+    targetDay = -1 // special: means Saturday or Sunday
+    dayLabel = 'this weekend'
+  }
+
+  // Detect time of day
+  let timeFilter: string | null = null
+  for (const t of TIME_KEYWORDS) {
+    if (lower.includes(t)) {
+      if (t === 'morning') timeFilter = 'morning'
+      else if (t === 'afternoon') timeFilter = 'afternoon'
+      else timeFilter = 'evening'
+      break
+    }
+  }
+
+  // Detect category
+  let detectedCategory: string | null = null
+  // Check multi-word synonyms first
+  for (const [phrase, cat] of Object.entries(CATEGORY_SYNONYMS)) {
+    if (lower.includes(phrase)) {
+      detectedCategory = cat
+      break
+    }
+  }
+  // Then single words
+  if (!detectedCategory) {
+    for (const word of words) {
+      if (CATEGORY_SYNONYMS[word]) {
+        detectedCategory = CATEGORY_SYNONYMS[word]
+        break
+      }
+    }
+  }
+
+  // Extract search terms (remove day/time keywords)
+  const stopWords = [...Object.keys(DAY_KEYWORDS), ...TIME_KEYWORDS, 'this', 'next', 'weekend', 'near', 'me', 'in', 'at', 'the', 'a', 'an', 'for', 'on', 'with']
+  const searchTerms = words.filter(w => !stopWords.includes(w) && w.length > 1).join(' ')
+
+  return { targetDay, dayLabel, timeFilter, detectedCategory, searchTerms }
+}
+
+function matchesDay(eventDate: Date, targetDay: number): boolean {
+  if (targetDay === -1) {
+    // Weekend
+    const day = eventDate.getDay()
+    return day === 0 || day === 6
+  }
+  return eventDate.getDay() === targetDay
+}
+
+function matchesTime(eventDate: Date, timeFilter: string): boolean {
+  const hour = eventDate.getHours()
+  if (timeFilter === 'morning') return hour >= 5 && hour < 12
+  if (timeFilter === 'afternoon') return hour >= 12 && hour < 17
+  if (timeFilter === 'evening') return hour >= 17 || hour < 2
+  return true
+}
+
 export default function SearchPage() {
   const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
   const [activeTab, setActiveTab] = useState('All')
@@ -17,19 +119,82 @@ export default function SearchPage() {
   const [communities, setCommunities] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [vibeResult, setVibeResult] = useState<any>(null)
+  const [recommendations, setRecommendations] = useState<any[]>([])
+  const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
+      fetchProfile(session.user.id)
+      fetchRecommendations(session.user.id)
     })
   }, [])
+
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    if (data) setProfile(data)
+  }
+
+  const fetchRecommendations = async (userId: string) => {
+    const { data: profileData } = await supabase.from('profiles').select('interests, city').eq('id', userId).single()
+    if (!profileData) return
+
+    const { data: allEvents } = await supabase
+      .from('events')
+      .select('*')
+      .eq('visibility', 'public')
+      .gte('start_datetime', new Date().toISOString())
+      .order('start_datetime', { ascending: true })
+      .limit(50)
+
+    if (!allEvents) return
+
+    // Score each event
+    const scored = allEvents.map(event => {
+      let score = 0
+      const userInterests = (profileData.interests || []).map((i: string) => i.toLowerCase())
+      const eventTags = (event.tags || []).map((t: string) => t.toLowerCase())
+      const eventCat = event.category?.toLowerCase() || ''
+
+      // Interest match (+3 per match)
+      userInterests.forEach((interest: string) => {
+        if (eventTags.includes(interest)) score += 3
+        if (eventCat.includes(interest)) score += 2
+      })
+
+      // City match (+2)
+      if (event.city?.toLowerCase() === profileData.city?.toLowerCase()) score += 2
+
+      // Popularity (+1 for each 10% filled)
+      if (event.capacity > 0) {
+        const filled = ((event.capacity - event.spots_left) / event.capacity) * 10
+        score += Math.floor(filled)
+      }
+
+      // Urgency bonus (+2 if almost full)
+      if (event.spots_left > 0 && event.spots_left < 10) score += 2
+
+      // Soon bonus (+1 if within 3 days)
+      const daysUntil = (new Date(event.start_datetime).getTime() - Date.now()) / 86400000
+      if (daysUntil < 3) score += 1
+
+      return { ...event, score }
+    })
+
+    scored.sort((a, b) => b.score - a.score)
+    setRecommendations(scored.slice(0, 5))
+  }
 
   const handleSearch = async () => {
     if (!query.trim() && activeCategory === 'All') return
     setLoading(true)
     setSearched(true)
+
+    const vibe = parseVibeQuery(query)
+    setVibeResult(vibe.searchTerms || vibe.detectedCategory || vibe.dayLabel ? vibe : null)
 
     // Search events
     let eventQuery = supabase
@@ -37,18 +202,31 @@ export default function SearchPage() {
       .select('*')
       .eq('visibility', 'public')
       .order('start_datetime', { ascending: true })
-      .limit(20)
+      .limit(30)
 
-    if (activeCategory !== 'All') {
-      eventQuery = eventQuery.eq('category', activeCategory)
+    const categoryToUse = activeCategory !== 'All' ? activeCategory : vibe.detectedCategory
+    if (categoryToUse) {
+      eventQuery = eventQuery.eq('category', categoryToUse)
     }
 
-    if (query.trim()) {
-      eventQuery = eventQuery.or('title.ilike.%' + query.trim() + '%,description.ilike.%' + query.trim() + '%,location_name.ilike.%' + query.trim() + '%')
+    if (vibe.searchTerms) {
+      eventQuery = eventQuery.or('title.ilike.%' + vibe.searchTerms + '%,description.ilike.%' + vibe.searchTerms + '%,location_name.ilike.%' + vibe.searchTerms + '%')
     }
 
     const { data: eventData } = await eventQuery
-    if (eventData) setEvents(eventData)
+    let filteredEvents = eventData || []
+
+    // Apply day filter
+    if (vibe.targetDay !== null && filteredEvents.length > 0) {
+      filteredEvents = filteredEvents.filter(e => matchesDay(new Date(e.start_datetime), vibe.targetDay!))
+    }
+
+    // Apply time filter
+    if (vibe.timeFilter && filteredEvents.length > 0) {
+      filteredEvents = filteredEvents.filter(e => matchesTime(new Date(e.start_datetime), vibe.timeFilter!))
+    }
+
+    setEvents(filteredEvents)
 
     // Search people
     if (query.trim()) {
@@ -87,6 +265,7 @@ export default function SearchPage() {
         setEvents([])
         setPeople([])
         setCommunities([])
+        setVibeResult(null)
       }
     }, 400)
     return () => clearTimeout(timer)
@@ -99,7 +278,6 @@ export default function SearchPage() {
   }
 
   const totalResults = events.length + people.length + communities.length
-
   const visibleEvents = activeTab === 'All' || activeTab === 'Events' ? events : []
   const visiblePeople = activeTab === 'All' || activeTab === 'People' ? people : []
   const visibleCommunities = activeTab === 'All' || activeTab === 'Communities' ? communities : []
@@ -112,6 +290,7 @@ export default function SearchPage() {
         <div className="flex items-center gap-2 bg-[#1C241C] border border-[#E8B84B]/35 rounded-2xl px-4 py-2.5">
           <span className="text-sm text-white/30">🔍</span>
           <input
+            ref={inputRef}
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
@@ -120,7 +299,7 @@ export default function SearchPage() {
             className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none"
           />
           {query && (
-            <button onClick={() => { setQuery(''); setSearched(false) }}
+            <button onClick={() => { setQuery(''); setSearched(false); setVibeResult(null) }}
               className="text-xs text-white/30">✕</button>
           )}
         </div>
@@ -150,15 +329,45 @@ export default function SearchPage() {
 
       <div className="px-4">
 
-        {/* Empty / Not searched */}
+        {/* Not searched — discovery state */}
         {!searched && (
           <>
             {/* AI hint */}
             <div className="bg-[#1C241C] border border-[#E8B84B]/20 rounded-2xl p-3 mb-4 flex items-center gap-2">
               <span className="text-base">✨</span>
-              <span className="text-xs text-[#E8B84B]/70 flex-1">Try &quot;live music thursday night&quot;</span>
+              <span className="text-xs text-[#E8B84B]/70 flex-1">Try &quot;live music thursday night&quot; or &quot;coffee meetup this weekend&quot;</span>
               <span className="bg-[#E8B84B]/10 text-[#E8B84B] text-[9px] px-2 py-0.5 rounded">AI</span>
             </div>
+
+            {/* Smart recommendations */}
+            {recommendations.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-base">✦</span>
+                  <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium">Recommended for you</div>
+                </div>
+                <div className="space-y-2 mb-5">
+                  {recommendations.map(event => (
+                    <div key={event.id} onClick={() => router.push('/events/' + event.id)}
+                      className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: '#1E2E1E' }}>
+                        {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : '🎉'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
+                        <div className="text-[10px] text-white/40 mt-0.5">{formatDate(event.start_datetime)}</div>
+                        {event.score >= 5 && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-[9px] text-[#E8B84B]">✦</span>
+                            <span className="text-[9px] text-[#E8B84B]/70">Great match</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* Browse by category */}
             <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2 font-medium">Browse by category</div>
@@ -171,7 +380,7 @@ export default function SearchPage() {
                 { emoji: '🎨', label: 'Arts', bg: '#2A1A1A' },
                 { emoji: '☕', label: 'Food & Drink', bg: '#2A2A1A' },
               ].map(cat => (
-                <button key={cat.label} onClick={() => { setActiveCategory(cat.label === 'Arts' ? 'Arts & Culture' : cat.label); }}
+                <button key={cat.label} onClick={() => setActiveCategory(cat.label === 'Arts' ? 'Arts & Culture' : cat.label)}
                   className="flex items-center gap-2 p-3 rounded-2xl border border-white/10"
                   style={{ background: cat.bg }}>
                   <span className="text-lg">{cat.emoji}</span>
@@ -183,11 +392,12 @@ export default function SearchPage() {
             {/* Trending searches */}
             <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2 font-medium">Trending searches</div>
             <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
-              {['live music bellingham', '#startups', 'coffee meetup'].map((term, i) => (
+              {['live music this weekend', 'coffee meetup tomorrow', 'running club', '#startups', 'outdoor adventure'].map((term, i) => (
                 <button key={term} onClick={() => setQuery(term)}
-                  className={'flex items-center gap-2 w-full px-3 py-2.5 text-left ' + (i < 2 ? 'border-b border-white/10' : '')}>
+                  className={'flex items-center gap-2 w-full px-3 py-2.5 text-left ' + (i < 4 ? 'border-b border-white/10' : '')}>
                   <span className="text-xs text-white/25 w-4">{i + 1}</span>
                   <span className="text-sm text-[#F0EDE6] flex-1">{term}</span>
+                  <span className="text-[10px] text-white/20">→</span>
                 </button>
               ))}
             </div>
@@ -197,10 +407,37 @@ export default function SearchPage() {
         {/* Search results */}
         {searched && !loading && (
           <>
+            {/* Vibe search banner */}
+            {vibeResult && (vibeResult.detectedCategory || vibeResult.dayLabel || vibeResult.timeFilter) && (
+              <div className="bg-gradient-to-r from-[#1A2A1A] to-[#0E1A0E] border border-[#E8B84B]/20 rounded-2xl p-3 mb-3">
+                <div className="text-[9px] uppercase tracking-wider text-[#E8B84B]/60 mb-1">✨ AI Vibe Search</div>
+                <div className="text-sm font-bold text-[#F0EDE6] mb-1" style={{ fontFamily: 'sans-serif' }}>&quot;{query}&quot;</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {vibeResult.detectedCategory && (
+                    <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
+                      {vibeResult.detectedCategory}
+                    </span>
+                  )}
+                  {vibeResult.dayLabel && (
+                    <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
+                      {vibeResult.dayLabel}
+                    </span>
+                  )}
+                  {vibeResult.timeFilter && (
+                    <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
+                      {vibeResult.timeFilter}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-[#7EC87E] mt-1.5">{events.length} matching event{events.length !== 1 ? 's' : ''} found</div>
+              </div>
+            )}
+
             {totalResults === 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
                 <div className="text-4xl">🔍</div>
                 <p className="text-white/40 text-sm text-center">No results found</p>
+                <p className="text-white/25 text-xs text-center max-w-[220px]">Try different words or browse by category above</p>
               </div>
             )}
 
@@ -214,11 +451,11 @@ export default function SearchPage() {
                   )}
                 </div>
                 <div className="space-y-2 mb-4">
-                  {(activeTab === 'All' ? visibleEvents.slice(0, 3) : visibleEvents).map(event => (
+                  {(activeTab === 'All' ? visibleEvents.slice(0, 4) : visibleEvents).map(event => (
                     <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                       className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: '#1E2E1E' }}>
-                        {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : '🎉'}
+                        {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : '🎉'}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
