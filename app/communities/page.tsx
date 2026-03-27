@@ -67,14 +67,12 @@ export default function CommunitiesPage() {
       user_id: user.id,
       role: 'member',
     })
-    if (!error) {
-      // Update member count
-      await supabase.rpc('increment_member_count', { cid: communityId }).catch(() => {
-        // If RPC doesn't exist yet, just update directly
-        supabase.from('communities').update({
-          member_count: (discover.find(c => c.id === communityId)?.member_count || 0) + 1
-        }).eq('id', communityId)
-      })
+      if (!error) {
+      // Update member count directly
+      const comm = discover.find(c => c.id === communityId)
+      await supabase.from('communities').update({
+        member_count: (comm?.member_count || 0) + 1
+      }).eq('id', communityId)
       fetchCommunities(user.id)
     }
   }
