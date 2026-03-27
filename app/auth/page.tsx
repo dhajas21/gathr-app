@@ -5,93 +5,183 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
+  const [city, setCity] = useState('Bellingham')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
 
-  const handleSignUp = async () => {
+  const handleSignIn = async () => {
+    if (!email || !password) { setError('Please fill in all fields'); return }
     setLoading(true)
     setError('')
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) { setError(error.message); setLoading(false); return }
-    if (data.user) {
-      await supabase.from('profiles').insert({ id: data.user.id, name })
-      router.push('/home')
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    })
+
+    if (authError) {
+      setError(authError.message)
+      setLoading(false)
+      return
     }
-    setLoading(false)
+
+    router.push('/home')
   }
 
-  const handleSignIn = async () => {
+  const handleSignUp = async () => {
+    if (!name || !email || !password) { setError('Please fill in all fields'); return }
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setError(error.message); setLoading(false); return }
-    router.push('/home')
-    setLoading(false)
+
+    const { data, error: authError } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+    })
+
+    if (authError) {
+      setError(authError.message)
+      setLoading(false)
+      return
+    }
+
+    if (data.user) {
+      // Create profile
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: data.user.id,
+        name: name.trim(),
+        city,
+        profile_mode: 'both',
+        hosted_count: 0,
+        attended_count: 0,
+        interests: [],
+      })
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError)
+      }
+
+      // Redirect new users to setup flow
+      router.push('/setup')
+    }
   }
+
+  const handleSubmit = () => {
+    if (isSignUp) handleSignUp()
+    else handleSignIn()
+  }
+
+  const handleGoogleAuth = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/home' }
+    })
+    if (error) setError(error.message)
+  }
+
+  const handleAppleAuth = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: { redirectTo: window.location.origin + '/home' }
+    })
+    if (error) setError(error.message)
+  }
+
+  const inputClass = 'w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm'
 
   return (
-    <div className="min-h-screen bg-[#0D110D] flex flex-col items-center justify-center px-8">
-      <div className="mb-10 text-center">
-        <h1 className="text-5xl font-bold text-[#E8B84B]">Gathr.</h1>
-        <p className="text-[#F0EDE6] mt-2 opacity-50 text-sm">Find your people. For real.</p>
+    <div className="min-h-screen bg-[#0D110D] flex flex-col items-center px-6 pt-16 pb-10">
+
+      {/* Logo */}
+      <div className="mb-7">
+        <h1 className="text-3xl font-bold text-[#F0EDE6] tracking-tight" style={{ fontFamily: 'sans-serif' }}>
+          Gathr<span className="text-[#E8B84B]">.</span>
+        </h1>
       </div>
 
-      <div className="w-full max-w-sm">
-        <div className="flex bg-[#1C241C] rounded-2xl p-1 mb-6">
-          <button
-            onClick={() => setMode('signin')}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${mode === 'signin' ? 'bg-[#E8B84B] text-[#0D110D]' : 'text-[#F0EDE6] opacity-50'}`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => setMode('signup')}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${mode === 'signup' ? 'bg-[#E8B84B] text-[#0D110D]' : 'text-[#F0EDE6] opacity-50'}`}
-          >
-            Sign Up
-          </button>
-        </div>
+      {/* Tabs */}
+      <div className="w-full flex bg-[#1C241C] rounded-2xl p-1 mb-5">
+        <button onClick={() => { setIsSignUp(false); setError('') }}
+          className={'flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ' + (!isSignUp ? 'bg-[#E8B84B] text-[#0D110D] font-bold' : 'text-white/45')}>
+          Sign In
+        </button>
+        <button onClick={() => { setIsSignUp(true); setError('') }}
+          className={'flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ' + (isSignUp ? 'bg-[#E8B84B] text-[#0D110D] font-bold' : 'text-white/45')}>
+          Sign Up
+        </button>
+      </div>
 
-        <div className="flex flex-col gap-3">
-          {mode === 'signup' && (
-            <input
-              type="text"
-              placeholder="Your name"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-4 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
-            />
-          )}
+      {/* Form */}
+      <div className="w-full space-y-3">
+        {isSignUp && (
           <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-4 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
+            className={inputClass}
+            placeholder="Full name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            maxLength={50}
           />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-4 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
-          />
+        )}
+        <input
+          className={inputClass}
+          placeholder="Email"
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          maxLength={100}
+        />
+        <input
+          className={inputClass}
+          placeholder="Password"
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+          maxLength={72}
+        />
+        {isSignUp && (
+          <select className={inputClass} value={city} onChange={e => setCity(e.target.value)}>
+            {['Bellingham', 'Seattle', 'Vancouver', 'Portland', 'San Francisco', 'Los Angeles', 'New York', 'Chicago', 'Austin', 'Denver'].map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        )}
 
-          {error && <p className="text-red-400 text-xs px-1">{error}</p>}
+        {!isSignUp && (
+          <div className="text-right">
+            <button className="text-xs text-[#E8B84B]">Forgot password?</button>
+          </div>
+        )}
 
-          <button
-            onClick={mode === 'signup' ? handleSignUp : handleSignIn}
-            disabled={loading}
-            className="w-full bg-[#E8B84B] text-[#0D110D] rounded-2xl py-4 font-semibold text-sm mt-1 active:scale-95 transition-transform disabled:opacity-50"
-          >
-            {loading ? 'Loading...' : mode === 'signup' ? 'Create Account' : 'Sign In'}
-          </button>
-        </div>
+        {error && (
+          <div className="bg-[#E85B5B]/10 border border-[#E85B5B]/20 rounded-2xl px-4 py-3 flex items-center gap-2">
+            <span className="text-sm">⚠️</span>
+            <span className="text-xs text-[#E85B5B]">{error}</span>
+          </div>
+        )}
+
+        <button onClick={handleSubmit} disabled={loading}
+          className="w-full bg-[#E8B84B] text-[#0D110D] rounded-2xl py-4 font-bold text-sm disabled:opacity-50 active:scale-95 transition-transform mt-2"
+          style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
+          {loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}
+        </button>
+      </div>
+
+     {/* Social auth - coming soon */}
+      <div className="mt-6 text-center">
+        <p className="text-[10px] text-white/20">Google & Apple sign-in coming soon</p>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-8 text-center">
+        <p className="text-[10px] text-white/20 leading-relaxed max-w-[260px]">
+          By continuing, you agree to Gathr's Terms of Service and Privacy Policy
+        </p>
       </div>
     </div>
   )

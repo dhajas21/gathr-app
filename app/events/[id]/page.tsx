@@ -183,9 +183,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         {/* Host */}
         {host && (
           <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3 flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0 border border-[#E8B84B]/20">
-              🧑‍💻
-            </div>
+          {host.avatar_url ? (
+  <img src={host.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-[#E8B84B]/20" />
+) : (
+  <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0 border border-[#E8B84B]/20">
+    🧑‍💻
+  </div>
+)}
             <div>
               <div className="text-sm font-semibold text-[#F0EDE6]">{host.name}</div>
               <div className="text-xs text-white/45 mt-0.5">{host.hosted_count} events hosted</div>

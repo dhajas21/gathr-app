@@ -26,16 +26,15 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     })
   }, [])
 
-  // Real-time subscription
   useEffect(() => {
     if (!threadId) return
     const channel = supabase
-      .channel(`thread-${threadId}`)
+      .channel('thread-' + threadId)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `thread_id=eq.${threadId}`
+        filter: 'thread_id=eq.' + threadId
       }, (payload) => {
         setMessages(prev => [...prev, payload.new])
         scrollToBottom()
@@ -60,16 +59,14 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     if (data && data.length > 0) {
       setMessages(data)
 
-      // Get the other person's profile
       const otherId = data[0].sender_id === userId ? data[0].recipient_id : data[0].sender_id
       const { data: otherProfile } = await supabase
         .from('profiles')
-        .select('id, name')
+        .select('id, name, avatar_url')
         .eq('id', otherId)
         .single()
       if (otherProfile) setOther(otherProfile)
 
-      // Mark unread messages as read
       await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
@@ -95,7 +92,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     setSending(true)
     setText('')
 
-    // Get the recipient from existing messages
     const recipientId = messages[0]?.sender_id === user.id
       ? messages[0]?.recipient_id
       : messages[0]?.sender_id
@@ -140,12 +136,16 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
           ←
         </button>
-        <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">🧑</div>
+        {other?.avatar_url ? (
+          <img src={other.avatar_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">🧑</div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-[#F0EDE6]">{other?.name || 'Chat'}</div>
           <div className="text-[10px] text-white/40">Connected via Gathr</div>
         </div>
-        <button onClick={() => other && router.push(`/profile/${other.id}`)}
+        <button onClick={() => other && router.push('/profile/' + other.id)}
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-sm">
           👤
         </button>
@@ -155,8 +155,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map((msg, i) => {
           const mine = msg.sender_id === user?.id
-          const showTime = i === 0 || 
-            new Date(msg.sent_at).getTime() - new Date(messages[i-1]?.sent_at).getTime() > 300000
+          const showTime = i === 0 ||
+            new Date(msg.sent_at).getTime() - new Date(messages[i - 1]?.sent_at).getTime() > 300000
 
           return (
             <div key={msg.id}>
@@ -165,17 +165,21 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                   {formatTime(msg.sent_at)}
                 </div>
               )}
-              <div className={`flex items-end gap-2 ${mine ? 'flex-row-reverse' : ''}`}>
+              <div className={'flex items-end gap-2 ' + (mine ? 'flex-row-reverse' : '')}>
                 {!mine && (
-                  <div className="w-6 h-6 bg-[#2A4A2A] rounded-md flex items-center justify-center text-[9px] flex-shrink-0">
-                    {other?.name?.charAt(0) || '?'}
-                  </div>
+                  other?.avatar_url ? (
+                    <img src={other.avatar_url} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-6 h-6 bg-[#2A4A2A] rounded-md flex items-center justify-center text-[9px] flex-shrink-0">
+                      {other?.name?.charAt(0) || '?'}
+                    </div>
+                  )
                 )}
-                <div className={`max-w-[78%] px-3 py-2 text-sm leading-relaxed ${
+                <div className={'max-w-[78%] px-3 py-2 text-sm leading-relaxed ' + (
                   mine
                     ? 'bg-[#E8B84B] text-[#0D110D] rounded-2xl rounded-br-sm font-medium'
                     : 'bg-[#1C241C] text-[#F0EDE6] rounded-2xl rounded-bl-sm'
-                }`}>
+                )}>
                   {msg.text}
                 </div>
               </div>
@@ -195,7 +199,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Message ${other?.name || ''}...`}
+            placeholder={'Message ' + (other?.name || '') + '...'}
             maxLength={2000}
             className="w-full bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none"
           />

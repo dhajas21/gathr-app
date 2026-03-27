@@ -38,7 +38,6 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     if (!commData) { router.push('/communities'); return }
     setCommunity(commData)
 
-    // Check membership
     const { data: memberCheck } = await supabase
       .from('community_members')
       .select('role')
@@ -51,17 +50,15 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       setMemberRole(memberCheck.role)
     }
 
-    // Fetch members with profiles
     const { data: membersData } = await supabase
       .from('community_members')
-      .select('*, profile:profiles!community_members_user_id_fkey(id, name, bio_social)')
+      .select('*, profile:profiles!community_members_user_id_fkey(id, name, bio_social, avatar_url)')
       .eq('community_id', id)
       .order('joined_at', { ascending: true })
       .limit(20)
 
     if (membersData) setMembers(membersData)
 
-    // Fetch community events
     const { data: eventsData } = await supabase
       .from('events')
       .select('*')
@@ -87,7 +84,6 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     if (!error) {
       setIsMember(true)
       setMemberRole('member')
-      // Update count
       await supabase.from('communities').update({
         member_count: (community?.member_count || 0) + 1
       }).eq('id', communityId)
@@ -196,7 +192,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           <div className="flex items-center justify-between mb-3">
             <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Upcoming Events</div>
             {isMember && (
-              <button onClick={() => router.push(`/create?community=${communityId}`)}
+              <button onClick={() => router.push('/create?community=' + communityId)}
                 className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-[10px] font-semibold px-2.5 py-1 rounded-lg">
                 + Event
               </button>
@@ -207,7 +203,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           ) : (
             <div className="space-y-2">
               {events.map(event => (
-                <div key={event.id} onClick={() => router.push(`/events/${event.id}`)}
+                <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                   className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer">
                   <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">🎉</div>
                   <div className="flex-1 min-w-0">
@@ -228,11 +224,15 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           <div className="space-y-2">
             {members.map(member => (
               <div key={member.id}
-                onClick={() => member.user_id !== user?.id && router.push(`/profile/${member.user_id}`)}
+                onClick={() => member.user_id !== user?.id && router.push('/profile/' + member.user_id)}
                 className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer">
-                <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-                  {member.profile?.name?.charAt(0) || '🧑'}
-                </div>
+                {member.profile?.avatar_url ? (
+                  <img src={member.profile.avatar_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
+                    {member.profile?.name?.charAt(0) || '🧑'}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-[#F0EDE6]">
                     {member.profile?.name || 'Unknown'}
@@ -260,7 +260,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               className="flex-1 py-3.5 rounded-2xl bg-[#1C241C] border border-white/10 text-white/50 text-sm font-medium text-center disabled:opacity-30">
               {memberRole === 'owner' ? 'Owner' : 'Leave'}
             </button>
-            <button onClick={() => router.push(`/create?community=${communityId}`)}
+            <button onClick={() => router.push('/create?community=' + communityId)}
               className="flex-[2] py-3.5 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold text-center active:scale-95 transition-transform"
               style={{ boxShadow: '0 4px 18px rgba(232,184,75,0.28)' }}>
               Create Event in Community
