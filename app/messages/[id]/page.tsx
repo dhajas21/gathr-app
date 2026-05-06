@@ -35,9 +35,18 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         schema: 'public',
         table: 'messages',
         filter: 'thread_id=eq.' + threadId
-      }, (payload) => {
-        setMessages(prev => [...prev, payload.new])
+      }, async (payload) => {
+        const msg = payload.new as any
+        setMessages(prev => {
+          if (prev.some(m => m.id === msg.id)) return prev
+          return [...prev, msg]
+        })
         scrollToBottom()
+        // Mark incoming messages as read immediately
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session && msg.recipient_id === session.user.id && !msg.read_at) {
+          await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id)
+        }
       })
       .subscribe()
 

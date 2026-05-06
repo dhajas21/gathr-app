@@ -23,6 +23,11 @@ interface Event {
   host_id: string
 }
 
+interface Attendee {
+  user_id: string
+  profiles: { id: string; name: string; avatar_url: string | null }
+}
+
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [event, setEvent] = useState<Event | null>(null)
   const [host, setHost] = useState<any>(null)
@@ -31,6 +36,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [rsvpLoading, setRsvpLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [eventId, setEventId] = useState<string>('')
+  const [attendees, setAttendees] = useState<Attendee[]>([])
+  const [totalAttendees, setTotalAttendees] = useState(0)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -54,20 +63,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (!eventData) { router.push('/home'); return }
     setEvent(eventData)
 
-    const { data: hostData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', eventData.host_id)
-      .single()
-    if (hostData) setHost(hostData)
+    const [hostRes, rsvpRes, attendeesRes, countRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', eventData.host_id).single(),
+      supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).single(),
+      supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', id).limit(12),
+      supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('event_id', id),
+    ])
 
-    const { data: rsvpData } = await supabase
-      .from('rsvps')
-      .select('id')
-      .eq('event_id', id)
-      .eq('user_id', userId)
-      .single()
-    if (rsvpData) setRsvped(true)
+    if (hostRes.data) setHost(hostRes.data)
+    if (rsvpRes.data) setRsvped(true)
+    if (attendeesRes.data) setAttendees(attendeesRes.data as any)
+    if (countRes.count !== null) setTotalAttendees(countRes.count)
 
     setLoading(false)
   }
@@ -79,13 +85,30 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       await supabase.from('rsvps').delete()
         .eq('event_id', event.id).eq('user_id', user.id)
       setRsvped(false)
+      setTotalAttendees(prev => Math.max(0, prev - 1))
+      setAttendees(prev => prev.filter(a => a.user_id !== user.id))
     } else {
       await supabase.from('rsvps').insert({
         event_id: event.id, user_id: user.id, status: 'joined'
       })
       setRsvped(true)
+      setTotalAttendees(prev => prev + 1)
+      const { data } = await supabase
+        .from('rsvps')
+        .select('user_id, profiles(id, name, avatar_url)')
+        .eq('event_id', event.id)
+        .limit(12)
+      if (data) setAttendees(data as any)
     }
     setRsvpLoading(false)
+  }
+
+  const handleDelete = async () => {
+    if (!event) return
+    setDeleting(true)
+    await supabase.from('rsvps').delete().eq('event_id', event.id)
+    await supabase.from('events').delete().eq('id', event.id)
+    router.push('/home')
   }
 
   const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
@@ -99,6 +122,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   if (!event) return null
 
+  const isHost = user?.id === event.host_id
   const spotsPercent = event.capacity > 0 ? ((event.capacity - event.spots_left) / event.capacity) * 100 : 0
 
   return (
@@ -114,6 +138,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             ←
           </button>
           <div className="flex gap-2">
+            {isHost && (
+              <button onClick={() => router.push('/events/' + event.id + '/edit')}
+                className="w-9 h-9 bg-[#E8B84B]/20 border border-[#E8B84B]/30 rounded-xl flex items-center justify-center text-sm">
+                ✏️
+              </button>
+            )}
             <button className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">↑</button>
             <button className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">🔖</button>
           </div>
@@ -164,6 +194,47 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
+        {/* Attendees */}
+        <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">
+              {totalAttendees > 0 ? `${totalAttendees} Going` : 'Attendees'}
+            </div>
+            {totalAttendees > 12 && (
+              <span className="text-[10px] text-[#E8B84B]">+{totalAttendees - 12} more</span>
+            )}
+          </div>
+          {attendees.length === 0 ? (
+            <div className="flex items-center gap-2 py-1">
+              <div className="text-2xl">👋</div>
+              <p className="text-xs text-white/35">Be the first to RSVP!</p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {attendees.map((a) => {
+                const profile = (a as any).profiles
+                if (!profile) return null
+                return (
+                  <button
+                    key={a.user_id}
+                    onClick={() => router.push('/profile/' + profile.id)}
+                    className="flex flex-col items-center gap-1"
+                  >
+                    {profile.avatar_url ? (
+                      <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10" />
+                    ) : (
+                      <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base border border-white/10">
+                        {profile.name?.charAt(0) || '?'}
+                      </div>
+                    )}
+                    <span className="text-[9px] text-white/40 max-w-[40px] truncate">{profile.name?.split(' ')[0]}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Spots */}
         {event.capacity > 0 && (
           <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3">
@@ -182,14 +253,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Host */}
         {host && (
-          <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3 flex items-center gap-3">
-          {host.avatar_url ? (
-  <img src={host.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-[#E8B84B]/20" />
-) : (
-  <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0 border border-[#E8B84B]/20">
-    🧑‍💻
-  </div>
-)}
+          <div
+            className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3 flex items-center gap-3 cursor-pointer active:opacity-80"
+            onClick={() => router.push('/profile/' + host.id)}
+          >
+            {host.avatar_url ? (
+              <img src={host.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-[#E8B84B]/20" />
+            ) : (
+              <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0 border border-[#E8B84B]/20">
+                🧑‍💻
+              </div>
+            )}
             <div>
               <div className="text-sm font-semibold text-[#F0EDE6]">{host.name}</div>
               <div className="text-xs text-white/45 mt-0.5">{host.hosted_count} events hosted</div>
@@ -213,16 +287,66 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
         )}
+
+        {/* Host danger zone */}
+        {isHost && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full mt-2 py-3 rounded-2xl border border-red-500/20 text-red-400/70 text-sm font-medium bg-red-500/5 active:opacity-70"
+          >
+            Cancel & Delete Event
+          </button>
+        )}
       </div>
 
-      {/* RSVP CTA — sits above BottomNav */}
-      <div className="fixed bottom-16 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
-        <button onClick={handleRsvp} disabled={rsvpLoading}
-          className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]' : 'bg-[#E8B84B] text-[#0D110D]'}`}
-          style={{boxShadow: rsvped ? 'none' : '0 5px 22px rgba(232,184,75,0.3)'}}>
-          {rsvpLoading ? 'Loading...' : rsvped ? '✓ You\'re going · Cancel RSVP' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
-        </button>
-      </div>
+      {/* RSVP CTA */}
+      {!isHost && (
+        <div className="fixed bottom-16 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
+          <button onClick={handleRsvp} disabled={rsvpLoading}
+            className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]' : 'bg-[#E8B84B] text-[#0D110D]'}`}
+            style={{boxShadow: rsvped ? 'none' : '0 5px 22px rgba(232,184,75,0.3)'}}>
+            {rsvpLoading ? 'Loading...' : rsvped ? '✓ You\'re going · Cancel RSVP' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
+          </button>
+        </div>
+      )}
+
+      {/* Host manage bar */}
+      {isHost && (
+        <div className="fixed bottom-16 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
+          <button onClick={() => router.push('/events/' + event.id + '/edit')}
+            className="w-full py-4 rounded-2xl font-bold text-base bg-[#E8B84B] text-[#0D110D] active:scale-95 transition-all"
+            style={{boxShadow: '0 5px 22px rgba(232,184,75,0.3)'}}>
+            ✏️ Edit Event
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirm modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4"></div>
+            <div className="text-center mb-5">
+              <div className="text-3xl mb-3">⚠️</div>
+              <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Cancel this event?</h3>
+              <p className="text-xs text-white/40">This will remove all RSVPs and cannot be undone.</p>
+            </div>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="w-full py-3.5 rounded-2xl bg-red-500/80 text-white font-bold text-sm mb-3 disabled:opacity-50"
+            >
+              {deleting ? 'Deleting...' : 'Yes, Cancel Event'}
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm"
+            >
+              Keep Event
+            </button>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>
