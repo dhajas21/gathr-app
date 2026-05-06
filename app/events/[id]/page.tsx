@@ -96,6 +96,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (!eventData) { router.push('/home'); return }
     setEvent(eventData)
 
+    // Save to recently viewed
+    try {
+      const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
+      const stored = localStorage.getItem(RECENTLY_VIEWED_KEY)
+      const viewed = stored ? JSON.parse(stored) : []
+      const updated = [eventData, ...viewed.filter((e: any) => e.id !== eventData.id)].slice(0, 10)
+      localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(updated))
+    } catch {}
+    
     const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', eventData.host_id).single(),
       supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).single(),

@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 
 const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech', 'Outdoors', 'Arts & Culture', 'Social', 'Networking']
+const RECENT_SEARCHES_KEY = 'gathr_recent_searches'
+const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
 
 const DAY_KEYWORDS: Record<string, number> = {
   'today': 0, 'tonight': 0, 'tomorrow': 1,
@@ -13,7 +15,6 @@ const DAY_KEYWORDS: Record<string, number> = {
   'friday': 5, 'saturday': 6, 'sunday': 0,
   'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6, 'sun': 0,
 }
-
 const TIME_KEYWORDS = ['morning', 'afternoon', 'evening', 'night', 'tonight', 'late']
 const CATEGORY_SYNONYMS: Record<string, string> = {
   'live music': 'Music', 'concert': 'Music', 'gig': 'Music', 'show': 'Music', 'band': 'Music', 'open mic': 'Music',
@@ -29,74 +30,37 @@ const CATEGORY_SYNONYMS: Record<string, string> = {
 function parseVibeQuery(query: string) {
   const lower = query.toLowerCase()
   const words = lower.split(/\s+/)
-
-  // Detect day
   let targetDay: number | null = null
   let dayLabel = ''
   for (const word of words) {
     if (DAY_KEYWORDS[word] !== undefined) {
-      if (word === 'today' || word === 'tonight') {
-        targetDay = new Date().getDay()
-        dayLabel = 'today'
-      } else if (word === 'tomorrow') {
-        targetDay = (new Date().getDay() + 1) % 7
-        dayLabel = 'tomorrow'
-      } else {
-        targetDay = DAY_KEYWORDS[word]
-        dayLabel = word.charAt(0).toUpperCase() + word.slice(1)
-      }
+      if (word === 'today' || word === 'tonight') { targetDay = new Date().getDay(); dayLabel = 'today' }
+      else if (word === 'tomorrow') { targetDay = (new Date().getDay() + 1) % 7; dayLabel = 'tomorrow' }
+      else { targetDay = DAY_KEYWORDS[word]; dayLabel = word.charAt(0).toUpperCase() + word.slice(1) }
       break
     }
   }
-  // Also check "this weekend"
-  if (lower.includes('this weekend') || lower.includes('weekend')) {
-    targetDay = -1 // special: means Saturday or Sunday
-    dayLabel = 'this weekend'
-  }
-
-  // Detect time of day
+  if (lower.includes('this weekend') || lower.includes('weekend')) { targetDay = -1; dayLabel = 'this weekend' }
   let timeFilter: string | null = null
   for (const t of TIME_KEYWORDS) {
-    if (lower.includes(t)) {
-      if (t === 'morning') timeFilter = 'morning'
-      else if (t === 'afternoon') timeFilter = 'afternoon'
-      else timeFilter = 'evening'
-      break
-    }
+    if (lower.includes(t)) { timeFilter = t === 'morning' ? 'morning' : t === 'afternoon' ? 'afternoon' : 'evening'; break }
   }
-
-  // Detect category
   let detectedCategory: string | null = null
-  // Check multi-word synonyms first
   for (const [phrase, cat] of Object.entries(CATEGORY_SYNONYMS)) {
-    if (lower.includes(phrase)) {
-      detectedCategory = cat
-      break
-    }
+    if (lower.includes(phrase)) { detectedCategory = cat; break }
   }
-  // Then single words
   if (!detectedCategory) {
     for (const word of words) {
-      if (CATEGORY_SYNONYMS[word]) {
-        detectedCategory = CATEGORY_SYNONYMS[word]
-        break
-      }
+      if (CATEGORY_SYNONYMS[word]) { detectedCategory = CATEGORY_SYNONYMS[word]; break }
     }
   }
-
-  // Extract search terms (remove day/time keywords)
   const stopWords = [...Object.keys(DAY_KEYWORDS), ...TIME_KEYWORDS, 'this', 'next', 'weekend', 'near', 'me', 'in', 'at', 'the', 'a', 'an', 'for', 'on', 'with']
   const searchTerms = words.filter(w => !stopWords.includes(w) && w.length > 1).join(' ')
-
   return { targetDay, dayLabel, timeFilter, detectedCategory, searchTerms }
 }
 
 function matchesDay(eventDate: Date, targetDay: number): boolean {
-  if (targetDay === -1) {
-    // Weekend
-    const day = eventDate.getDay()
-    return day === 0 || day === 6
-  }
+  if (targetDay === -1) { const day = eventDate.getDay(); return day === 0 || day === 6 }
   return eventDate.getDay() === targetDay
 }
 
@@ -104,23 +68,24 @@ function matchesTime(eventDate: Date, timeFilter: string): boolean {
   const hour = eventDate.getHours()
   if (timeFilter === 'morning') return hour >= 5 && hour < 12
   if (timeFilter === 'afternoon') return hour >= 12 && hour < 17
-  if (timeFilter === 'evening') return hour >= 17 || hour < 2
-  return true
+  return hour >= 17 || hour < 2
 }
 
 export default function SearchPage() {
   const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
   const [activeTab, setActiveTab] = useState('All')
   const [events, setEvents] = useState<any[]>([])
   const [people, setPeople] = useState<any[]>([])
   const [communities, setCommunities] = useState<any[]>([])
+  const [tagResults, setTagResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [vibeResult, setVibeResult] = useState<any>(null)
   const [recommendations, setRecommendations] = useState<any[]>([])
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [recentlyViewed, setRecentlyViewed] = useState<any[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -128,130 +93,113 @@ export default function SearchPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
-      fetchProfile(session.user.id)
       fetchRecommendations(session.user.id)
     })
+    // Load from localStorage
+    try {
+      const saved = localStorage.getItem(RECENT_SEARCHES_KEY)
+      if (saved) setRecentSearches(JSON.parse(saved))
+      const viewed = localStorage.getItem(RECENTLY_VIEWED_KEY)
+      if (viewed) setRecentlyViewed(JSON.parse(viewed))
+    } catch {}
   }, [])
 
-  const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    if (data) setProfile(data)
+  const saveRecentSearch = (term: string) => {
+    if (!term.trim()) return
+    setRecentSearches(prev => {
+      const updated = [term, ...prev.filter(s => s !== term)].slice(0, 8)
+      try { localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated)) } catch {}
+      return updated
+    })
+  }
+
+  const removeRecentSearch = (term: string) => {
+    setRecentSearches(prev => {
+      const updated = prev.filter(s => s !== term)
+      try { localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated)) } catch {}
+      return updated
+    })
+  }
+
+  const clearRecentSearches = () => {
+    setRecentSearches([])
+    try { localStorage.removeItem(RECENT_SEARCHES_KEY) } catch {}
   }
 
   const fetchRecommendations = async (userId: string) => {
     const { data: profileData } = await supabase.from('profiles').select('interests, city').eq('id', userId).single()
     if (!profileData) return
-
     const { data: allEvents } = await supabase
-      .from('events')
-      .select('*')
-      .eq('visibility', 'public')
+      .from('events').select('*').eq('visibility', 'public')
       .gte('start_datetime', new Date().toISOString())
-      .order('start_datetime', { ascending: true })
-      .limit(50)
-
+      .order('start_datetime', { ascending: true }).limit(50)
     if (!allEvents) return
-
-    // Score each event
     const scored = allEvents.map(event => {
       let score = 0
       const userInterests = (profileData.interests || []).map((i: string) => i.toLowerCase())
       const eventTags = (event.tags || []).map((t: string) => t.toLowerCase())
       const eventCat = event.category?.toLowerCase() || ''
-
-      // Interest match (+3 per match)
       userInterests.forEach((interest: string) => {
         if (eventTags.includes(interest)) score += 3
         if (eventCat.includes(interest)) score += 2
       })
-
-      // City match (+2)
       if (event.city?.toLowerCase() === profileData.city?.toLowerCase()) score += 2
-
-      // Popularity (+1 for each 10% filled)
-      if (event.capacity > 0) {
-        const filled = ((event.capacity - event.spots_left) / event.capacity) * 10
-        score += Math.floor(filled)
-      }
-
-      // Urgency bonus (+2 if almost full)
+      if (event.capacity > 0) score += Math.floor(((event.capacity - event.spots_left) / event.capacity) * 10)
       if (event.spots_left > 0 && event.spots_left < 10) score += 2
-
-      // Soon bonus (+1 if within 3 days)
-      const daysUntil = (new Date(event.start_datetime).getTime() - Date.now()) / 86400000
-      if (daysUntil < 3) score += 1
-
+      if ((new Date(event.start_datetime).getTime() - Date.now()) / 86400000 < 3) score += 1
       return { ...event, score }
     })
-
     scored.sort((a, b) => b.score - a.score)
     setRecommendations(scored.slice(0, 5))
   }
 
-  const handleSearch = async () => {
-    if (!query.trim() && activeCategory === 'All') return
+  const handleSearch = async (searchQuery?: string) => {
+    const q = searchQuery ?? query
+    if (!q.trim() && activeCategory === 'All') return
     setLoading(true)
     setSearched(true)
+    if (q.trim()) saveRecentSearch(q.trim())
 
-    const vibe = parseVibeQuery(query)
+    const vibe = parseVibeQuery(q)
     setVibeResult(vibe.searchTerms || vibe.detectedCategory || vibe.dayLabel ? vibe : null)
 
-    // Search events
-    let eventQuery = supabase
-      .from('events')
-      .select('*')
-      .eq('visibility', 'public')
-      .order('start_datetime', { ascending: true })
-      .limit(30)
-
     const categoryToUse = activeCategory !== 'All' ? activeCategory : vibe.detectedCategory
-    if (categoryToUse) {
-      eventQuery = eventQuery.eq('category', categoryToUse)
-    }
 
-    if (vibe.searchTerms) {
-      eventQuery = eventQuery.or('title.ilike.%' + vibe.searchTerms + '%,description.ilike.%' + vibe.searchTerms + '%,location_name.ilike.%' + vibe.searchTerms + '%')
-    }
-
+    // Search events
+    let eventQuery = supabase.from('events').select('*').eq('visibility', 'public')
+      .order('start_datetime', { ascending: true }).limit(30)
+    if (categoryToUse) eventQuery = eventQuery.eq('category', categoryToUse)
+    if (vibe.searchTerms) eventQuery = eventQuery.or('title.ilike.%' + vibe.searchTerms + '%,description.ilike.%' + vibe.searchTerms + '%,location_name.ilike.%' + vibe.searchTerms + '%')
     const { data: eventData } = await eventQuery
     let filteredEvents = eventData || []
-
-    // Apply day filter
-    if (vibe.targetDay !== null && filteredEvents.length > 0) {
-      filteredEvents = filteredEvents.filter(e => matchesDay(new Date(e.start_datetime), vibe.targetDay!))
-    }
-
-    // Apply time filter
-    if (vibe.timeFilter && filteredEvents.length > 0) {
-      filteredEvents = filteredEvents.filter(e => matchesTime(new Date(e.start_datetime), vibe.timeFilter!))
-    }
-
+    if (vibe.targetDay !== null) filteredEvents = filteredEvents.filter(e => matchesDay(new Date(e.start_datetime), vibe.targetDay!))
+    if (vibe.timeFilter) filteredEvents = filteredEvents.filter(e => matchesTime(new Date(e.start_datetime), vibe.timeFilter!))
     setEvents(filteredEvents)
 
-    // Search people
-    if (query.trim()) {
-      const { data: peopleData } = await supabase
-        .from('profiles')
-        .select('id, name, bio_social, city, interests, profile_mode')
-        .ilike('name', '%' + query.trim() + '%')
-        .neq('id', user?.id)
-        .limit(10)
-      if (peopleData) setPeople(peopleData)
+    // Search by tag
+    if (q.trim()) {
+      const tag = q.trim().replace(/^#/, '').toLowerCase()
+      const { data: tagData } = await supabase.from('events').select('*').eq('visibility', 'public')
+        .contains('tags', [tag]).order('start_datetime', { ascending: true }).limit(20)
+      setTagResults(tagData || [])
     } else {
-      setPeople([])
+      setTagResults([])
     }
 
+    // Search people
+    if (q.trim()) {
+      const { data: peopleData } = await supabase.from('profiles')
+        .select('id, name, bio_social, city, avatar_url').ilike('name', '%' + q.trim() + '%')
+        .neq('id', user?.id).limit(10)
+      if (peopleData) setPeople(peopleData)
+    } else { setPeople([]) }
+
     // Search communities
-    if (query.trim()) {
-      const { data: commData } = await supabase
-        .from('communities')
-        .select('*')
-        .ilike('name', '%' + query.trim() + '%')
-        .limit(10)
+    if (q.trim()) {
+      const { data: commData } = await supabase.from('communities').select('*')
+        .ilike('name', '%' + q.trim() + '%').limit(10)
       if (commData) setCommunities(commData)
-    } else {
-      setCommunities([])
-    }
+    } else { setCommunities([]) }
 
     setLoading(false)
   }
@@ -265,6 +213,7 @@ export default function SearchPage() {
         setEvents([])
         setPeople([])
         setCommunities([])
+        setTagResults([])
         setVibeResult(null)
       }
     }, 400)
@@ -277,10 +226,32 @@ export default function SearchPage() {
       ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
   }
 
-  const totalResults = events.length + people.length + communities.length
+  const totalResults = events.length + people.length + communities.length + tagResults.length
   const visibleEvents = activeTab === 'All' || activeTab === 'Events' ? events : []
   const visiblePeople = activeTab === 'All' || activeTab === 'People' ? people : []
   const visibleCommunities = activeTab === 'All' || activeTab === 'Communities' ? communities : []
+  const visibleTags = activeTab === 'All' || activeTab === 'Tags' ? tagResults : []
+
+  const EventCard = ({ event }: { event: any }) => (
+    <div onClick={() => router.push('/events/' + event.id)}
+      className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: '#1E2E1E' }}>
+        {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : event.category === 'Outdoors' ? '🥾' : '🎉'}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
+        <div className="text-[10px] text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
+        {event.tags?.length > 0 && (
+          <div className="flex gap-1 mt-1.5">
+            {event.tags.slice(0, 3).map((tag: string) => (
+              <button key={tag} onClick={e => { e.stopPropagation(); setQuery('#' + tag) }}
+                className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-1.5 py-0.5 rounded border border-[#7EC87E]/10">#{tag}</button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
@@ -294,7 +265,7 @@ export default function SearchPage() {
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Events, people, vibes..."
+            placeholder="Events, people, #tags, vibes..."
             autoFocus
             className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none"
           />
@@ -311,7 +282,7 @@ export default function SearchPage() {
           {['All', 'Events', 'People', 'Communities', 'Tags'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={'flex-1 py-2.5 text-xs text-center border-b-2 -mb-px whitespace-nowrap ' + (activeTab === tab ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
-              {tab}
+              {tab}{tab === 'Tags' && tagResults.length > 0 ? ' · ' + tagResults.length : ''}
             </button>
           ))}
         </div>
@@ -332,14 +303,46 @@ export default function SearchPage() {
         {/* Not searched — discovery state */}
         {!searched && (
           <>
+            {/* Recent searches */}
+            {recentSearches.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Recent searches</div>
+                  <button onClick={clearRecentSearches} className="text-[10px] text-white/25">Clear</button>
+                </div>
+                <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
+                  {recentSearches.map((term, i) => (
+                    <div key={term} className={'flex items-center gap-2 px-3 py-2.5 ' + (i < recentSearches.length - 1 ? 'border-b border-white/10' : '')}>
+                      <span className="text-xs text-white/20">🕐</span>
+                      <button onClick={() => { setQuery(term); handleSearch(term) }}
+                        className="flex-1 text-sm text-[#F0EDE6] text-left">{term}</button>
+                      <button onClick={() => removeRecentSearch(term)} className="text-[10px] text-white/20 px-1">✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recently viewed */}
+            {recentlyViewed.length > 0 && (
+              <div className="mb-4">
+                <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-2">Recently viewed</div>
+                <div className="space-y-2">
+                  {recentlyViewed.slice(0, 3).map(event => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* AI hint */}
             <div className="bg-[#1C241C] border border-[#E8B84B]/20 rounded-2xl p-3 mb-4 flex items-center gap-2">
               <span className="text-base">✨</span>
-              <span className="text-xs text-[#E8B84B]/70 flex-1">Try &quot;live music thursday night&quot; or &quot;coffee meetup this weekend&quot;</span>
-              <span className="bg-[#E8B84B]/10 text-[#E8B84B] text-[9px] px-2 py-0.5 rounded">AI</span>
+              <span className="text-xs text-[#E8B84B]/70 flex-1">Try &quot;live music thursday night&quot; or &quot;#yoga this weekend&quot;</span>
+              <span className="bg-[#E8B84B]/10 text-[#E8B84B] text-[9px] px-2 py-0.5 rounded">Smart</span>
             </div>
 
-            {/* Smart recommendations */}
+            {/* Recommendations */}
             {recommendations.length > 0 && (
               <>
                 <div className="flex items-center gap-2 mb-2">
@@ -356,12 +359,7 @@ export default function SearchPage() {
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
                         <div className="text-[10px] text-white/40 mt-0.5">{formatDate(event.start_datetime)}</div>
-                        {event.score >= 5 && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className="text-[9px] text-[#E8B84B]">✦</span>
-                            <span className="text-[9px] text-[#E8B84B]/70">Great match</span>
-                          </div>
-                        )}
+                        {event.score >= 5 && <div className="text-[9px] text-[#E8B84B] mt-1">✦ Great match</div>}
                       </div>
                     </div>
                   ))}
@@ -389,7 +387,7 @@ export default function SearchPage() {
               ))}
             </div>
 
-            {/* Trending searches */}
+            {/* Trending */}
             <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2 font-medium">Trending searches</div>
             <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
               {['live music this weekend', 'coffee meetup tomorrow', 'running club', '#startups', 'outdoor adventure'].map((term, i) => (
@@ -407,27 +405,14 @@ export default function SearchPage() {
         {/* Search results */}
         {searched && !loading && (
           <>
-            {/* Vibe search banner */}
             {vibeResult && (vibeResult.detectedCategory || vibeResult.dayLabel || vibeResult.timeFilter) && (
               <div className="bg-gradient-to-r from-[#1A2A1A] to-[#0E1A0E] border border-[#E8B84B]/20 rounded-2xl p-3 mb-3">
-                <div className="text-[9px] uppercase tracking-wider text-[#E8B84B]/60 mb-1">✨ AI Vibe Search</div>
-                <div className="text-sm font-bold text-[#F0EDE6] mb-1" style={{ fontFamily: 'sans-serif' }}>&quot;{query}&quot;</div>
+                <div className="text-[9px] uppercase tracking-wider text-[#E8B84B]/60 mb-1">✨ Smart Search</div>
+                <div className="text-sm font-bold text-[#F0EDE6] mb-1">&quot;{query}&quot;</div>
                 <div className="flex flex-wrap gap-1.5">
-                  {vibeResult.detectedCategory && (
-                    <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
-                      {vibeResult.detectedCategory}
-                    </span>
-                  )}
-                  {vibeResult.dayLabel && (
-                    <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
-                      {vibeResult.dayLabel}
-                    </span>
-                  )}
-                  {vibeResult.timeFilter && (
-                    <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
-                      {vibeResult.timeFilter}
-                    </span>
-                  )}
+                  {vibeResult.detectedCategory && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.detectedCategory}</span>}
+                  {vibeResult.dayLabel && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.dayLabel}</span>}
+                  {vibeResult.timeFilter && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.timeFilter}</span>}
                 </div>
                 <div className="text-[10px] text-[#7EC87E] mt-1.5">{events.length} matching event{events.length !== 1 ? 's' : ''} found</div>
               </div>
@@ -436,7 +421,7 @@ export default function SearchPage() {
             {totalResults === 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
                 <div className="text-4xl">🔍</div>
-                <p className="text-white/40 text-sm text-center">No results found</p>
+                <p className="text-white/40 text-sm text-center">No results for &quot;{query}&quot;</p>
                 <p className="text-white/25 text-xs text-center max-w-[220px]">Try different words or browse by category above</p>
               </div>
             )}
@@ -445,30 +430,28 @@ export default function SearchPage() {
             {visibleEvents.length > 0 && (
               <>
                 <div className="flex items-center justify-between mb-2 mt-2">
-                  <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Events</div>
+                  <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Events · {events.length}</div>
                   {activeTab === 'All' && events.length > 3 && (
-                    <button onClick={() => setActiveTab('Events')} className="text-[10px] text-[#E8B84B]">See all {events.length} →</button>
+                    <button onClick={() => setActiveTab('Events')} className="text-[10px] text-[#E8B84B]">See all →</button>
                   )}
                 </div>
                 <div className="space-y-2 mb-4">
                   {(activeTab === 'All' ? visibleEvents.slice(0, 4) : visibleEvents).map(event => (
-                    <div key={event.id} onClick={() => router.push('/events/' + event.id)}
-                      className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: '#1E2E1E' }}>
-                        {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : '🎉'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
-                        <div className="text-[10px] text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
-                        {event.tags?.length > 0 && (
-                          <div className="flex gap-1 mt-1.5">
-                            {event.tags.slice(0, 2).map((tag: string) => (
-                              <span key={tag} className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-1.5 py-0.5 rounded border border-[#7EC87E]/10">#{tag}</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Tags */}
+            {visibleTags.length > 0 && (
+              <>
+                <div className="flex items-center justify-between mb-2 mt-2">
+                  <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Tag matches · {tagResults.length}</div>
+                </div>
+                <div className="space-y-2 mb-4">
+                  {(activeTab === 'All' ? visibleTags.slice(0, 3) : visibleTags).map(event => (
+                    <EventCard key={event.id} event={event} />
                   ))}
                 </div>
               </>
@@ -477,14 +460,18 @@ export default function SearchPage() {
             {/* People */}
             {visiblePeople.length > 0 && (
               <>
-                <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-2">People</div>
+                <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-2">People · {people.length}</div>
                 <div className="space-y-2 mb-4">
                   {visiblePeople.map(person => (
                     <div key={person.id} onClick={() => router.push('/profile/' + person.id)}
                       className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
-                      <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-                        {person.name?.charAt(0) || '🧑'}
-                      </div>
+                      {person.avatar_url ? (
+                        <img src={person.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
+                          {person.name?.charAt(0) || '🧑'}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-[#F0EDE6]">{person.name}</div>
                         <div className="text-[10px] text-white/40 mt-0.5">{person.bio_social || person.city || ''}</div>
@@ -498,7 +485,7 @@ export default function SearchPage() {
             {/* Communities */}
             {visibleCommunities.length > 0 && (
               <>
-                <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-2">Communities</div>
+                <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-2">Communities · {communities.length}</div>
                 <div className="space-y-2 mb-4">
                   {visibleCommunities.map(comm => (
                     <div key={comm.id} onClick={() => router.push('/communities/' + comm.id)}
