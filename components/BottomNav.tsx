@@ -7,32 +7,33 @@ import { supabase } from '@/lib/supabase'
 export default function BottomNav() {
   const router = useRouter()
   const path = usePathname()
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
+  const [unreadNotifs, setUnreadNotifs] = useState(0)
 
   useEffect(() => {
-    fetchUnread()
-    // Listen for new messages in real-time
+    fetchCounts()
+
     const channel = supabase
-      .channel('unread-badge')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-      }, () => fetchUnread())
+      .channel('nav-badge')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => fetchCounts())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => fetchCounts())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, () => fetchCounts())
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
   }, [])
 
-  const fetchUnread = async () => {
+  const fetchCounts = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
-    const { count } = await supabase
-      .from('messages')
-      .select('*', { count: 'exact', head: true })
-      .eq('recipient_id', session.user.id)
-      .is('read_at', null)
-    if (count !== null) setUnreadCount(count)
+
+    const [msgRes, notifRes] = await Promise.all([
+      supabase.from('messages').select('*', { count: 'exact', head: true }).eq('recipient_id', session.user.id).is('read_at', null),
+      supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('read', false),
+    ])
+
+    if (msgRes.count !== null) setUnreadMessages(msgRes.count)
+    if (notifRes.count !== null) setUnreadNotifs(notifRes.count)
   }
 
   const tabs = [
@@ -40,7 +41,7 @@ export default function BottomNav() {
     { icon: '👥', label: 'Communities', href: '/communities' },
     { icon: null, label: '', href: '/create' },
     { icon: '💬', label: 'Messages', href: '/messages' },
-    { icon: '👤', label: 'Profile', href: '/profile' },
+    { icon: '🔔', label: 'Activity', href: '/notifications' },
   ]
 
   return (
@@ -53,14 +54,15 @@ export default function BottomNav() {
           </button>
         )
         const active = path === tab.href || (tab.href === '/messages' && path?.startsWith('/messages'))
+        const badge = tab.href === '/messages' ? unreadMessages : tab.href === '/notifications' ? unreadNotifs : 0
         return (
           <button key={tab.href} onClick={() => router.push(tab.href)}
             className="flex-1 flex flex-col items-center gap-1 relative">
             <span className="text-lg relative">
               {tab.icon}
-              {tab.href === '/messages' && unreadCount > 0 && (
+              {badge > 0 && (
                 <span className="absolute -top-1.5 -right-2.5 bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold min-w-[14px] h-[14px] rounded-full flex items-center justify-center px-0.5 border-2 border-[#0D110D]">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                  {badge > 9 ? '9+' : badge}
                 </span>
               )}
             </span>
