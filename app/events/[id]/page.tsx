@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
@@ -28,6 +28,14 @@ interface Attendee {
   profiles: { id: string; name: string; avatar_url: string | null }
 }
 
+interface Comment {
+  id: string
+  user_id: string
+  text: string
+  created_at: string
+  profiles: { id: string; name: string; avatar_url: string | null }
+}
+
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [event, setEvent] = useState<Event | null>(null)
   const [host, setHost] = useState<any>(null)
@@ -40,6 +48,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [totalAttendees, setTotalAttendees] = useState(0)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [comments, setComments] = useState<Comment[]>([])
+  const [commentText, setCommentText] = useState('')
+  const [postingComment, setPostingComment] = useState(false)
+  const commentInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -53,6 +65,27 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     })
   }, [])
 
+  useEffect(() => {
+    if (!eventId) return
+    const channel = supabase
+      .channel('comments-' + eventId)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'event_comments',
+        filter: 'event_id=eq.' + eventId,
+      }, async (payload) => {
+        const { data } = await supabase
+          .from('event_comments')
+          .select('id, user_id, text, created_at, profiles(id, name, avatar_url)')
+          .eq('id', payload.new.id)
+          .single()
+        if (data) setComments(prev => [...prev, data as any])
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [eventId])
+
   const fetchEvent = async (id: string, userId: string) => {
     const { data: eventData } = await supabase
       .from('events')
@@ -63,17 +96,19 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (!eventData) { router.push('/home'); return }
     setEvent(eventData)
 
-    const [hostRes, rsvpRes, attendeesRes, countRes] = await Promise.all([
+    const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', eventData.host_id).single(),
       supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).single(),
       supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', id).limit(12),
       supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('event_id', id),
+      supabase.from('event_comments').select('id, user_id, text, created_at, profiles(id, name, avatar_url)').eq('event_id', id).order('created_at', { ascending: true }),
     ])
 
     if (hostRes.data) setHost(hostRes.data)
     if (rsvpRes.data) setRsvped(true)
     if (attendeesRes.data) setAttendees(attendeesRes.data as any)
     if (countRes.count !== null) setTotalAttendees(countRes.count)
+    if (commentsRes.data) setComments(commentsRes.data as any)
 
     setLoading(false)
   }
@@ -111,8 +146,33 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     router.push('/home')
   }
 
+  const handlePostComment = async () => {
+    const trimmed = commentText.trim()
+    if (!trimmed || !user || !eventId || postingComment) return
+    setPostingComment(true)
+    setCommentText('')
+    await supabase.from('event_comments').insert({
+      event_id: eventId,
+      user_id: user.id,
+      text: trimmed,
+    })
+    setPostingComment(false)
+  }
+
+  const handleDeleteComment = async (commentId: string) => {
+    await supabase.from('event_comments').delete().eq('id', commentId)
+    setComments(prev => prev.filter(c => c.id !== commentId))
+  }
+
   const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const formatTime = (dt: string) => new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const formatCommentTime = (dt: string) => {
+    const diff = Date.now() - new Date(dt).getTime()
+    if (diff < 60000) return 'just now'
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago'
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago'
+    return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
 
   if (loading) return (
     <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
@@ -273,6 +333,76 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
         )}
+
+        {/* Comments */}
+        <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">
+              {comments.length > 0 ? `Comments · ${comments.length}` : 'Comments'}
+            </div>
+            <button onClick={() => commentInputRef.current?.focus()}
+              className="text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1 rounded-lg">
+              + Add
+            </button>
+          </div>
+
+          {comments.length === 0 ? (
+            <div className="flex items-center gap-2 py-1">
+              <div className="text-2xl">💬</div>
+              <p className="text-xs text-white/35">No comments yet — ask a question!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {comments.map(comment => {
+                const profile = (comment as any).profiles
+                const isCommentHost = comment.user_id === event.host_id
+                const isOwn = comment.user_id === user?.id
+                return (
+                  <div key={comment.id} className={'flex gap-2.5 ' + (isCommentHost ? 'rounded-xl border border-[#E8B84B]/15 bg-[#E8B84B]/5 p-2' : '')}>
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="" className="w-7 h-7 rounded-lg object-cover flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <div className="w-7 h-7 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-xs flex-shrink-0 mt-0.5">
+                        {profile?.name?.charAt(0) || '?'}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-xs font-semibold text-[#F0EDE6]">{profile?.name || 'Unknown'}</span>
+                        {isCommentHost && <span className="text-[8px] text-[#E8B84B] bg-[#E8B84B]/10 px-1.5 py-0.5 rounded-full">Host</span>}
+                        <span className="text-[9px] text-white/25 ml-auto">{formatCommentTime(comment.created_at)}</span>
+                        {isOwn && (
+                          <button onClick={() => handleDeleteComment(comment.id)} className="text-[9px] text-white/20 hover:text-red-400">✕</button>
+                        )}
+                      </div>
+                      <p className="text-xs text-white/60 leading-relaxed">{comment.text}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="flex gap-2 mt-3 pt-3 border-t border-white/10">
+            <input
+              ref={commentInputRef}
+              type="text"
+              value={commentText}
+              onChange={e => setCommentText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handlePostComment()}
+              placeholder="Ask a question or leave a comment..."
+              maxLength={500}
+              className="flex-1 bg-[#0D110D] border border-white/10 rounded-xl px-3 py-2 text-xs text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/30"
+            />
+            <button
+              onClick={handlePostComment}
+              disabled={!commentText.trim() || postingComment}
+              className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-3 py-2 rounded-xl disabled:opacity-30 active:scale-95 transition-transform"
+            >
+              Post
+            </button>
+          </div>
+        </div>
 
         {/* Tags */}
         {event.tags && event.tags.length > 0 && (
