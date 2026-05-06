@@ -10,6 +10,7 @@ interface Event {
   title: string
   category: string
   start_datetime: string
+  end_datetime: string
   location_name: string
   city: string
   spots_left: number
@@ -18,9 +19,10 @@ interface Event {
   visibility: string
   is_featured: boolean
   host_id: string
+  rsvp_count?: number
 }
 
-const TABS = ['🔥 Trending', '✦ For You', '🏙 City', '👥 Friends', '📌 My Events']
+const TABS = ['🔥 Trending', '✦ For You', '🏙 Near Me', '👥 Friends', '📌 Mine']
 
 const ALL_CITIES = [
   'Bellingham', 'Seattle', 'Tacoma', 'Olympia', 'Spokane',
@@ -32,18 +34,66 @@ const ALL_CITIES = [
   'Minneapolis', 'Detroit', 'Phoenix', 'Las Vegas', 'Honolulu'
 ]
 
+const CAT_EMOJI: Record<string, string> = {
+  'Music': '🎸', 'Fitness': '🏃', 'Food & Drink': '🍺',
+  'Tech': '💻', 'Outdoors': '🥾', 'Arts & Culture': '🎨',
+  'Networking': '💼', 'Social': '🎉',
+}
+
+const CAT_GRADIENT: Record<string, string> = {
+  'Music': 'linear-gradient(135deg,#1E2E3A,#1A0E2A)',
+  'Fitness': 'linear-gradient(135deg,#2A1E0E,#1A2A0E)',
+  'Food & Drink': 'linear-gradient(135deg,#2A1A0E,#1E1A0E)',
+  'Tech': 'linear-gradient(135deg,#1A1E2A,#0E1A2A)',
+  'Outdoors': 'linear-gradient(135deg,#1A2A1A,#0E2A1A)',
+  'Arts & Culture': 'linear-gradient(135deg,#2A1A2A,#1A0E1E)',
+  'Networking': 'linear-gradient(135deg,#1E1A2A,#1A1E2A)',
+  'Social': 'linear-gradient(135deg,#1E3A1E,#2A1A0E)',
+}
+
+function isToday(dt: string) {
+  const d = new Date(dt), now = new Date()
+  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+}
+
+function isTomorrow(dt: string) {
+  const d = new Date(dt), tom = new Date()
+  tom.setDate(tom.getDate() + 1)
+  return d.getDate() === tom.getDate() && d.getMonth() === tom.getMonth() && d.getFullYear() === tom.getFullYear()
+}
+
+function isThisWeekend(dt: string) {
+  const d = new Date(dt), day = d.getDay()
+  if (day !== 0 && day !== 6) return false
+  const now = new Date()
+  const diff = (d.getTime() - now.getTime()) / 86400000
+  return diff >= 0 && diff <= 7
+}
+
+function formatTime(dt: string) {
+  return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+function formatDate(dt: string) {
+  const d = new Date(dt)
+  if (isToday(dt)) return 'Today · ' + formatTime(dt)
+  if (isTomorrow(dt)) return 'Tomorrow · ' + formatTime(dt)
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + formatTime(dt)
+}
+
 export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
+  const [soonEvents, setSoonEvents] = useState<Event[]>([])
+  const [featuredEvent, setFeaturedEvent] = useState<Event | null>(null)
   const [activeTab, setActiveTab] = useState(0)
   const [loading, setLoading] = useState(true)
   const [rsvpEventIds, setRsvpEventIds] = useState<string[]>([])
   const [connectionIds, setConnectionIds] = useState<string[]>([])
   const [showCityPicker, setShowCityPicker] = useState(false)
   const [citySearch, setCitySearch] = useState('')
-  const [notifCount, setNotifCount] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -55,61 +105,40 @@ export default function HomePage() {
   }, [])
 
   const fetchAll = async (userId: string) => {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-    if (profileData) setProfile(profileData)
+    const [profileRes, eventsRes, rsvpRes, connRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.from('events').select('*').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(100),
+      supabase.from('rsvps').select('event_id').eq('user_id', userId),
+      supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),
+    ])
 
-    const { data: eventsData } = await supabase
-      .from('events')
-      .select('*')
-      .eq('visibility', 'public')
-      .order('start_datetime', { ascending: true })
-    if (eventsData) setEvents(eventsData)
+    if (profileRes.data) setProfile(profileRes.data)
+    if (rsvpRes.data) setRsvpEventIds(rsvpRes.data.map((r: any) => r.event_id))
+    if (connRes.data) setConnectionIds(connRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id))
 
-    const { data: rsvpData } = await supabase
-      .from('rsvps')
-      .select('event_id')
-      .eq('user_id', userId)
-    if (rsvpData) setRsvpEventIds(rsvpData.map(r => r.event_id))
+    const allEvents: Event[] = eventsRes.data || []
+    setEvents(allEvents)
 
-    const { data: connData } = await supabase
-      .from('connections')
-      .select('requester_id, addressee_id')
-      .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId)
-      .eq('status', 'accepted')
-    if (connData) {
-      const ids = connData.map(c => c.requester_id === userId ? c.addressee_id : c.requester_id)
-      setConnectionIds(ids)
-    }
+    // Happening soon (today + tomorrow)
+    const soon = allEvents.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime))
+    setSoonEvents(soon)
 
-    const { count } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('read', false)
-    if (count !== null) setNotifCount(count)
+    // Featured
+    const featured = allEvents.find(e => e.is_featured) || null
+    setFeaturedEvent(featured)
 
     setLoading(false)
   }
 
   const handleCityChange = async (newCity: string) => {
-    setShowCityPicker(false)
-    setCitySearch('')
+    setShowCityPicker(false); setCitySearch('')
     if (!user) return
     await supabase.from('profiles').update({ city: newCity }).eq('id', user.id)
     setProfile((prev: any) => prev ? { ...prev, city: newCity } : prev)
   }
 
-  const filteredCities = ALL_CITIES.filter(c =>
-    !citySearch || c.toLowerCase().includes(citySearch.toLowerCase())
-  )
-
   useEffect(() => {
     if (!events.length) { setFilteredEvents([]); return }
-
     switch (activeTab) {
       case 0:
         setFilteredEvents([...events].sort((a, b) => {
@@ -122,14 +151,11 @@ export default function HomePage() {
         if (profile?.interests?.length > 0) {
           const userInterests = profile.interests.map((i: string) => i.toLowerCase())
           const matched = events.filter(e => {
-            const eventTags = (e.tags || []).map(t => t.toLowerCase())
-            const eventCat = e.category?.toLowerCase() || ''
-            return userInterests.some((interest: string) =>
-              eventTags.includes(interest) || eventCat.includes(interest)
-            )
+            const tags = (e.tags || []).map(t => t.toLowerCase())
+            const cat = e.category?.toLowerCase() || ''
+            return userInterests.some((int: string) => tags.includes(int) || cat.includes(int))
           })
-          const unmatched = events.filter(e => !matched.includes(e))
-          setFilteredEvents([...matched, ...unmatched])
+          setFilteredEvents([...matched, ...events.filter(e => !matched.includes(e))])
         } else {
           setFilteredEvents(events)
         }
@@ -139,11 +165,7 @@ export default function HomePage() {
         setFilteredEvents(events.filter(e => e.city?.toLowerCase() === userCity.toLowerCase()))
         break
       case 3:
-        if (connectionIds.length > 0) {
-          setFilteredEvents(events.filter(e => connectionIds.includes(e.host_id)))
-        } else {
-          setFilteredEvents([])
-        }
+        setFilteredEvents(connectionIds.length > 0 ? events.filter(e => connectionIds.includes(e.host_id)) : [])
         break
       case 4:
         setFilteredEvents(events.filter(e => e.host_id === user?.id || rsvpEventIds.includes(e.id)))
@@ -153,44 +175,17 @@ export default function HomePage() {
     }
   }, [activeTab, events, profile, rsvpEventIds, connectionIds, user])
 
-  const formatDate = (dt: string) => {
-    const d = new Date(dt)
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) +
-      ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  }
-
   const getEmptyMessage = () => {
     switch (activeTab) {
-      case 1: return profile?.interests?.length > 0 ? 'No events match your interests yet' : 'Add interests in your profile to get personalized recommendations'
-      case 2: return 'No events in your city yet'
-      case 3: return connectionIds.length > 0 ? 'None of your connections are hosting events right now' : 'Connect with people to see their events here'
-      case 4: return 'You haven\'t created or RSVPd to any events yet'
-      default: return 'No events yet — be the first to create one!'
+      case 1: return profile?.interests?.length > 0 ? 'No events match your interests yet' : 'Add interests to get personalized picks'
+      case 2: return 'No events in ' + (profile?.city || 'your city') + ' yet'
+      case 3: return connectionIds.length > 0 ? 'No friends are hosting right now' : 'Connect with people to see their events here'
+      case 4: return 'No events yet — create or RSVP to one!'
+      default: return 'No events yet — be the first!'
     }
   }
 
-  const getEmptyAction = () => {
-    switch (activeTab) {
-      case 1: return profile?.interests?.length > 0 ? null : { label: 'Add Interests', href: '/profile/edit' }
-      case 3: return connectionIds.length > 0 ? null : { label: 'Find People', href: '/communities' }
-      case 4: return { label: 'Create Event', href: '/create' }
-      default: return { label: 'Create Event', href: '/create' }
-    }
-  }
-
-  const getCategoryEmoji = (cat: string) => {
-    switch (cat) {
-      case 'Music': return '🎸'
-      case 'Fitness': return '🏃'
-      case 'Food & Drink': return '🍺'
-      case 'Tech': return '💻'
-      case 'Outdoors': return '🥾'
-      case 'Arts & Culture': return '🎨'
-      case 'Networking': return '💼'
-      case 'Social': return '🎉'
-      default: return '🎉'
-    }
-  }
+  const filteredCities = ALL_CITIES.filter(c => !citySearch || c.toLowerCase().includes(citySearch.toLowerCase()))
 
   if (loading) return (
     <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
@@ -200,33 +195,107 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
+
+      {/* Header */}
       <div className="px-4 pt-14 pb-0 bg-[#0D110D]">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>
-            Gathr<span className="text-[#E8B84B]">.</span>
-          </h1>
+          <div>
+            <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>
+              Gathr<span className="text-[#E8B84B]">.</span>
+            </h1>
+            {profile?.name && (
+              <p className="text-xs text-white/30 mt-0.5">Hey {profile.name.split(' ')[0]} 👋</p>
+            )}
+          </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowCityPicker(true)} className="flex items-center gap-1.5 bg-[#1C241C] border border-white/10 rounded-full px-3 py-1.5">
+            <button onClick={() => setShowCityPicker(true)}
+              className="flex items-center gap-1.5 bg-[#1C241C] border border-white/10 rounded-full px-3 py-1.5">
               <div className="w-1.5 h-1.5 rounded-sm bg-[#5BCC7A]"></div>
               <span className="text-[#F0EDE6] text-xs">{profile?.city || 'Bellingham'} ↓</span>
             </button>
-            <button onClick={() => router.push('/notifications')}
-              className="w-8 h-8 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-base relative">
-              🔔
-              {notifCount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center border border-[#0D110D]">
-                  {notifCount > 9 ? '9+' : notifCount}
-                </div>
-              )}
-            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-3 cursor-pointer" onClick={() => router.push('/search')}>
-          <span className="text-[#F0EDE6] opacity-30 text-sm">🔍</span>
-          <span className="text-[#F0EDE6] opacity-30 text-sm flex-1">Search events, people, vibes...</span>
-          <span className="bg-[#1E3A1E] border border-[#E8B84B]/15 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">Filter</span>
+
+        {/* Search bar */}
+        <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-4 cursor-pointer active:opacity-80"
+          onClick={() => router.push('/search')}>
+          <span className="text-white/30 text-sm">🔍</span>
+          <span className="text-white/30 text-sm flex-1">Search events, people, vibes...</span>
+          <span className="bg-[#1E3A1E] border border-[#E8B84B]/15 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">✨ AI</span>
         </div>
 
+        {/* Happening soon strip */}
+        {soonEvents.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#E85B5B] animate-pulse"></div>
+                <span className="text-xs font-semibold text-[#F0EDE6]">Happening Soon</span>
+              </div>
+              <span className="text-[10px] text-white/30">{soonEvents.length} event{soonEvents.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4">
+              {soonEvents.map(event => {
+                const isRsvpd = rsvpEventIds.includes(event.id)
+                return (
+                  <div key={event.id} onClick={() => router.push('/events/' + event.id)}
+                    className={'flex-shrink-0 w-44 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/30' : 'border-white/10')}>
+                    <div className="h-20 flex items-center justify-center text-3xl relative"
+                      style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
+                      <span>{CAT_EMOJI[event.category] || '🎉'}</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-70"></div>
+                      {isRsvpd && (
+                        <div className="absolute top-1.5 right-1.5 bg-[#7EC87E] text-[#0D110D] text-[8px] font-bold px-1.5 py-0.5 rounded-full">Going ✓</div>
+                      )}
+                      <div className="absolute bottom-1.5 left-2 right-2">
+                        <div className={'text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-block ' + (isToday(event.start_datetime) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>
+                          {isToday(event.start_datetime) ? 'Today' : 'Tomorrow'} · {formatTime(event.start_datetime)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-2 bg-[#1C241C]">
+                      <div className="text-xs font-semibold text-[#F0EDE6] truncate leading-snug">{event.title}</div>
+                      <div className="text-[9px] text-white/40 mt-0.5 truncate">{event.location_name}</div>
+                      {event.spots_left > 0 && event.spots_left < 15 && (
+                        <div className="text-[9px] text-[#E8A84B] mt-0.5">{event.spots_left} spots left</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Featured event hero */}
+        {featuredEvent && activeTab === 0 && (
+          <div onClick={() => router.push('/events/' + featuredEvent.id)}
+            className="rounded-3xl overflow-hidden mb-4 cursor-pointer active:scale-[0.98] transition-transform border border-[#E8B84B]/20">
+            <div className="h-36 flex items-center justify-center text-5xl relative"
+              style={{ background: CAT_GRADIENT[featuredEvent.category] || CAT_GRADIENT['Social'] }}>
+              <span>{CAT_EMOJI[featuredEvent.category] || '🎉'}</span>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
+              <div className="absolute top-3 left-3">
+                <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2.5 py-1 rounded-full">⭐ Featured</span>
+              </div>
+              {rsvpEventIds.includes(featuredEvent.id) && (
+                <div className="absolute top-3 right-3">
+                  <span className="bg-[#7EC87E] text-[#0D110D] text-[9px] font-bold px-2 py-1 rounded-full">Going ✓</span>
+                </div>
+              )}
+            </div>
+            <div className="p-3.5 bg-gradient-to-b from-[#1A2A1A] to-[#1C241C]">
+              <div className="text-xs text-[#E8B84B] font-medium mb-1">{featuredEvent.category}</div>
+              <h3 className="font-bold text-[#F0EDE6] text-base leading-snug mb-2">{featuredEvent.title}</h3>
+              <div className="flex items-center gap-3 text-[10px] text-white/45">
+                <span>📅 {formatDate(featuredEvent.start_datetime)}</span>
+                <span>📍 {featuredEvent.location_name}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tabs */}
         <div className="flex border-b border-white/10 -mx-4 px-4 overflow-x-auto">
           {TABS.map((tab, i) => (
             <button key={tab} onClick={() => setActiveTab(i)}
@@ -237,100 +306,108 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Feed */}
       <div className="px-4 pt-4">
-        <div className="mb-3">
-          <h2 className="text-lg font-bold text-[#F0EDE6]">
-            {activeTab === 0 ? 'What\'s Popular' : activeTab === 1 ? 'Picked For You' : activeTab === 2 ? ('In ' + (profile?.city || 'Bellingham')) : activeTab === 3 ? 'Friends\' Events' : 'Your Events'}
-          </h2>
-          <p className="text-xs text-white/40 mt-0.5">
-            {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
-            {activeTab === 1 && profile?.interests?.length > 0 && (' · Based on: ' + profile.interests.slice(0, 3).join(', '))}
-          </p>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-base font-bold text-[#F0EDE6]">
+              {activeTab === 0 ? "What's Popular" : activeTab === 1 ? 'Picked For You' : activeTab === 2 ? ('In ' + (profile?.city || 'Bellingham')) : activeTab === 3 ? "Friends' Events" : 'Your Events'}
+            </h2>
+            <p className="text-[10px] text-white/30 mt-0.5">
+              {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
+              {activeTab === 1 && profile?.interests?.length > 0 && (' · ' + profile.interests.slice(0, 3).join(', '))}
+            </p>
+          </div>
         </div>
 
         {filteredEvents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
             <div className="text-4xl">{activeTab === 3 ? '👥' : activeTab === 4 ? '📌' : '🎉'}</div>
-            <p className="text-[#F0EDE6] opacity-50 text-sm text-center max-w-[240px]">{getEmptyMessage()}</p>
-            {getEmptyAction() && (
-              <button onClick={() => router.push(getEmptyAction()!.href)}
-                className="mt-2 bg-[#E8B84B] text-[#0D110D] px-6 py-3 rounded-2xl font-semibold text-sm">
-                {getEmptyAction()!.label}
-              </button>
+            <p className="text-white/40 text-sm text-center max-w-[240px]">{getEmptyMessage()}</p>
+            {activeTab === 1 && !profile?.interests?.length && (
+              <button onClick={() => router.push('/profile/edit')}
+                className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Add Interests</button>
+            )}
+            {activeTab === 3 && !connectionIds.length && (
+              <button onClick={() => router.push('/communities')}
+                className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Find People</button>
+            )}
+            {activeTab === 4 && (
+              <button onClick={() => router.push('/create')}
+                className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Create Event</button>
             )}
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredEvents.map((event, i) => (
-              <div key={event.id}
-                onClick={() => router.push('/events/' + event.id)}
-                className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform">
-                <div className="h-32 flex items-center justify-center text-5xl relative"
-                  style={{ background: i % 3 === 0 ? 'linear-gradient(135deg,#1E3A1E,#2A1A0E)' : i % 3 === 1 ? 'linear-gradient(135deg,#1A1E2A,#0E1A0E)' : 'linear-gradient(135deg,#2A1A1A,#1A0E0E)' }}>
-                  {getCategoryEmoji(event.category)}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent opacity-60"></div>
-                  <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
-                    {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2 py-0.5 rounded-full">Featured</span>}
-                    <span className="ml-auto bg-[#0E1E0E]/90 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded-full border border-[#7EC87E]/20">◉ Public</span>
-                  </div>
-                  {activeTab === 4 && event.host_id === user?.id && (
-                    <div className="absolute bottom-2 left-2 bg-[#E8B84B]/90 text-[#0D110D] text-[9px] font-bold px-2 py-0.5 rounded-full">You're hosting</div>
-                  )}
-                  {activeTab === 4 && event.host_id !== user?.id && (
-                    <div className="absolute bottom-2 left-2 bg-[#7EC87E]/90 text-[#0D110D] text-[9px] font-bold px-2 py-0.5 rounded-full">RSVPd</div>
-                  )}
-                </div>
-                <div className="p-3">
-                  <h3 className="font-bold text-[#F0EDE6] text-sm mb-1.5 leading-snug">{event.title}</h3>
-                  <div className="flex items-center gap-1 text-[10px] text-white/45 mb-1">
-                    <span>📅</span><span>{formatDate(event.start_datetime)}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] text-white/45 mb-2">
-                    <span>📍</span><span>{event.location_name} · {event.city}</span>
-                  </div>
-                  {event.spots_left > 0 && event.spots_left < 20 && (
-                    <div className="text-[10px] text-[#E8A84B] font-medium mb-2">👥 Only {event.spots_left} spots left!</div>
-                  )}
-                  {event.tags && event.tags.length > 0 && (
-                    <div className="flex gap-1.5 flex-wrap">
-                      {event.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
-                          #{tag}
-                        </span>
-                      ))}
+            {filteredEvents.map(event => {
+              const isRsvpd = rsvpEventIds.includes(event.id)
+              const isHost = event.host_id === user?.id
+              const isSoon = isToday(event.start_datetime) || isTomorrow(event.start_datetime)
+              const fillPct = event.capacity > 0 ? Math.round(((event.capacity - event.spots_left) / event.capacity) * 100) : 0
+
+              return (
+                <div key={event.id} onClick={() => router.push('/events/' + event.id)}
+                  className={'bg-[#1C241C] rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/25' : 'border-white/10')}>
+                  <div className="h-28 flex items-center justify-center text-4xl relative"
+                    style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
+                    <span>{CAT_EMOJI[event.category] || '🎉'}</span>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80"></div>
+                    <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
+                      <div className="flex gap-1">
+                        {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">⭐ Featured</span>}
+                        {isSoon && <span className={'text-[8px] font-bold px-2 py-0.5 rounded-full ' + (isToday(event.start_datetime) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>{isToday(event.start_datetime) ? '🔴 Today' : '🟡 Tomorrow'}</span>}
+                      </div>
+                      {isRsvpd && <span className="bg-[#7EC87E]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Going ✓</span>}
+                      {isHost && !isRsvpd && <span className="bg-[#E8B84B]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Hosting</span>}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="p-3">
+                    <h3 className="font-bold text-[#F0EDE6] text-sm mb-1.5 leading-snug">{event.title}</h3>
+                    <div className="flex items-center gap-3 text-[10px] text-white/45 mb-2">
+                      <span>📅 {formatDate(event.start_datetime)}</span>
+                      <span>📍 {event.location_name}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-1.5 flex-wrap flex-1">
+                        {event.tags?.slice(0, 2).map(tag => (
+                          <span key={tag} className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-1.5 py-0.5 rounded border border-[#7EC87E]/10">#{tag}</span>
+                        ))}
+                      </div>
+                      {event.capacity > 0 && (
+                        <div className="flex-shrink-0 text-right ml-2">
+                          {event.spots_left < 10 ? (
+                            <span className="text-[10px] text-[#E8A84B] font-medium">{event.spots_left} spots left</span>
+                          ) : (
+                            <span className="text-[10px] text-white/30">{fillPct}% full</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
 
-      {/* City picker modal */}
+      {/* City picker */}
       {showCityPicker && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => { setShowCityPicker(false); setCitySearch('') }}>
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4 flex-shrink-0"></div>
             <h3 className="text-base font-bold text-[#F0EDE6] mb-1 flex-shrink-0">Change Location</h3>
-            <p className="text-xs text-white/40 mb-3 flex-shrink-0">Events and recommendations will update based on your city</p>
-
+            <p className="text-xs text-white/40 mb-3 flex-shrink-0">Events and recommendations update by city</p>
             <div className="flex items-center gap-2 bg-[#0D110D] border border-white/10 rounded-2xl px-4 py-2.5 mb-3 flex-shrink-0">
               <span className="text-sm text-white/30">🔍</span>
-              <input
-                type="text"
-                value={citySearch}
-                onChange={e => setCitySearch(e.target.value)}
-                placeholder="Search or type a city..."
-                className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none"
-                autoFocus
-              />
-              {citySearch && (
-                <button onClick={() => setCitySearch('')} className="text-xs text-white/30">✕</button>
-              )}
+              <input type="text" value={citySearch} onChange={e => setCitySearch(e.target.value)}
+                placeholder="Search or type a city..." autoFocus
+                className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none" />
+              {citySearch && <button onClick={() => setCitySearch('')} className="text-xs text-white/30">✕</button>}
             </div>
-
-            <div className="overflow-y-auto flex-1 space-y-2 -mx-1 px-1">
+            <div className="overflow-y-auto flex-1 space-y-2">
               {filteredCities.map(city => (
                 <button key={city} onClick={() => handleCityChange(city)}
                   className={'w-full flex items-center gap-3 p-3.5 rounded-2xl border transition-all ' + (profile?.city === city ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : 'border-white/10 bg-[#0D110D]')}>
@@ -341,7 +418,6 @@ export default function HomePage() {
                   {profile?.city === city && <span className="ml-auto text-[10px] text-[#E8B84B]">Current</span>}
                 </button>
               ))}
-
               {citySearch.trim() && !ALL_CITIES.some(c => c.toLowerCase() === citySearch.trim().toLowerCase()) && (
                 <button onClick={() => handleCityChange(citySearch.trim())}
                   className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-dashed border-[#E8B84B]/30 bg-[#0D110D]">
