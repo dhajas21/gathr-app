@@ -41,7 +41,7 @@ export default function BottomNav() {
     { icon: '👥', label: 'Communities', href: '/communities' },
     { icon: null, label: '', href: '/create' },
     { icon: '💬', label: 'Messages', href: '/messages' },
-    { icon: '🔔', label: 'Activity', href: '/notifications' },
+    { icon: '🧑', label: 'Profile', href: '/profile' },
   ]
 
   return (
@@ -53,16 +53,17 @@ export default function BottomNav() {
             <div className="w-11 h-11 bg-[#E8B84B] rounded-2xl flex items-center justify-center text-xl text-[#0D110D] shadow-lg">＋</div>
           </button>
         )
-        const active = path === tab.href || (tab.href === '/messages' && path?.startsWith('/messages'))
-        const badge = tab.href === '/messages' ? unreadMessages : tab.href === '/notifications' ? unreadNotifs : 0
+        const active = path === tab.href || (tab.href === '/messages' && path?.startsWith('/messages')) || (tab.href === '/profile' && path?.startsWith('/profile'))
+        const badge = tab.href === '/messages' ? unreadMessages : 0
+        const notifBadge = tab.href === '/profile' ? unreadNotifs : 0
         return (
           <button key={tab.href} onClick={() => router.push(tab.href)}
             className="flex-1 flex flex-col items-center gap-1 relative">
             <span className="text-lg relative">
               {tab.icon}
-              {badge > 0 && (
+              {(badge > 0 || notifBadge > 0) && (
                 <span className="absolute -top-1.5 -right-2.5 bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold min-w-[14px] h-[14px] rounded-full flex items-center justify-center px-0.5 border-2 border-[#0D110D]">
-                  {badge > 9 ? '9+' : badge}
+                  {(badge + notifBadge) > 9 ? '9+' : badge + notifBadge}
                 </span>
               )}
             </span>

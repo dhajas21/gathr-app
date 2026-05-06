@@ -8,13 +8,15 @@ import BottomNav from '@/components/BottomNav'
 export default function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [events, setEvents] = useState<any[]>([])
+  const [hostedEvents, setHostedEvents] = useState<any[]>([])
+  const [attendedEvents, setAttendedEvents] = useState<any[]>([])
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const [connectionId, setConnectionId] = useState<string | null>(null)
   const [mutualCount, setMutualCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [profileId, setProfileId] = useState('')
+  const [activeTab, setActiveTab] = useState<'hosting' | 'going'>('hosting')
   const router = useRouter()
 
   useEffect(() => {
@@ -30,55 +32,41 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   }, [])
 
   const fetchProfile = async (id: string, userId: string) => {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', id)
-      .single()
-    if (!profileData) { router.push('/home'); return }
-    setProfile(profileData)
+    const [profileRes, hostedRes, connectionRes, myConnsRes, theirConnsRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', id).single(),
+      supabase.from('events').select('*').eq('host_id', id).eq('visibility', 'public').order('start_datetime', { ascending: false }).limit(10),
+      supabase.from('connections').select('*')
+        .or('and(requester_id.eq.' + userId + ',addressee_id.eq.' + id + '),and(requester_id.eq.' + id + ',addressee_id.eq.' + userId + ')')
+        .limit(1).single(),
+      supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),
+      supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + id + ',addressee_id.eq.' + id).eq('status', 'accepted'),
+    ])
 
-    const { data: eventsData } = await supabase
-      .from('events')
-      .select('*')
-      .eq('host_id', id)
-      .eq('visibility', 'public')
-      .order('start_datetime', { ascending: false })
-      .limit(5)
-    if (eventsData) setEvents(eventsData)
+    if (!profileRes.data) { router.push('/home'); return }
+    setProfile(profileRes.data)
+    if (hostedRes.data) setHostedEvents(hostedRes.data)
 
-    // Check connection status
-    const { data: connData } = await supabase
-      .from('connections')
-      .select('*')
-      .or('and(requester_id.eq.' + userId + ',addressee_id.eq.' + id + '),and(requester_id.eq.' + id + ',addressee_id.eq.' + userId + ')')
-      .limit(1)
-      .single()
-
-    if (connData) {
-      setConnectionStatus(connData.status)
-      setConnectionId(connData.id)
+    if (connectionRes.data) {
+      setConnectionStatus(connectionRes.data.status)
+      setConnectionId(connectionRes.data.id)
     }
 
-    // Count mutual connections
-    const { data: myConns } = await supabase
-      .from('connections')
-      .select('requester_id, addressee_id')
-      .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId)
-      .eq('status', 'accepted')
-
-    const { data: theirConns } = await supabase
-      .from('connections')
-      .select('requester_id, addressee_id')
-      .or('requester_id.eq.' + id + ',addressee_id.eq.' + id)
-      .eq('status', 'accepted')
-
-    if (myConns && theirConns) {
-      const myIds = new Set(myConns.map(c => c.requester_id === userId ? c.addressee_id : c.requester_id))
-      const theirIds = new Set(theirConns.map(c => c.requester_id === id ? c.addressee_id : c.requester_id))
+    if (myConnsRes.data && theirConnsRes.data) {
+      const myIds = new Set(myConnsRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id))
+      const theirIds = new Set(theirConnsRes.data.map((c: any) => c.requester_id === id ? c.addressee_id : c.requester_id))
       let mutual = 0
       myIds.forEach(mid => { if (theirIds.has(mid)) mutual++ })
       setMutualCount(mutual)
+    }
+
+    const { data: rsvps } = await supabase.from('rsvps').select('event_id').eq('user_id', id)
+    if (rsvps && rsvps.length > 0) {
+      const eventIds = rsvps.map((r: any) => r.event_id)
+      const { data: attended } = await supabase
+        .from('events').select('*').in('id', eventIds).eq('visibility', 'public')
+        .gte('start_datetime', new Date().toISOString())
+        .order('start_datetime', { ascending: true }).limit(10)
+      if (attended) setAttendedEvents(attended)
     }
 
     setLoading(false)
@@ -87,16 +75,11 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   const handleConnect = async () => {
     if (!user || actionLoading) return
     setActionLoading(true)
-
     if (connectionStatus === null) {
-      const { data, error } = await supabase.from('connections').insert({
-        requester_id: user.id,
-        addressee_id: profileId,
+      const { data } = await supabase.from('connections').insert({
+        requester_id: user.id, addressee_id: profileId,
       }).select().single()
-      if (data) {
-        setConnectionStatus('pending')
-        setConnectionId(data.id)
-      }
+      if (data) { setConnectionStatus('pending'); setConnectionId(data.id) }
     }
     setActionLoading(false)
   }
@@ -105,29 +88,18 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     if (!user) return
     const ids = [user.id, profileId].sort()
     const threadId = ids.join('-')
-
-    const { data: existing } = await supabase
-      .from('messages')
-      .select('thread_id')
-      .eq('thread_id', threadId)
-      .limit(1)
-
+    const { data: existing } = await supabase.from('messages').select('thread_id').eq('thread_id', threadId).limit(1)
     if (existing && existing.length > 0) {
       router.push('/messages/' + threadId)
     } else {
-      await supabase.from('messages').insert({
-        thread_id: threadId,
-        sender_id: user.id,
-        recipient_id: profileId,
-        text: '👋 Hey!',
-      })
+      await supabase.from('messages').insert({ thread_id: threadId, sender_id: user.id, recipient_id: profileId, text: '👋 Hey!' })
       router.push('/messages/' + threadId)
     }
   }
 
-  const formatDate = (dt: string) => {
-    return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  }
+  const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const categoryEmoji = (cat: string) =>
+    cat === 'Music' ? '🎸' : cat === 'Fitness' ? '🏃' : cat === 'Food & Drink' ? '🍺' : cat === 'Tech' ? '💻' : cat === 'Outdoors' ? '🥾' : '🎉'
 
   if (loading) return (
     <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
@@ -140,17 +112,13 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   return (
     <div className="min-h-screen bg-[#0D110D] pb-32">
 
-      {/* Hero */}
       <div style={{ background: 'linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%)' }}>
         <div className="flex items-start justify-between px-4 pt-14 mb-3">
           <button onClick={() => router.back()}
             className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
             ←
           </button>
-          <div className="flex gap-2">
-            <button className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">↑</button>
-            <button className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">⋯</button>
-          </div>
+          <button className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">↑</button>
         </div>
         <div className="px-4 pb-4">
           {profile.avatar_url ? (
@@ -174,39 +142,33 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
-      {/* Stats */}
       <div className="flex border-t border-b border-white/10">
         {[
-          { num: profile.hosted_count || 0, label: 'Hosted' },
-          { num: profile.attended_count || 0, label: 'Attended' },
-          { num: 0, label: 'Reach' },
+          { num: hostedEvents.length, label: 'Hosted' },
+          { num: attendedEvents.length, label: 'Going to' },
+          { num: (profile.interests || []).length, label: 'Interests' },
           { num: mutualCount, label: 'Mutual' },
         ].map((stat, i) => (
           <div key={stat.label} className={'flex-1 text-center py-3 ' + (i < 3 ? 'border-r border-white/10' : '')}>
-            <div className="font-bold text-[#E8B84B] text-base">{stat.num}</div>
+            <div className="font-bold text-[#E8B84B] text-base" style={{ fontFamily: 'sans-serif' }}>{stat.num}</div>
             <div className="text-[9px] text-white/40 mt-0.5 uppercase tracking-wide">{stat.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Body */}
       <div className="px-4 pt-4 space-y-3">
 
-        {/* Interests */}
         {profile.interests && profile.interests.length > 0 && (
           <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
             <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">Interests</div>
             <div className="flex flex-wrap gap-2">
               {profile.interests.map((interest: string) => (
-                <span key={interest} className="bg-[#2A4A2A]/35 text-[#7EC87E] text-xs px-2.5 py-1 rounded-lg border border-[#7EC87E]/10">
-                  {interest}
-                </span>
+                <span key={interest} className="bg-[#2A4A2A]/35 text-[#7EC87E] text-xs px-2.5 py-1 rounded-lg border border-[#7EC87E]/10">{interest}</span>
               ))}
             </div>
           </div>
         )}
 
-        {/* Mutual connections */}
         {mutualCount > 0 && (
           <div className="bg-[#2A4A2A]/15 border border-[#7EC87E]/15 rounded-2xl p-3.5">
             <div className="text-[9px] uppercase tracking-widest text-[#7EC87E] mb-1.5 font-medium">{mutualCount} mutual connection{mutualCount !== 1 ? 's' : ''}</div>
@@ -214,29 +176,58 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
           </div>
         )}
 
-        {/* Their events */}
-        {events.length > 0 && (
-          <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
-            <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">Events</div>
-            <div className="space-y-2">
-              {events.map(event => (
-                <div key={event.id} onClick={() => router.push('/events/' + event.id)}
-                  className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer">
-                  <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-                    {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : '🎉'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                    <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)}</div>
-                  </div>
-                </div>
-              ))}
+        {(hostedEvents.length > 0 || attendedEvents.length > 0) && (
+          <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
+            <div className="flex border-b border-white/10">
+              <button onClick={() => setActiveTab('hosting')}
+                className={'flex-1 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors ' + (activeTab === 'hosting' ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
+                Hosting ({hostedEvents.length})
+              </button>
+              <button onClick={() => setActiveTab('going')}
+                className={'flex-1 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors ' + (activeTab === 'going' ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
+                Going ({attendedEvents.length})
+              </button>
+            </div>
+            <div className="p-3.5">
+              {activeTab === 'hosting' && (
+                hostedEvents.length === 0 ? (
+                  <p className="text-xs text-white/30 text-center py-4">No hosted events yet</p>
+                ) : (
+                  hostedEvents.map(event => (
+                    <div key={event.id} onClick={() => router.push('/events/' + event.id)}
+                      className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
+                      <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">{categoryEmoji(event.category)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
+                        <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
+                      </div>
+                      <span className="text-[9px] bg-[#E8B84B]/10 text-[#E8B84B] px-2 py-0.5 rounded border border-[#E8B84B]/20 flex-shrink-0">Host</span>
+                    </div>
+                  ))
+                )
+              )}
+              {activeTab === 'going' && (
+                attendedEvents.length === 0 ? (
+                  <p className="text-xs text-white/30 text-center py-4">No upcoming events</p>
+                ) : (
+                  attendedEvents.map(event => (
+                    <div key={event.id} onClick={() => router.push('/events/' + event.id)}
+                      className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
+                      <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">{categoryEmoji(event.category)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
+                        <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
+                      </div>
+                      <span className="text-[9px] bg-[#7EC87E]/10 text-[#7EC87E] px-2 py-0.5 rounded border border-[#7EC87E]/20 flex-shrink-0">Going</span>
+                    </div>
+                  ))
+                )
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* CTA bar */}
       <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-gradient-to-t from-[#0D110D] via-[#0D110D]/95 to-transparent">
         <div className="flex gap-3">
           <button onClick={handleMessage}
@@ -245,16 +236,12 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
           </button>
           <button onClick={handleConnect} disabled={actionLoading || connectionStatus === 'accepted'}
             className={'flex-[2] py-3.5 rounded-2xl text-sm font-bold text-center active:scale-95 transition-transform disabled:opacity-50 ' + (
-              connectionStatus === 'accepted'
-                ? 'bg-[#1C241C] border border-[#7EC87E]/30 text-[#7EC87E]'
-                : connectionStatus === 'pending'
-                  ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]'
-                  : 'bg-[#E8B84B] text-[#0D110D]'
+              connectionStatus === 'accepted' ? 'bg-[#1C241C] border border-[#7EC87E]/30 text-[#7EC87E]'
+              : connectionStatus === 'pending' ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]'
+              : 'bg-[#E8B84B] text-[#0D110D]'
             )}
             style={{ boxShadow: !connectionStatus ? '0 4px 18px rgba(232,184,75,0.28)' : 'none' }}>
-            {connectionStatus === 'accepted' ? '✓ Connected'
-              : connectionStatus === 'pending' ? 'Request Sent'
-              : actionLoading ? 'Sending...' : 'Connect'}
+            {connectionStatus === 'accepted' ? '✓ Connected' : connectionStatus === 'pending' ? 'Request Sent' : actionLoading ? 'Sending...' : 'Connect'}
           </button>
         </div>
       </div>

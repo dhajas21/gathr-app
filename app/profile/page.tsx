@@ -119,13 +119,15 @@ export default function ProfilePage() {
         <div className="flex items-start justify-between px-4 pt-14 mb-3">
           <div></div>
           <div className="flex gap-2">
-            <button onClick={() => router.push('/settings')}
-              className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">⚙️</button>
-            <button onClick={() => router.push('/profile/edit')}
-              className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-[#F0EDE6]">
-              ✏️ Edit
-            </button>
-          </div>
+  <button onClick={() => router.push('/notifications')}
+    className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">🔔</button>
+  <button onClick={() => router.push('/settings')}
+    className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">⚙️</button>
+  <button onClick={() => router.push('/profile/edit')}
+    className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-[#F0EDE6]">
+    ✏️ Edit
+  </button>
+</div>
         </div>
         <div className="px-4 pb-4">
           {profile?.avatar_url ? (
