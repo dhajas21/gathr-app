@@ -104,7 +104,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       const updated = [eventData, ...viewed.filter((e: any) => e.id !== eventData.id)].slice(0, 10)
       localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(updated))
     } catch {}
-    
+
     const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', eventData.host_id).single(),
       supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).single(),
@@ -171,6 +171,19 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const handleDeleteComment = async (commentId: string) => {
     await supabase.from('event_comments').delete().eq('id', commentId)
     setComments(prev => prev.filter(c => c.id !== commentId))
+  }
+
+  const handleAddToCalendar = () => {
+    if (!event) return
+    const fmt = (dt: string) => new Date(dt).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: event.title,
+      dates: fmt(event.start_datetime) + '/' + fmt(event.end_datetime),
+      details: event.description || '',
+      location: [event.location_name, event.location_address].filter(Boolean).join(', '),
+    })
+    window.open('https://calendar.google.com/calendar/render?' + params.toString(), '_blank')
   }
 
   const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
@@ -241,9 +254,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <div className="text-sm font-medium text-[#F0EDE6]">{formatDate(event.start_datetime)}</div>
               <div className="text-xs text-white/45">{formatTime(event.start_datetime)} – {formatTime(event.end_datetime)}</div>
             </div>
-            <button className="ml-auto bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-lg px-2.5 py-1 text-[10px] text-[#E8B84B]">
-              + Calendar
-            </button>
+           <button onClick={handleAddToCalendar} className="ml-auto bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-lg px-2.5 py-1 text-[10px] text-[#E8B84B] active:scale-95 transition-transform">
+  + Calendar
+</button>
           </div>
           <div className="border-t border-white/10 my-2.5"></div>
           <div className="flex items-center gap-3">
