@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -11,32 +11,52 @@ const INTERESTS = [
   'nightlife', 'networking', 'outdoors', 'sports', 'wellness'
 ]
 
-const STEPS = ['mode', 'interests', 'city', 'done']
+const ALL_CITIES = [
+  'Bellingham', 'Seattle', 'Tacoma', 'Olympia', 'Spokane',
+  'Vancouver', 'Victoria', 'Surrey', 'Portland', 'Eugene',
+  'San Francisco', 'Los Angeles', 'San Diego', 'Sacramento',
+  'New York', 'Brooklyn', 'Chicago', 'Austin', 'Denver',
+  'Miami', 'Atlanta', 'Nashville', 'Boston', 'Philadelphia'
+]
+
+const STEPS = ['photo', 'mode', 'interests', 'city', 'done']
 
 export default function SetupPage() {
   const [user, setUser] = useState<any>(null)
   const [step, setStep] = useState(0)
+  const [name, setName] = useState('')
+  const [bio, setBio] = useState('')
   const [mode, setMode] = useState('both')
   const [interests, setInterests] = useState<string[]>([])
   const [city, setCity] = useState('Bellingham')
   const [citySearch, setCitySearch] = useState('')
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-
-  const ALL_CITIES = [
-    'Bellingham', 'Seattle', 'Tacoma', 'Olympia', 'Spokane',
-    'Vancouver', 'Victoria', 'Surrey', 'Portland', 'Eugene',
-    'San Francisco', 'Los Angeles', 'San Diego', 'Sacramento',
-    'New York', 'Brooklyn', 'Chicago', 'Austin', 'Denver',
-    'Miami', 'Atlanta', 'Nashville', 'Boston', 'Philadelphia'
-  ]
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
+      supabase.from('profiles').select('name, city').eq('id', session.user.id).single()
+        .then(({ data }) => {
+          if (data?.name) setName(data.name)
+          if (data?.city) setCity(data.city)
+        })
     })
   }, [])
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) return
+    setAvatarFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
 
   const toggleInterest = (interest: string) => {
     setInterests(prev =>
@@ -45,29 +65,38 @@ export default function SetupPage() {
   }
 
   const handleFinish = async () => {
-    if (!user) return
+    if (!user || saving) return
     setSaving(true)
+
+    let avatarUrl: string | null = null
+    if (avatarFile) {
+      const ext = avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const { error } = await supabase.storage.from('profile-photos').upload(user.id + '.' + ext, avatarFile, { upsert: true })
+      if (!error) {
+        const { data: urlData } = supabase.storage.from('profile-photos').getPublicUrl(user.id + '.' + ext)
+        if (urlData?.publicUrl) avatarUrl = urlData.publicUrl + '?t=' + Date.now()
+      }
+    }
+
     await supabase.from('profiles').update({
+      name: name.trim() || undefined,
+      bio_social: bio.trim() || undefined,
       profile_mode: mode,
       interests,
       city,
+      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     }).eq('id', user.id)
+
     setSaving(false)
-  }
-
-  const handleFinishAndGo = async () => {
-    await handleFinish()
     router.push('/home')
-  }
-
-  const handleFinishAndTour = async () => {
-    await handleFinish()
-    router.push('/tour')
   }
 
   const filteredCities = ALL_CITIES.filter(c =>
     !citySearch || c.toLowerCase().includes(citySearch.toLowerCase())
   )
+
+  const totalSteps = STEPS.length
+  const isLast = step === totalSteps - 1
 
   return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
@@ -76,16 +105,72 @@ export default function SetupPage() {
       <div className="px-5 pt-14">
         <div className="flex gap-1 mb-2">
           {STEPS.map((_, i) => (
-            <div key={i} className={'flex-1 h-[3px] rounded-full transition-all ' + (i <= step ? 'bg-[#E8B84B]' : 'bg-white/10')} />
+            <div key={i} className={'flex-1 h-[3px] rounded-full transition-all duration-300 ' + (i <= step ? 'bg-[#E8B84B]' : 'bg-white/10')} />
           ))}
         </div>
-        <div className="text-xs text-white/25">Step <span className="text-[#E8B84B]">{step + 1}</span> of {STEPS.length}</div>
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-white/25">Step <span className="text-[#E8B84B]">{step + 1}</span> of {totalSteps}</div>
+          {step > 0 && step < totalSteps - 1 && (
+            <button onClick={() => setStep(step - 1)} className="text-xs text-white/25">← Back</button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center px-7 pt-8">
+      <div className="flex-1 flex flex-col items-center px-7 pt-8 pb-4">
 
+        {/* Step 0 — Photo + name */}
         {step === 0 && (
+          <>
+            <div className="text-4xl mb-4">📸</div>
+            <h1 className="text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2" style={{ fontFamily: 'sans-serif' }}>
+              Put a face to<br />your <span className="text-[#E8B84B]">name</span>
+            </h1>
+            <p className="text-sm text-white/45 text-center mb-7 max-w-[240px] font-light">Profiles with photos get 3× more connections.</p>
+
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileSelect} className="hidden" />
+
+            <button onClick={() => fileRef.current?.click()} className="mb-6 relative group">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="" className="w-24 h-24 rounded-3xl object-cover border-2 border-[#E8B84B]/50" />
+              ) : (
+                <div className="w-24 h-24 bg-[#1C241C] rounded-3xl border-2 border-dashed border-[#E8B84B]/30 flex flex-col items-center justify-center gap-1">
+                  <span className="text-2xl">🧑</span>
+                  <span className="text-[9px] text-[#E8B84B]/60">Tap to add</span>
+                </div>
+              )}
+              <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-[#E8B84B] rounded-full flex items-center justify-center text-sm border-2 border-[#0D110D]">
+                📷
+              </div>
+            </button>
+
+            <div className="w-full space-y-3">
+              <div>
+                <label className="text-xs text-white/40 mb-1.5 block">Your name</label>
+                <input
+                  className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
+                  placeholder="Full name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  maxLength={50}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/40 mb-1.5 block">One-line bio <span className="text-white/20">(optional)</span></label>
+                <input
+                  className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
+                  placeholder="Runner · Builder · Coffee lover"
+                  value={bio}
+                  onChange={e => setBio(e.target.value)}
+                  maxLength={100}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Step 1 — Mode */}
+        {step === 1 && (
           <>
             <div className="text-4xl mb-4">✦</div>
             <h1 className="text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2" style={{ fontFamily: 'sans-serif' }}>
@@ -114,13 +199,14 @@ export default function SetupPage() {
           </>
         )}
 
-        {step === 1 && (
+        {/* Step 2 — Interests */}
+        {step === 2 && (
           <>
             <div className="text-4xl mb-4">🎯</div>
             <h1 className="text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2" style={{ fontFamily: 'sans-serif' }}>
               What are you<br /><span className="text-[#E8B84B]">into?</span>
             </h1>
-            <p className="text-sm text-white/45 text-center mb-6 max-w-[240px] font-light">Pick up to 10. This helps us recommend events and people.</p>
+            <p className="text-sm text-white/45 text-center mb-6 max-w-[240px] font-light">Pick up to 10. We'll use this to recommend events.</p>
             <div className="w-full flex flex-wrap gap-2 justify-center">
               {INTERESTS.map(interest => (
                 <button key={interest} onClick={() => toggleInterest(interest)}
@@ -133,7 +219,8 @@ export default function SetupPage() {
           </>
         )}
 
-        {step === 2 && (
+        {/* Step 3 — City */}
+        {step === 3 && (
           <>
             <div className="text-4xl mb-4">📍</div>
             <h1 className="text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2" style={{ fontFamily: 'sans-serif' }}>
@@ -144,7 +231,8 @@ export default function SetupPage() {
             <div className="w-full flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-3">
               <span className="text-sm text-white/30">🔍</span>
               <input type="text" value={citySearch} onChange={e => setCitySearch(e.target.value)}
-                placeholder="Search cities..." className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none" />
+                placeholder="Search cities..."
+                className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none" />
             </div>
 
             <div className="w-full max-h-[240px] overflow-y-auto space-y-2">
@@ -168,60 +256,57 @@ export default function SetupPage() {
           </>
         )}
 
-        {step === 3 && (
-          <>
-            <div className="text-5xl mb-4 mt-8">✦</div>
-            <h1 className="text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2" style={{ fontFamily: 'sans-serif' }}>
-              Welcome to<br /><span className="text-[#E8B84B]">Gathr.</span>
-            </h1>
-            <p className="text-sm text-white/45 text-center mb-8 max-w-[240px] font-light">You're all set. Time to find your people.</p>
-
-            <div className="w-full space-y-3">
-              <button onClick={handleFinishAndTour} className="w-full bg-[#1C241C] border border-white/10 rounded-2xl p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform">
-                <span className="text-xl">📖</span>
-                <div>
-                  <div className="text-sm font-semibold text-[#F0EDE6]">Quick Tour</div>
-                  <div className="text-xs text-white/40">5 slides · about 60 seconds</div>
-                </div>
-                <span className="ml-auto text-white/20">›</span>
-              </button>
-              <button onClick={handleFinishAndGo} className="w-full bg-[#1C241C] border border-white/10 rounded-2xl p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform">
-                <span className="text-xl">🚀</span>
-                <div>
-                  <div className="text-sm font-semibold text-[#F0EDE6]">Jump Right In</div>
-                  <div className="text-xs text-white/40">Discover as you go</div>
-                </div>
-                <span className="ml-auto text-white/20">›</span>
-              </button>
+        {/* Step 4 — Done */}
+        {step === 4 && (
+          <div className="flex flex-col items-center text-center pt-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-[#E8B84B]/20 to-[#E8B84B]/5 border border-[#E8B84B]/20 rounded-3xl flex items-center justify-center text-4xl mb-5">
+              ✦
             </div>
-          </>
+            <h1 className="text-2xl font-bold text-[#F0EDE6] leading-tight mb-2" style={{ fontFamily: 'sans-serif' }}>
+              You're all set,<br /><span className="text-[#E8B84B]">{name || 'friend'}.</span>
+            </h1>
+            <p className="text-sm text-white/45 mb-8 max-w-[220px] font-light">Time to find your people and discover what's happening near you.</p>
+
+            <div className="w-full space-y-2.5 text-left">
+              {[
+                { icon: '🔍', title: 'Search events', desc: 'Try "live music this weekend"' },
+                { icon: '👥', title: 'Join a community', desc: 'Find your crew' },
+                { icon: '✨', title: 'Host something', desc: 'Tap + to create your first event' },
+              ].map(tip => (
+                <div key={tip.title} className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
+                  <span className="text-xl">{tip.icon}</span>
+                  <div>
+                    <div className="text-sm font-medium text-[#F0EDE6]">{tip.title}</div>
+                    <div className="text-xs text-white/35">{tip.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
       {/* Footer */}
-      <div className="px-5 pb-10 pt-4 flex flex-col gap-2">
-        {step < 3 ? (
+      <div className="px-5 pb-10 pt-2 flex flex-col gap-2">
+        {!isLast ? (
           <>
             <button onClick={() => setStep(step + 1)}
               className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform"
               style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
               Continue →
             </button>
-            <button onClick={() => setStep(step + 1)} className="w-full py-3 text-sm text-white/40">
-              Skip for now
-            </button>
+            {step !== 0 && (
+              <button onClick={() => setStep(step + 1)} className="w-full py-3 text-sm text-white/30">
+                Skip for now
+              </button>
+            )}
           </>
         ) : (
-          <>
-            <button onClick={handleFinishAndGo} disabled={saving}
-              className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform disabled:opacity-50"
-              style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
-              {saving ? 'Saving...' : 'Start Exploring →'}
-            </button>
-            <button onClick={() => router.push('/home')} className="w-full py-3 text-sm text-white/40">
-              Skip — take me to the app
-            </button>
-          </>
+          <button onClick={handleFinish} disabled={saving}
+            className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform disabled:opacity-50"
+            style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
+            {saving ? 'Setting up your profile...' : 'Start Exploring →'}
+          </button>
         )}
       </div>
     </div>
