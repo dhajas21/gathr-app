@@ -234,6 +234,15 @@ export default function HomePage() {
           <span className="bg-[#1E3A1E] border border-[#E8B84B]/15 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">✨ AI</span>
         </div>
 
+        {/* Quick links */}
+        <div className="flex gap-2 mb-4">
+          <button onClick={() => router.push('/communities')}
+            className="flex items-center gap-1.5 bg-[#1C241C] border border-[#E8B84B]/20 rounded-full px-3 py-1.5 active:opacity-70 transition-opacity">
+            <span className="text-xs">👥</span>
+            <span className="text-xs text-[#F0EDE6]/65 font-medium">Communities</span>
+          </button>
+        </div>
+
         {/* Happening soon strip */}
         {soonEvents.length > 0 && (
           <div className="mb-4">
