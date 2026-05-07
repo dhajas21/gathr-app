@@ -51,6 +51,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [comments, setComments] = useState<Comment[]>([])
   const [commentText, setCommentText] = useState('')
   const [postingComment, setPostingComment] = useState(false)
+  const [showCalendarModal, setShowCalendarModal] = useState(false)
   const commentInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -216,17 +217,45 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     window.open(isIOS ? `https://maps.apple.com/?q=${query}` : `https://www.google.com/maps/search/${query}`, '_blank')
   }
 
-  const handleAddToCalendar = () => {
+  const handleAddToCalendar = () => setShowCalendarModal(true)
+
+  const handleGoogleCalendar = () => {
     if (!event) return
     const fmt = (dt: string) => new Date(dt).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-    const params = new URLSearchParams({
+    const p = new URLSearchParams({
       action: 'TEMPLATE',
       text: event.title,
       dates: fmt(event.start_datetime) + '/' + fmt(event.end_datetime),
       details: event.description || '',
       location: [event.location_name, event.location_address].filter(Boolean).join(', '),
     })
-    window.open('https://calendar.google.com/calendar/render?' + params.toString(), '_blank')
+    window.open('https://calendar.google.com/calendar/render?' + p.toString(), '_blank')
+    setShowCalendarModal(false)
+  }
+
+  const handleAppleCalendar = () => {
+    if (!event) return
+    const fmt = (dt: string) => new Date(dt).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'DTSTART:' + fmt(event.start_datetime),
+      'DTEND:' + fmt(event.end_datetime),
+      'SUMMARY:' + event.title,
+      'DESCRIPTION:' + (event.description || '').replace(/\n/g, '\\n'),
+      'LOCATION:' + [event.location_name, event.location_address].filter(Boolean).join(', '),
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+    const blob = new Blob([ics], { type: 'text/calendar' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = event.title.replace(/\s+/g, '-') + '.ics'
+    a.click()
+    URL.revokeObjectURL(url)
+    setShowCalendarModal(false)
   }
 
   const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
@@ -513,6 +542,34 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             style={{boxShadow: '0 5px 22px rgba(232,184,75,0.3)'}}>
             ✏️ Edit Event
           </button>
+        </div>
+      )}
+
+      {/* Calendar picker modal */}
+      {showCalendarModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => setShowCalendarModal(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5"></div>
+            <div className="text-xs text-white/30 uppercase tracking-widest mb-4 text-center font-medium">Add to Calendar</div>
+            <div className="space-y-3">
+              <button onClick={handleGoogleCalendar}
+                className="w-full flex items-center gap-3 bg-[#0D110D] border border-white/10 rounded-2xl px-4 py-3.5 active:opacity-70">
+                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-lg flex-shrink-0">📅</div>
+                <div className="text-left">
+                  <div className="text-sm font-semibold text-[#F0EDE6]">Google Calendar</div>
+                  <div className="text-xs text-white/35 mt-0.5">Opens in browser</div>
+                </div>
+              </button>
+              <button onClick={handleAppleCalendar}
+                className="w-full flex items-center gap-3 bg-[#0D110D] border border-white/10 rounded-2xl px-4 py-3.5 active:opacity-70">
+                <div className="w-9 h-9 rounded-xl bg-[#1C1C1E] border border-white/10 flex items-center justify-center text-lg flex-shrink-0">🗓</div>
+                <div className="text-left">
+                  <div className="text-sm font-semibold text-[#F0EDE6]">Apple Calendar</div>
+                  <div className="text-xs text-white/35 mt-0.5">Downloads .ics file</div>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
