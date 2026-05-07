@@ -116,7 +116,6 @@ export default function EditProfilePage() {
     if (avatarFile) {
       finalAvatarUrl = await uploadAvatar()
     } else if (!avatarPreview && avatarUrl) {
-      // User removed their avatar
       finalAvatarUrl = null
     }
 
@@ -130,6 +129,7 @@ export default function EditProfilePage() {
     }).eq('id', userId)
 
     setSaving(false)
+    router.refresh()
     router.replace('/profile')
   }
 
