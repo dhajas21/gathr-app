@@ -38,7 +38,7 @@ export default function BottomNav() {
 
   const tabs = [
     { icon: '🏠', label: 'Home', href: '/home' },
-    { icon: '👥', label: 'Communities', href: '/communities' },
+    { icon: '🗺️', label: 'Map', href: '/map' },
     { icon: null, label: '', href: '/create' },
     { icon: '💬', label: 'Messages', href: '/messages' },
     { icon: '🧑', label: 'Profile', href: '/profile' },
@@ -53,7 +53,7 @@ export default function BottomNav() {
             <div className="w-11 h-11 bg-[#E8B84B] rounded-2xl flex items-center justify-center text-xl text-[#0D110D] shadow-lg">＋</div>
           </button>
         )
-        const active = path === tab.href || (tab.href === '/messages' && path?.startsWith('/messages')) || (tab.href === '/profile' && path?.startsWith('/profile'))
+        const active = path === tab.href || (tab.href === '/messages' && path?.startsWith('/messages')) || (tab.href === '/profile' && path?.startsWith('/profile')) || (tab.href === '/map' && path?.startsWith('/map'))
         const badge = tab.href === '/messages' ? unreadMessages : 0
         const notifBadge = tab.href === '/profile' ? unreadNotifs : 0
         return (
