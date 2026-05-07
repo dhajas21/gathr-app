@@ -128,9 +128,8 @@ export default function EditProfilePage() {
       avatar_url: finalAvatarUrl,
     }).eq('id', userId)
 
-    setSaving(false)
-    router.refresh()
-    router.replace('/profile')
+       setSaving(false)
+    window.location.href = '/profile'
   }
 
   const inputClass = 'w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm'
