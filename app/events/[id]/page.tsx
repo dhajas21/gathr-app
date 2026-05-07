@@ -261,8 +261,6 @@ const handleOpenMaps = () => {
               <div className="text-sm font-medium text-[#F0EDE6]">{formatDate(event.start_datetime)}</div>
               <div className="text-xs text-white/45">{formatTime(event.start_datetime)} – {formatTime(event.end_datetime)}</div>
             </div>
-           <button onClick={handleAddToCalendar} className="ml-auto bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-lg px-2.5 py-1 text-[10px] text-[#E8B84B] active:scale-95 transition-transform">
-  + Calendar
             <button onClick={handleAddToCalendar} className="ml-auto bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-lg px-2.5 py-1 text-[10px] text-[#E8B84B] active:scale-95 transition-transform">
               + Calendar
             </button>
