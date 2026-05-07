@@ -51,6 +51,18 @@ const CAT_GRADIENT: Record<string, string> = {
   'Social': 'linear-gradient(135deg,#1E3A1E,#2A1A0E)',
 }
 
+const INTEREST_TO_CATS: Record<string, string[]> = {
+  running: ['Fitness'], startups: ['Tech', 'Networking'], coffee: ['Food & Drink', 'Social'],
+  design: ['Tech', 'Arts & Culture'], hiking: ['Outdoors', 'Fitness'], music: ['Music'],
+  film: ['Arts & Culture'], food: ['Food & Drink'], tech: ['Tech'], art: ['Arts & Culture'],
+  reading: ['Social'], travel: ['Outdoors'], fitness: ['Fitness'],
+  photography: ['Arts & Culture', 'Outdoors'], cooking: ['Food & Drink'], yoga: ['Fitness'],
+  gaming: ['Tech', 'Social'], fashion: ['Arts & Culture', 'Social'], writing: ['Arts & Culture'],
+  volunteering: ['Social', 'Networking'], nightlife: ['Music', 'Social', 'Food & Drink'],
+  networking: ['Networking'], outdoors: ['Outdoors'], sports: ['Fitness', 'Outdoors'],
+  wellness: ['Fitness'],
+}
+
 function isToday(dt: string) {
   const d = new Date(dt), now = new Date()
   return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
@@ -149,11 +161,13 @@ export default function HomePage() {
         break
       case 1:
         if (profile?.interests?.length > 0) {
-          const userInterests = profile.interests.map((i: string) => i.toLowerCase())
           const matched = events.filter(e => {
-            const tags = (e.tags || []).map(t => t.toLowerCase())
-            const cat = e.category?.toLowerCase() || ''
-            return userInterests.some((int: string) => tags.includes(int) || cat.includes(int))
+            const tags = (e.tags || []).map((t: string) => t.toLowerCase())
+            return profile.interests.some((int: string) => {
+              const mappedCats = INTEREST_TO_CATS[int.toLowerCase()] || []
+              if (mappedCats.includes(e.category)) return true
+              return tags.some((t: string) => t.includes(int.toLowerCase()) || int.toLowerCase().includes(t))
+            })
           })
           setFilteredEvents([...matched, ...events.filter(e => !matched.includes(e))])
         } else {
