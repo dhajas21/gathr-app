@@ -9,6 +9,7 @@ export default function MessagesPage() {
   const [user, setUser] = useState<any>(null)
   const [threads, setThreads] = useState<any[]>([])
   const [connections, setConnections] = useState<any[]>([])
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -35,28 +36,43 @@ export default function MessagesPage() {
   }, [])
 
   const fetchData = async (userId: string) => {
-    const { data: connData } = await supabase
-      .from('connections')
-      .select('*, requester:profiles!connections_requester_id_fkey(id, name, avatar_url)')
-      .eq('addressee_id', userId)
-      .eq('status', 'pending')
-    if (connData) setConnections(connData)
+    const [connRes, msgRes, unreadRes] = await Promise.all([
+      supabase
+        .from('connections')
+        .select('*, requester:profiles!connections_requester_id_fkey(id, name, avatar_url)')
+        .eq('addressee_id', userId)
+        .eq('status', 'pending'),
+      supabase
+        .from('messages')
+        .select('*')
+        .or('sender_id.eq.' + userId + ',recipient_id.eq.' + userId)
+        .order('sent_at', { ascending: false }),
+      supabase
+        .from('messages')
+        .select('thread_id')
+        .eq('recipient_id', userId)
+        .is('read_at', null),
+    ])
 
-    const { data: msgData } = await supabase
-      .from('messages')
-      .select('*')
-      .or('sender_id.eq.' + userId + ',recipient_id.eq.' + userId)
-      .order('sent_at', { ascending: false })
+    if (connRes.data) setConnections(connRes.data)
 
-    if (msgData) {
+    if (unreadRes.data) {
+      const counts: Record<string, number> = {}
+      unreadRes.data.forEach((m: any) => {
+        counts[m.thread_id] = (counts[m.thread_id] || 0) + 1
+      })
+      setUnreadCounts(counts)
+    }
+
+    if (msgRes.data) {
       const seen = new Set()
-      const grouped = msgData.filter(m => {
+      const grouped = msgRes.data.filter((m: any) => {
         if (seen.has(m.thread_id)) return false
         seen.add(m.thread_id)
         return true
       })
 
-      const enriched = await Promise.all(grouped.map(async (thread) => {
+      const enriched = await Promise.all(grouped.map(async (thread: any) => {
         const otherId = thread.sender_id === userId ? thread.recipient_id : thread.sender_id
         const { data: profile } = await supabase
           .from('profiles')
@@ -82,9 +98,24 @@ export default function MessagesPage() {
     setConnections(prev => prev.filter(c => c.id !== connectionId))
   }
 
+  const markThreadRead = async (thread: any) => {
+    if (!user) return
+    await supabase
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('thread_id', thread.thread_id)
+      .eq('recipient_id', user.id)
+      .is('read_at', null)
+    setUnreadCounts(prev => {
+      const next = { ...prev }
+      delete next[thread.thread_id]
+      return next
+    })
+  }
+
   const toggleRead = async (thread: any) => {
     if (!user) return
-    const isUnread = !thread.read_at && thread.recipient_id === user.id
+    const isUnread = (unreadCounts[thread.thread_id] || 0) > 0
 
     if (isUnread) {
       await supabase
@@ -93,25 +124,26 @@ export default function MessagesPage() {
         .eq('thread_id', thread.thread_id)
         .eq('recipient_id', user.id)
         .is('read_at', null)
+      setUnreadCounts(prev => { const next = { ...prev }; delete next[thread.thread_id]; return next })
     } else {
       await supabase
         .from('messages')
         .update({ read_at: null })
         .eq('thread_id', thread.thread_id)
         .eq('recipient_id', user.id)
+      setUnreadCounts(prev => ({ ...prev, [thread.thread_id]: 1 }))
     }
-
-    fetchData(user.id)
   }
 
   const formatTime = (dt: string) => {
     const d = new Date(dt)
-    const now = new Date()
-    const diff = now.getTime() - d.getTime()
+    const diff = Date.now() - d.getTime()
     if (diff < 3600000) return Math.max(1, Math.floor(diff / 60000)) + 'm'
     if (diff < 86400000) return Math.floor(diff / 3600000) + 'h'
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
+
+  const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0)
 
   if (loading) return (
     <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
@@ -122,15 +154,24 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
 
-      <div className="px-4 pt-14 pb-3">
-        <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>Messages</h1>
+      <div className="px-4 pt-14 pb-3 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>Messages</h1>
+          {totalUnread > 0 && (
+            <span className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-2.5 py-1 rounded-full">
+              {totalUnread > 99 ? '99+' : totalUnread} unread
+            </span>
+          )}
+        </div>
         <p className="text-xs text-white/40 mt-1">
-          {threads.length > 0 ? threads.length + ' conversation' + (threads.length > 1 ? 's' : '') : 'No messages yet'}
+          {threads.length > 0
+            ? threads.length + ' conversation' + (threads.length > 1 ? 's' : '')
+            : 'No messages yet'}
         </p>
       </div>
 
       {connections.length > 0 && (
-        <div className="mx-4 mb-3 bg-[#1E3A1E]/30 border border-[#7EC87E]/15 rounded-2xl p-3">
+        <div className="mx-4 mt-3 mb-1 bg-[#1E3A1E]/30 border border-[#7EC87E]/15 rounded-2xl p-3">
           <div className="text-xs font-medium text-[#7EC87E] mb-3">
             {connections.length} connection request{connections.length > 1 ? 's' : ''}
           </div>
@@ -146,7 +187,7 @@ export default function MessagesPage() {
                 <div className="text-xs text-white/40">wants to connect</div>
               </div>
               <button onClick={() => handleAccept(conn.id)}
-                className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-3 py-1.5 rounded-lg">
+                className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
                 Accept
               </button>
               <button onClick={() => handleDecline(conn.id)}
@@ -161,24 +202,44 @@ export default function MessagesPage() {
       {threads.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3 px-4">
           <div className="text-4xl">💬</div>
-          <p className="text-[#F0EDE6] opacity-50 text-sm text-center">No messages yet — connect with people at events!</p>
+          <p className="text-[#F0EDE6] opacity-50 text-sm text-center">No messages yet</p>
+          <p className="text-white/25 text-xs text-center max-w-[220px]">Connect with people at events and start a conversation</p>
         </div>
       ) : (
-        <div>
-          <div className="text-[9px] uppercase tracking-widest text-white/20 px-4 py-2 font-medium">Recent</div>
-          {threads.map(thread => {
-            const isUnread = !thread.read_at && thread.recipient_id === user?.id
-            return (
-              <SwipeThread
-                key={thread.id}
-                thread={thread}
-                isUnread={isUnread}
-                onTap={() => router.push('/messages/' + thread.thread_id)}
-                onToggleRead={() => toggleRead(thread)}
-                formatTime={formatTime}
-              />
-            )
-          })}
+        <div className="mt-2">
+          {totalUnread > 0 && (
+            <div className="text-[9px] uppercase tracking-widest text-white/20 px-4 py-2 font-medium">Unread</div>
+          )}
+          {threads
+            .sort((a, b) => {
+              const aUnread = (unreadCounts[a.thread_id] || 0) > 0 ? 1 : 0
+              const bUnread = (unreadCounts[b.thread_id] || 0) > 0 ? 1 : 0
+              return bUnread - aUnread
+            })
+            .map((thread, i, arr) => {
+              const isUnread = (unreadCounts[thread.thread_id] || 0) > 0
+              const count = unreadCounts[thread.thread_id] || 0
+              const prevIsUnread = i > 0 && (unreadCounts[arr[i - 1]?.thread_id] || 0) > 0
+              const showEarlierLabel = !isUnread && (i === 0 || prevIsUnread) && totalUnread > 0
+              return (
+                <div key={thread.id}>
+                  {showEarlierLabel && (
+                    <div className="text-[9px] uppercase tracking-widest text-white/20 px-4 pt-3 pb-2 font-medium">Earlier</div>
+                  )}
+                  <SwipeThread
+                    thread={thread}
+                    isUnread={isUnread}
+                    unreadCount={count}
+                    onTap={async () => {
+                      await markThreadRead(thread)
+                      router.push('/messages/' + thread.thread_id)
+                    }}
+                    onToggleRead={() => toggleRead(thread)}
+                    formatTime={formatTime}
+                  />
+                </div>
+              )
+            })}
         </div>
       )}
 
@@ -187,9 +248,10 @@ export default function MessagesPage() {
   )
 }
 
-function SwipeThread({ thread, isUnread, onTap, onToggleRead, formatTime }: {
+function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, formatTime }: {
   thread: any
   isUnread: boolean
+  unreadCount: number
   onTap: () => void
   onToggleRead: () => void
   formatTime: (dt: string) => string
@@ -246,8 +308,10 @@ function SwipeThread({ thread, isUnread, onTap, onToggleRead, formatTime }: {
     }
   }
 
+  const badgeCount = unreadCount > 9 ? '9+' : String(unreadCount)
+
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden border-b border-white/[0.05]">
       <div className="absolute right-0 top-0 bottom-0 w-20 flex items-center justify-center z-0">
         <button onClick={handleAction}
           className={'flex flex-col items-center gap-1 px-2 py-2 rounded-xl ' + (isUnread ? 'bg-[#1E3A1E]' : 'bg-[#E8B84B]/15')}>
@@ -264,28 +328,38 @@ function SwipeThread({ thread, isUnread, onTap, onToggleRead, formatTime }: {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onClick={handleClick}
-        className={'flex items-start gap-3 px-4 py-3 cursor-pointer relative bg-[#0D110D] z-10 ' + (isUnread ? 'bg-white/[0.02]' : '')}
+        className={'flex items-center gap-3 px-4 py-3.5 cursor-pointer relative z-10 transition-colors ' + (isUnread ? 'bg-white/[0.025]' : 'bg-[#0D110D]')}
       >
-        {isUnread && <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-[#E8B84B]"></div>}
-        {thread.otherProfile?.avatar_url ? (
-          <img src={thread.otherProfile.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
-        ) : (
-          <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-            {thread.otherProfile?.name?.charAt(0) || '🧑'}
-          </div>
-        )}
+        {isUnread && <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-[3px] h-[3px] rounded-full bg-[#E8B84B]" />}
+
+        <div className="relative flex-shrink-0">
+          {thread.otherProfile?.avatar_url ? (
+            <img src={thread.otherProfile.avatar_url} alt="" className="w-11 h-11 rounded-xl object-cover" />
+          ) : (
+            <div className="w-11 h-11 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg border border-white/10">
+              {thread.otherProfile?.name?.charAt(0) || '🧑'}
+            </div>
+          )}
+          {isUnread && (
+            <div className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-[#E8B84B] rounded-full flex items-center justify-center px-1">
+              <span className="text-[8px] font-bold text-[#0D110D]">{badgeCount}</span>
+            </div>
+          )}
+        </div>
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-0.5">
-            <div className="text-sm font-semibold text-[#F0EDE6]">{thread.otherProfile?.name || 'Unknown'}</div>
-            <div className="text-[10px] text-white/30">{formatTime(thread.sent_at)}</div>
+            <div className={'text-sm ' + (isUnread ? 'font-bold text-[#F0EDE6]' : 'font-medium text-[#F0EDE6]/80')}>
+              {thread.otherProfile?.name || 'Unknown'}
+            </div>
+            <div className={'text-[10px] ' + (isUnread ? 'text-[#E8B84B]' : 'text-white/30')}>
+              {formatTime(thread.sent_at)}
+            </div>
           </div>
-          <div className={'text-xs truncate ' + (isUnread ? 'text-[#F0EDE6] font-medium' : 'text-white/45')}>
-            {thread.text}
+          <div className={'text-xs truncate ' + (isUnread ? 'text-[#F0EDE6]/70 font-medium' : 'text-white/35')}>
+            {thread.sender_id === thread.otherProfile?.id ? '' : 'You: '}{thread.text}
           </div>
         </div>
-        {isUnread && (
-          <div className="w-4 h-4 bg-[#E8B84B] rounded-full flex items-center justify-center text-[8px] font-bold text-[#0D110D] flex-shrink-0 mt-1">1</div>
-        )}
       </div>
     </div>
   )
