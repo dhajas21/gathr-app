@@ -67,7 +67,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => {
     if (!eventId) return
-    const channel = supabase
+
+    const commentChannel = supabase
       .channel('comments-' + eventId)
       .on('postgres_changes', {
         event: 'INSERT',
@@ -83,7 +84,43 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         if (data) setComments(prev => [...prev, data as any])
       })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+
+    const rsvpChannel = supabase
+      .channel('rsvps-' + eventId)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'rsvps',
+        filter: 'event_id=eq.' + eventId,
+      }, async (payload) => {
+        setTotalAttendees(prev => prev + 1)
+        const { data } = await supabase
+          .from('rsvps')
+          .select('user_id, profiles(id, name, avatar_url)')
+          .eq('event_id', eventId)
+          .limit(12)
+        if (data) setAttendees(data as any)
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'rsvps',
+        filter: 'event_id=eq.' + eventId,
+      }, async (payload) => {
+        setTotalAttendees(prev => Math.max(0, prev - 1))
+        const { data } = await supabase
+          .from('rsvps')
+          .select('user_id, profiles(id, name, avatar_url)')
+          .eq('event_id', eventId)
+          .limit(12)
+        if (data) setAttendees(data as any)
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(commentChannel)
+      supabase.removeChannel(rsvpChannel)
+    }
   }, [eventId])
 
   const fetchEvent = async (id: string, userId: string) => {
@@ -96,7 +133,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (!eventData) { router.push('/home'); return }
     setEvent(eventData)
 
-    // Save to recently viewed
     try {
       const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
       const stored = localStorage.getItem(RECENTLY_VIEWED_KEY)
@@ -173,12 +209,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     setComments(prev => prev.filter(c => c.id !== commentId))
   }
 
-const handleOpenMaps = () => {
-  if (!event) return
-  const query = encodeURIComponent([event.location_name, event.location_address, event.city].filter(Boolean).join(', '))
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-  window.open(isIOS ? `https://maps.apple.com/?q=${query}` : `https://www.google.com/maps/search/${query}`, '_blank')
-}
+  const handleOpenMaps = () => {
+    if (!event) return
+    const query = encodeURIComponent([event.location_name, event.location_address, event.city].filter(Boolean).join(', '))
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    window.open(isIOS ? `https://maps.apple.com/?q=${query}` : `https://www.google.com/maps/search/${query}`, '_blank')
+  }
 
   const handleAddToCalendar = () => {
     if (!event) return
