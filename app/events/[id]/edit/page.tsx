@@ -26,6 +26,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [privacy, setPrivacy] = useState('public')
+  const [geocoding, setGeocoding] = useState(false)
 
   useEffect(() => {
     params.then(({ id }) => {
@@ -59,6 +60,26 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     setEndTime(end.toTimeString().slice(0, 5))
 
     setLoading(false)
+  }
+
+  const geocodeAddress = async (addr: string, venue: string, c: string) => {
+    const query = [addr || venue, c].filter(Boolean).join(', ')
+    if (!query) return
+    setGeocoding(true)
+    try {
+      const res = await fetch(
+        'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query),
+        { headers: { 'User-Agent': 'GathrApp/1.0' } }
+      )
+      const data = await res.json()
+      if (data[0]) {
+        await supabase.from('events').update({
+          latitude: parseFloat(data[0].lat),
+          longitude: parseFloat(data[0].lon),
+        }).eq('id', eventId)
+      }
+    } catch {}
+    setGeocoding(false)
   }
 
   const addTag = () => {
@@ -167,7 +188,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 
         <div>
           <label className={labelClass}>Address</label>
-          <input className={inputClass} placeholder="Street address" value={address} onChange={e => setAddress(e.target.value)} maxLength={200} />
+          <input className={inputClass} placeholder="Street address" value={address} onChange={e => setAddress(e.target.value)} onBlur={() => geocodeAddress(address, venueName, city)} maxLength={200} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
