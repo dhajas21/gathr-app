@@ -186,11 +186,11 @@ export default function CommunitiesPage() {
                         </span>
                       )}
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id) }}
-                      className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
-                      + Join
-                    <button onClick={() => router.push('/communities/' + communityId + '/settings')} className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">⚙️</button>
-                  </div>
+            <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id) }}
+  className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
+  + Join
+</button>
+</div>
                 </div>
               </div>
             ))}
