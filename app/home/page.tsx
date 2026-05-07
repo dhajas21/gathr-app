@@ -189,7 +189,17 @@ export default function HomePage() {
 
   if (loading) return (
     <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
+      <div className="flex flex-col items-center gap-4">
+        <h1 className="text-5xl font-extrabold text-[#F0EDE6] tracking-tight leading-none font-display">
+          Gathr<span className="text-[#E8B84B]">.</span>
+        </h1>
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#E8B84B] animate-pulse"
+              style={{ animationDelay: `${i * 180}ms` }} />
+          ))}
+        </div>
+      </div>
     </div>
   )
 
@@ -200,7 +210,7 @@ export default function HomePage() {
       <div className="px-4 pt-14 pb-0 bg-[#0D110D]">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>
+            <h1 className="font-extrabold text-[#F0EDE6] text-2xl tracking-tight leading-none font-display">
               Gathr<span className="text-[#E8B84B]">.</span>
             </h1>
             {profile?.name && (
