@@ -23,9 +23,30 @@ export default function CreateEventPage() {
   const [city, setCity] = useState('Bellingham')
   const [capacity, setCapacity] = useState('')
 
+  const [lat, setLat] = useState<number | null>(null)
+  const [lng, setLng] = useState<number | null>(null)
+  const [geocoding, setGeocoding] = useState(false)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [privacy, setPrivacy] = useState('public')
+
+  const geocodeAddress = async (addr: string, venue: string, c: string) => {
+    const query = [addr || venue, c].filter(Boolean).join(', ')
+    if (!query) return
+    setGeocoding(true)
+    try {
+      const res = await fetch(
+        'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query),
+        { headers: { 'User-Agent': 'GathrApp/1.0' } }
+      )
+      const data = await res.json()
+      if (data[0]) {
+        setLat(parseFloat(data[0].lat))
+        setLng(parseFloat(data[0].lon))
+      }
+    } catch {}
+    setGeocoding(false)
+  }
 
   const addTag = () => {
     const t = tagInput.trim().toLowerCase()
@@ -61,8 +82,8 @@ export default function CreateEventPage() {
       tags,
       visibility: privacy,
       host_id: session.user.id,
-      latitude: 48.7519,
-      longitude: -122.4787,
+      latitude: lat ?? 48.7519,
+      longitude: lng ?? -122.4787,
     })
 
     if (insertError) {
@@ -157,7 +178,7 @@ export default function CreateEventPage() {
 
             <div>
               <label className={labelClass}>Address</label>
-              <input className={inputClass} placeholder="470 Bayview Dr, Bellingham WA" value={address} onChange={e => setAddress(e.target.value)} maxLength={200} />
+              <input className={inputClass} placeholder="470 Bayview Dr, Bellingham WA" value={address} onChange={e => setAddress(e.target.value)} onBlur={() => geocodeAddress(address, venueName, city)} maxLength={200} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -227,7 +248,7 @@ export default function CreateEventPage() {
             disabled={!title || !category || !date || !startTime || !venueName}
             className="w-full bg-[#E8B84B] text-[#0D110D] rounded-2xl py-4 font-bold text-sm disabled:opacity-40 active:scale-95 transition-transform"
           >
-            Next — The Details →
+            {geocoding ? 'Looking up location...' : 'Next — The Details →'}
           </button>
         ) : (
           <div className="flex gap-3">
