@@ -91,6 +91,14 @@ export default function NotificationsPage() {
       .eq('requester_id', notif.actor_id)
       .eq('addressee_id', user.id)
     if (!error) {
+      await supabase.from('notifications').insert({
+        user_id: notif.actor_id,
+        actor_id: user.id,
+        type: 'connection_accepted',
+        title: 'accepted your connection request',
+        link: '/profile/' + user.id,
+        read: false,
+      })
       await markRead(notif.id)
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true, _accepted: true } : n))
     }

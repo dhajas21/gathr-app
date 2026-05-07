@@ -77,9 +77,21 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     setActionLoading(true)
     if (connectionStatus === null) {
       const { data } = await supabase.from('connections').insert({
-        requester_id: user.id, addressee_id: profileId,
+        requester_id: user.id, addressee_id: profileId, user_id: user.id, friend_id: profileId,
       }).select().single()
-      if (data) { setConnectionStatus('pending'); setConnectionId(data.id) }
+      if (data) {
+        setConnectionStatus('pending')
+        setConnectionId(data.id)
+        await supabase.from('notifications').insert({
+          user_id: profileId,
+          actor_id: user.id,
+          type: 'connection_request',
+          title: 'wants to connect with you',
+          body: 'Tap to view their profile and accept or decline.',
+          link: '/profile/' + user.id,
+          read: false,
+        })
+      }
     }
     setActionLoading(false)
   }

@@ -182,6 +182,8 @@ export default function ProfilePage() {
               className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">🔔</button>
             <button onClick={() => router.push('/settings')}
               className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">⚙️</button>
+            <button onClick={() => router.push('/host')}
+              className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">📊</button>
             <button onClick={() => router.push('/profile/edit')}
               className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-[#F0EDE6]">
               ✏️ Edit
