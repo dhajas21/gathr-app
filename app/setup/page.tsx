@@ -4,11 +4,37 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const INTERESTS = [
-  'running', 'startups', 'coffee', 'design', 'hiking', 'music', 'film',
-  'food', 'tech', 'art', 'reading', 'travel', 'fitness', 'photography',
-  'cooking', 'yoga', 'gaming', 'fashion', 'writing', 'volunteering',
-  'nightlife', 'networking', 'outdoors', 'sports', 'wellness'
+const POPULAR_INTERESTS = [
+  'music', 'hiking', 'coffee', 'food', 'fitness', 'art', 'tech', 'travel',
+  'running', 'yoga', 'gaming', 'photography', 'cooking', 'nightlife',
+  'startups', 'design', 'film', 'reading', 'sports', 'dancing',
+  'networking', 'outdoors', 'wellness', 'volunteering',
+]
+
+const ALL_INTERESTS = [
+  'music', 'live music', 'concerts', 'festivals', 'dj', 'electronic', 'hip hop',
+  'jazz', 'classical', 'indie', 'rock', 'r&b', 'pop', 'rap', 'karaoke',
+  'film', 'movies', 'theatre', 'comedy', 'stand-up', 'podcasts', 'art',
+  'photography', 'painting', 'drawing', 'ceramics', 'sculpture', 'fashion',
+  'style', 'design', 'architecture', 'writing', 'poetry', 'books', 'reading',
+  'history', 'museums',
+  'food', 'coffee', 'wine', 'beer', 'cocktails', 'cooking', 'baking',
+  'brunch', 'restaurants', 'street food', 'vegan', 'vegetarian', 'craft beer',
+  'whiskey', 'tea',
+  'fitness', 'running', 'gym', 'yoga', 'pilates', 'cycling', 'swimming',
+  'rock climbing', 'martial arts', 'boxing', 'crossfit', 'wellness',
+  'meditation', 'mental health', 'nutrition', 'dancing', 'salsa', 'bachata',
+  'mindfulness',
+  'outdoors', 'hiking', 'camping', 'surfing', 'skiing', 'snowboarding',
+  'kayaking', 'travel', 'adventure', 'nature', 'gardening', 'birdwatching',
+  'sustainability',
+  'tech', 'startups', 'ai', 'crypto', 'coding', 'ux', 'product',
+  'entrepreneurship', 'investing', 'web3', 'gaming', 'esports', 'science',
+  'sports', 'football', 'basketball', 'soccer', 'tennis', 'golf', 'baseball',
+  'hockey', 'volleyball', 'f1', 'motorsports', 'mma',
+  'networking', 'volunteering', 'activism', 'community', 'nightlife',
+  'parties', 'self-improvement', 'astrology', 'spirituality', 'languages',
+  'pets', 'dogs', 'marketing', 'business',
 ]
 
 const ALL_CITIES = [
@@ -30,6 +56,7 @@ export default function SetupPage() {
   const [interests, setInterests] = useState<string[]>([])
   const [city, setCity] = useState('Bellingham')
   const [citySearch, setCitySearch] = useState('')
+  const [interestSearch, setInterestSearch] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -67,7 +94,6 @@ export default function SetupPage() {
   const handleFinish = async () => {
     if (!user || saving) return
     setSaving(true)
-
     let avatarUrl: string | null = null
     if (avatarFile) {
       const ext = avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg'
@@ -77,7 +103,6 @@ export default function SetupPage() {
         if (urlData?.publicUrl) avatarUrl = urlData.publicUrl + '?t=' + Date.now()
       }
     }
-
     await supabase.from('profiles').update({
       name: name.trim() || undefined,
       bio_social: bio.trim() || undefined,
@@ -86,7 +111,6 @@ export default function SetupPage() {
       city,
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     }).eq('id', user.id)
-
     setSaving(false)
     router.push('/home')
   }
@@ -101,7 +125,6 @@ export default function SetupPage() {
   return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
 
-      {/* Progress */}
       <div className="px-5 pt-14">
         <div className="flex gap-1 mb-2">
           {STEPS.map((_, i) => (
@@ -116,10 +139,8 @@ export default function SetupPage() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 flex flex-col items-center px-7 pt-8 pb-4">
 
-        {/* Step 0 — Photo + name */}
         {step === 0 && (
           <>
             <div className="text-4xl mb-4">📸</div>
@@ -127,9 +148,7 @@ export default function SetupPage() {
               Put a face to<br />your <span className="text-[#E8B84B]">name</span>
             </h1>
             <p className="text-sm text-white/45 text-center mb-7 max-w-[240px] font-light">Profiles with photos get 3× more connections.</p>
-
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileSelect} className="hidden" />
-
             <button onClick={() => fileRef.current?.click()} className="mb-6 relative group">
               {avatarPreview ? (
                 <img src={avatarPreview} alt="" className="w-24 h-24 rounded-3xl object-cover border-2 border-[#E8B84B]/50" />
@@ -139,37 +158,23 @@ export default function SetupPage() {
                   <span className="text-[9px] text-[#E8B84B]/60">Tap to add</span>
                 </div>
               )}
-              <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-[#E8B84B] rounded-full flex items-center justify-center text-sm border-2 border-[#0D110D]">
-                📷
-              </div>
+              <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-[#E8B84B] rounded-full flex items-center justify-center text-sm border-2 border-[#0D110D]">📷</div>
             </button>
-
             <div className="w-full space-y-3">
               <div>
                 <label className="text-xs text-white/40 mb-1.5 block">Your name</label>
-                <input
-                  className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
-                  placeholder="Full name"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  maxLength={50}
-                />
+                <input className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
+                  placeholder="Full name" value={name} onChange={e => setName(e.target.value)} maxLength={50} />
               </div>
               <div>
                 <label className="text-xs text-white/40 mb-1.5 block">One-line bio <span className="text-white/20">(optional)</span></label>
-                <input
-                  className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
-                  placeholder="Runner · Builder · Coffee lover"
-                  value={bio}
-                  onChange={e => setBio(e.target.value)}
-                  maxLength={100}
-                />
+                <input className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
+                  placeholder="Runner · Builder · Coffee lover" value={bio} onChange={e => setBio(e.target.value)} maxLength={100} />
               </div>
             </div>
           </>
         )}
 
-        {/* Step 1 — Mode */}
         {step === 1 && (
           <>
             <div className="text-4xl mb-4">✦</div>
@@ -199,27 +204,55 @@ export default function SetupPage() {
           </>
         )}
 
-        {/* Step 2 — Interests */}
         {step === 2 && (
           <>
             <div className="text-4xl mb-4">🎯</div>
             <h1 className="text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2" style={{ fontFamily: 'sans-serif' }}>
               What are you<br /><span className="text-[#E8B84B]">into?</span>
             </h1>
-            <p className="text-sm text-white/45 text-center mb-6 max-w-[240px] font-light">Pick up to 10. We'll use this to recommend events.</p>
+            <p className="text-sm text-white/45 text-center mb-4 max-w-[240px] font-light">Pick up to 10. We'll use this to recommend events.</p>
+
+            <div className="w-full flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-4">
+              <span className="text-sm text-white/30">🔍</span>
+              <input type="text" value={interestSearch} onChange={e => setInterestSearch(e.target.value)}
+                placeholder="Search interests..."
+                className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none" />
+              {interestSearch && <button onClick={() => setInterestSearch('')} className="text-[10px] text-white/30">✕</button>}
+            </div>
+
+            {interests.length > 0 && (
+              <div className="w-full flex flex-wrap gap-1.5 mb-3">
+                {interests.map(i => (
+                  <button key={i} onClick={() => toggleInterest(i)}
+                    className="px-3 py-1.5 rounded-xl text-xs border bg-[#2A4A2A]/50 border-[#7EC87E]/30 text-[#7EC87E] flex items-center gap-1">
+                    {i} <span className="text-[#7EC87E]/60 text-[10px]">✕</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="w-full flex flex-wrap gap-2 justify-center">
-              {INTERESTS.map(interest => (
+              {(interestSearch
+                ? ALL_INTERESTS.filter(i => i.toLowerCase().includes(interestSearch.toLowerCase()) && !interests.includes(i))
+                : POPULAR_INTERESTS.filter(i => !interests.includes(i))
+              ).map(interest => (
                 <button key={interest} onClick={() => toggleInterest(interest)}
-                  className={'px-3 py-1.5 rounded-xl text-xs border transition-all ' + (interests.includes(interest) ? 'bg-[#2A4A2A]/50 border-[#7EC87E]/30 text-[#7EC87E]' : 'bg-[#1C241C] border-white/10 text-white/40')}>
+                  className={'px-3 py-1.5 rounded-xl text-xs border transition-all bg-[#1C241C] border-white/10 text-white/40 ' + (interests.length >= 10 ? 'opacity-40' : 'active:scale-95')}>
                   {interest}
                 </button>
               ))}
+              {interestSearch && !ALL_INTERESTS.some(i => i.toLowerCase() === interestSearch.toLowerCase()) && !interests.includes(interestSearch.toLowerCase()) && (
+                <button onClick={() => toggleInterest(interestSearch.toLowerCase())}
+                  className="px-3 py-1.5 rounded-xl text-xs border border-dashed border-[#E8B84B]/30 text-[#E8B84B]/70 bg-[#0D110D]">
+                  + Add &ldquo;{interestSearch.toLowerCase()}&rdquo;
+                </button>
+              )}
             </div>
-            <div className="text-[10px] text-white/25 mt-3">{interests.length} / 10 selected</div>
+            {!interestSearch && <p className="text-[10px] text-white/25 mt-2">Search to find more interests</p>}
+            <div className="text-[10px] text-white/25 mt-1">{interests.length} / 10 selected</div>
           </>
         )}
 
-        {/* Step 3 — City */}
         {step === 3 && (
           <>
             <div className="text-4xl mb-4">📍</div>
@@ -227,14 +260,12 @@ export default function SetupPage() {
               Where are you<br /><span className="text-[#E8B84B]">based?</span>
             </h1>
             <p className="text-sm text-white/45 text-center mb-6 max-w-[240px] font-light">We'll show you events and people nearby.</p>
-
             <div className="w-full flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-3">
               <span className="text-sm text-white/30">🔍</span>
               <input type="text" value={citySearch} onChange={e => setCitySearch(e.target.value)}
                 placeholder="Search cities..."
                 className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none" />
             </div>
-
             <div className="w-full max-h-[240px] overflow-y-auto space-y-2">
               {filteredCities.map(c => (
                 <button key={c} onClick={() => setCity(c)}
@@ -256,17 +287,13 @@ export default function SetupPage() {
           </>
         )}
 
-        {/* Step 4 — Done */}
         {step === 4 && (
           <div className="flex flex-col items-center text-center pt-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-[#E8B84B]/20 to-[#E8B84B]/5 border border-[#E8B84B]/20 rounded-3xl flex items-center justify-center text-4xl mb-5">
-              ✦
-            </div>
+            <div className="w-20 h-20 bg-gradient-to-br from-[#E8B84B]/20 to-[#E8B84B]/5 border border-[#E8B84B]/20 rounded-3xl flex items-center justify-center text-4xl mb-5">✦</div>
             <h1 className="text-2xl font-bold text-[#F0EDE6] leading-tight mb-2" style={{ fontFamily: 'sans-serif' }}>
               You're all set,<br /><span className="text-[#E8B84B]">{name || 'friend'}.</span>
             </h1>
             <p className="text-sm text-white/45 mb-8 max-w-[220px] font-light">Time to find your people and discover what's happening near you.</p>
-
             <div className="w-full space-y-2.5 text-left">
               {[
                 { icon: '🔍', title: 'Search events', desc: 'Try "live music this weekend"' },
@@ -286,7 +313,6 @@ export default function SetupPage() {
         )}
       </div>
 
-      {/* Footer */}
       <div className="px-5 pb-10 pt-2 flex flex-col gap-2">
         {!isLast ? (
           <>
@@ -296,9 +322,7 @@ export default function SetupPage() {
               Continue →
             </button>
             {step !== 0 && (
-              <button onClick={() => setStep(step + 1)} className="w-full py-3 text-sm text-white/30">
-                Skip for now
-              </button>
+              <button onClick={() => setStep(step + 1)} className="w-full py-3 text-sm text-white/30">Skip for now</button>
             )}
           </>
         ) : (

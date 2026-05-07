@@ -52,15 +52,49 @@ const CAT_GRADIENT: Record<string, string> = {
 }
 
 const INTEREST_TO_CATS: Record<string, string[]> = {
-  running: ['Fitness'], startups: ['Tech', 'Networking'], coffee: ['Food & Drink', 'Social'],
-  design: ['Tech', 'Arts & Culture'], hiking: ['Outdoors', 'Fitness'], music: ['Music'],
-  film: ['Arts & Culture'], food: ['Food & Drink'], tech: ['Tech'], art: ['Arts & Culture'],
-  reading: ['Social'], travel: ['Outdoors'], fitness: ['Fitness'],
-  photography: ['Arts & Culture', 'Outdoors'], cooking: ['Food & Drink'], yoga: ['Fitness'],
-  gaming: ['Tech', 'Social'], fashion: ['Arts & Culture', 'Social'], writing: ['Arts & Culture'],
-  volunteering: ['Social', 'Networking'], nightlife: ['Music', 'Social', 'Food & Drink'],
-  networking: ['Networking'], outdoors: ['Outdoors'], sports: ['Fitness', 'Outdoors'],
-  wellness: ['Fitness'],
+  'music': ['Music'], 'live music': ['Music'], 'concerts': ['Music'], 'festivals': ['Music'],
+  'dj': ['Music'], 'electronic': ['Music'], 'hip hop': ['Music'], 'jazz': ['Music'],
+  'classical': ['Music'], 'indie': ['Music'], 'rock': ['Music'], 'r&b': ['Music'],
+  'pop': ['Music'], 'rap': ['Music'], 'karaoke': ['Music', 'Social'],
+  'film': ['Arts & Culture'], 'movies': ['Arts & Culture'], 'theatre': ['Arts & Culture'],
+  'comedy': ['Arts & Culture', 'Social'], 'stand-up': ['Arts & Culture', 'Social'],
+  'podcasts': ['Tech', 'Social'], 'art': ['Arts & Culture'], 'photography': ['Arts & Culture', 'Outdoors'],
+  'painting': ['Arts & Culture'], 'drawing': ['Arts & Culture'], 'ceramics': ['Arts & Culture'],
+  'sculpture': ['Arts & Culture'], 'fashion': ['Arts & Culture', 'Social'],
+  'style': ['Arts & Culture'], 'design': ['Tech', 'Arts & Culture'],
+  'architecture': ['Arts & Culture'], 'writing': ['Arts & Culture'], 'poetry': ['Arts & Culture'],
+  'books': ['Social'], 'reading': ['Social'],
+  'food': ['Food & Drink'], 'coffee': ['Food & Drink', 'Social'], 'wine': ['Food & Drink', 'Social'],
+  'beer': ['Food & Drink'], 'cocktails': ['Food & Drink', 'Social'], 'cooking': ['Food & Drink'],
+  'baking': ['Food & Drink'], 'brunch': ['Food & Drink', 'Social'], 'restaurants': ['Food & Drink'],
+  'street food': ['Food & Drink'], 'vegan': ['Food & Drink', 'Fitness'], 'vegetarian': ['Food & Drink'],
+  'craft beer': ['Food & Drink'], 'whiskey': ['Food & Drink'], 'tea': ['Food & Drink', 'Social'],
+  'fitness': ['Fitness'], 'running': ['Fitness'], 'gym': ['Fitness'], 'yoga': ['Fitness'],
+  'pilates': ['Fitness'], 'cycling': ['Fitness', 'Outdoors'], 'swimming': ['Fitness', 'Outdoors'],
+  'rock climbing': ['Fitness', 'Outdoors'], 'martial arts': ['Fitness'], 'boxing': ['Fitness'],
+  'crossfit': ['Fitness'], 'wellness': ['Fitness'], 'meditation': ['Fitness', 'Social'],
+  'mental health': ['Fitness', 'Social'], 'nutrition': ['Fitness', 'Food & Drink'],
+  'dancing': ['Music', 'Social', 'Fitness'], 'salsa': ['Music', 'Social'], 'bachata': ['Music', 'Social'],
+  'outdoors': ['Outdoors'], 'hiking': ['Outdoors', 'Fitness'], 'camping': ['Outdoors'],
+  'surfing': ['Outdoors', 'Fitness'], 'skiing': ['Outdoors', 'Fitness'], 'snowboarding': ['Outdoors', 'Fitness'],
+  'kayaking': ['Outdoors', 'Fitness'], 'travel': ['Outdoors', 'Social'], 'adventure': ['Outdoors'],
+  'nature': ['Outdoors'], 'gardening': ['Outdoors', 'Social'], 'birdwatching': ['Outdoors'],
+  'tech': ['Tech'], 'startups': ['Tech', 'Networking'], 'ai': ['Tech'], 'crypto': ['Tech'],
+  'coding': ['Tech'], 'ux': ['Tech', 'Arts & Culture'], 'product': ['Tech', 'Networking'],
+  'entrepreneurship': ['Tech', 'Networking'], 'investing': ['Tech', 'Networking'],
+  'business': ['Networking'], 'marketing': ['Networking'], 'web3': ['Tech'],
+  'gaming': ['Tech', 'Social'], 'esports': ['Tech', 'Social'],
+  'sports': ['Fitness', 'Outdoors'], 'football': ['Fitness', 'Social'], 'basketball': ['Fitness', 'Social'],
+  'soccer': ['Fitness', 'Social'], 'tennis': ['Fitness'], 'golf': ['Fitness', 'Social'],
+  'baseball': ['Fitness', 'Social'], 'hockey': ['Fitness', 'Social'], 'volleyball': ['Fitness', 'Social'],
+  'f1': ['Social'], 'motorsports': ['Social'], 'mma': ['Fitness'],
+  'networking': ['Networking'], 'volunteering': ['Social', 'Networking'],
+  'activism': ['Social', 'Networking'], 'sustainability': ['Outdoors', 'Social'],
+  'community': ['Social', 'Networking'], 'nightlife': ['Music', 'Social', 'Food & Drink'],
+  'parties': ['Social'], 'mindfulness': ['Fitness'], 'self-improvement': ['Social', 'Fitness'],
+  'astrology': ['Social'], 'spirituality': ['Social'], 'history': ['Arts & Culture'],
+  'museums': ['Arts & Culture'], 'science': ['Tech'], 'languages': ['Social'],
+  'pets': ['Social', 'Outdoors'], 'dogs': ['Outdoors', 'Social'],
 }
 
 function isToday(dt: string) {
@@ -72,14 +106,6 @@ function isTomorrow(dt: string) {
   const d = new Date(dt), tom = new Date()
   tom.setDate(tom.getDate() + 1)
   return d.getDate() === tom.getDate() && d.getMonth() === tom.getMonth() && d.getFullYear() === tom.getFullYear()
-}
-
-function isThisWeekend(dt: string) {
-  const d = new Date(dt), day = d.getDay()
-  if (day !== 0 && day !== 6) return false
-  const now = new Date()
-  const diff = (d.getTime() - now.getTime()) / 86400000
-  return diff >= 0 && diff <= 7
 }
 
 function formatTime(dt: string) {
@@ -131,11 +157,9 @@ export default function HomePage() {
     const allEvents: Event[] = eventsRes.data || []
     setEvents(allEvents)
 
-    // Happening soon (today + tomorrow)
     const soon = allEvents.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime))
     setSoonEvents(soon)
 
-    // Featured
     const featured = allEvents.find(e => e.is_featured) || null
     setFeaturedEvent(featured)
 
@@ -220,7 +244,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
 
-      {/* Header */}
       <div className="px-4 pt-14 pb-0 bg-[#0D110D]">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -246,7 +269,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Search bar */}
         <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-4 cursor-pointer active:opacity-80"
           onClick={() => router.push('/search')}>
           <span className="text-white/30 text-sm">🔍</span>
@@ -254,7 +276,6 @@ export default function HomePage() {
           <span className="bg-[#1E3A1E] border border-[#E8B84B]/15 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">✨ AI</span>
         </div>
 
-        {/* Quick links */}
         <div className="flex gap-2 mb-4">
           <button onClick={() => router.push('/communities')}
             className="flex items-center gap-1.5 bg-[#1C241C] border border-[#E8B84B]/20 rounded-full px-3 py-1.5 active:opacity-70 transition-opacity">
@@ -263,7 +284,6 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* Happening soon strip */}
         {soonEvents.length > 0 && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
@@ -306,7 +326,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Featured event hero */}
         {featuredEvent && activeTab === 0 && (
           <div onClick={() => router.push('/events/' + featuredEvent.id)}
             className="rounded-3xl overflow-hidden mb-4 cursor-pointer active:scale-[0.98] transition-transform border border-[#E8B84B]/20">
@@ -334,7 +353,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Tabs */}
         <div className="flex border-b border-white/10 -mx-4 px-4 overflow-x-auto">
           {TABS.map((tab, i) => (
             <button key={tab} onClick={() => setActiveTab(i)}
@@ -345,7 +363,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Feed */}
       <div className="px-4 pt-4">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -400,14 +417,12 @@ export default function HomePage() {
                       {isHost && !isRsvpd && <span className="bg-[#E8B84B]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Hosting</span>}
                     </div>
                   </div>
-
                   <div className="p-3">
                     <h3 className="font-bold text-[#F0EDE6] text-sm mb-1.5 leading-snug">{event.title}</h3>
                     <div className="flex items-center gap-3 text-[10px] text-white/45 mb-2">
                       <span>📅 {formatDate(event.start_datetime)}</span>
                       <span>📍 {event.location_name}</span>
                     </div>
-
                     <div className="flex items-center justify-between">
                       <div className="flex gap-1.5 flex-wrap flex-1">
                         {event.tags?.slice(0, 2).map(tag => (
@@ -432,7 +447,6 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* City picker */}
       {showCityPicker && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => { setShowCityPicker(false); setCitySearch('') }}>
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
