@@ -263,14 +263,19 @@ const handleOpenMaps = () => {
             </div>
            <button onClick={handleAddToCalendar} className="ml-auto bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-lg px-2.5 py-1 text-[10px] text-[#E8B84B] active:scale-95 transition-transform">
   + Calendar
-<button onClick={handleOpenMaps} className="flex items-center gap-3 w-full text-left active:opacity-70 transition-opacity">
-  <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center text-xs flex-shrink-0">📍</div>
-  <div className="flex-1 min-w-0">
-    <div className="text-sm font-medium text-[#F0EDE6]">{event.location_name}</div>
-    <div className="text-xs text-white/45">{event.location_address || event.city}</div>
-  </div>
-  <span className="text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/15 px-2 py-1 rounded-lg flex-shrink-0">Open →</span>
-</button>
+            <button onClick={handleAddToCalendar} className="ml-auto bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-lg px-2.5 py-1 text-[10px] text-[#E8B84B] active:scale-95 transition-transform">
+              + Calendar
+            </button>
+          </div>
+          <button onClick={handleOpenMaps} className="flex items-center gap-3 w-full text-left active:opacity-70 transition-opacity">
+            <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center text-xs flex-shrink-0">📍</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-[#F0EDE6]">{event.location_name}</div>
+              <div className="text-xs text-white/45">{event.location_address || event.city}</div>
+            </div>
+            <span className="text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/15 px-2 py-1 rounded-lg flex-shrink-0">Open →</span>
+          </button>
+        </div>
 
         {/* About */}
         {event.description && (
