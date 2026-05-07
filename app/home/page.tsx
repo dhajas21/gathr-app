@@ -218,6 +218,12 @@ export default function HomePage() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => router.push('/notifications')}
+              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0EDE6" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
+              </svg>
+            </button>
             <button onClick={() => setShowCityPicker(true)}
               className="flex items-center gap-1.5 bg-[#1C241C] border border-white/10 rounded-full px-3 py-1.5">
               <div className="w-1.5 h-1.5 rounded-sm bg-[#5BCC7A]"></div>
