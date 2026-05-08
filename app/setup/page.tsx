@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { POPULAR_INTERESTS, ALL_INTERESTS, CITY_NAMES } from '@/lib/constants'
 
-const STEPS = ['photo', 'mode', 'interests', 'city', 'done']
+const STEPS = ['photo', 'mode', 'interests', 'city', 'privacy', 'done']
 
 export default function SetupPage() {
   const [user, setUser] = useState<any>(null)
@@ -15,6 +15,7 @@ export default function SetupPage() {
   const [mode, setMode] = useState('both')
   const [interests, setInterests] = useState<string[]>([])
   const [city, setCity] = useState('Bellingham')
+  const [rsvpVisibility, setRsvpVisibility] = useState('public')
   const [citySearch, setCitySearch] = useState('')
   const [interestSearch, setInterestSearch] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -69,6 +70,7 @@ export default function SetupPage() {
       profile_mode: mode,
       interests,
       city,
+      rsvp_visibility: rsvpVisibility,
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     }).eq('id', user.id)
     setSaving(false)
@@ -248,6 +250,34 @@ export default function SetupPage() {
         )}
 
         {step === 4 && (
+          <>
+            <h1 className="text-2xl font-bold text-[#F0EDE6] leading-tight mb-1" style={{ fontFamily: 'sans-serif' }}>
+              Who can see you<br /><span className="text-[#E8B84B]">at events?</span>
+            </h1>
+            <p className="text-sm text-white/40 mb-6 max-w-[260px] font-light">Control whether others can see you on attendee lists. You can change this anytime.</p>
+            <div className="w-full space-y-2">
+              {[
+                { value: 'public', icon: '🌍', label: 'Public', desc: 'Anyone can see you on attendee lists' },
+                { value: 'connections', icon: '🤝', label: 'Connections only', desc: 'Only people you\'re connected with' },
+                { value: 'private', icon: '🔒', label: 'Private', desc: 'Only the event host can see you' },
+              ].map(opt => (
+                <div key={opt.value} onClick={() => setRsvpVisibility(opt.value)}
+                  className={'flex items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer ' + (rsvpVisibility === opt.value ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
+                  <span className="text-xl flex-shrink-0">{opt.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-[#F0EDE6]">{opt.label}</div>
+                    <div className="text-xs text-white/40">{opt.desc}</div>
+                  </div>
+                  <div className={'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ' + (rsvpVisibility === opt.value ? 'border-[#E8B84B]' : 'border-white/20')}>
+                    {rsvpVisibility === opt.value && <div className="w-2 h-2 rounded-full bg-[#E8B84B]" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {step === 5 && (
           <div className="flex flex-col items-center text-center pt-6">
             <div className="w-20 h-20 bg-gradient-to-br from-[#E8B84B]/20 to-[#E8B84B]/5 border border-[#E8B84B]/20 rounded-3xl flex items-center justify-center text-4xl mb-5">✦</div>
             <h1 className="text-2xl font-bold text-[#F0EDE6] leading-tight mb-2" style={{ fontFamily: 'sans-serif' }}>

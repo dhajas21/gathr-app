@@ -426,8 +426,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">
               {totalAttendees > 0 ? `${totalAttendees} Going` : 'Attendees'}
             </div>
-            {totalAttendees > 12 && (
-              <span className="text-[10px] text-[#E8B84B]">+{totalAttendees - 12} more</span>
+            {totalAttendees > 0 && (
+              <button onClick={() => router.push('/events/' + event.id + '/attendees')}
+                className="text-[10px] text-[#E8B84B]">
+                {totalAttendees > 12 ? `+${totalAttendees - 12} more →` : 'See all →'}
+              </button>
             )}
           </div>
           {attendees.length === 0 ? (

@@ -22,6 +22,7 @@ export default function EditProfilePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [uploadError, setUploadError] = useState('')
   const [interestSearch, setInterestSearch] = useState('')
+  const [rsvpVisibility, setRsvpVisibility] = useState('public')
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -37,6 +38,7 @@ export default function EditProfilePage() {
             setCity(data.city || 'Bellingham')
             setInterests(data.interests || [])
             setMode(data.profile_mode || 'social')
+            setRsvpVisibility(data.rsvp_visibility || 'public')
             setAvatarUrl(data.avatar_url || null)
             if (data.avatar_url) setAvatarPreview(data.avatar_url)
           }
@@ -84,7 +86,7 @@ export default function EditProfilePage() {
     if (avatarFile) finalAvatarUrl = await uploadAvatar()
     else if (!avatarPreview && avatarUrl) finalAvatarUrl = null
     await supabase.from('profiles').update({
-      name: name.trim(), bio_social: bio.trim(), city, interests, profile_mode: mode, avatar_url: finalAvatarUrl,
+      name: name.trim(), bio_social: bio.trim(), city, interests, profile_mode: mode, avatar_url: finalAvatarUrl, rsvp_visibility: rsvpVisibility,
     }).eq('id', userId)
     setSaving(false)
     window.location.href = '/profile'
@@ -172,6 +174,29 @@ export default function EditProfilePage() {
                 </div>
                 <div className={'w-4 h-4 rounded-full border-2 flex items-center justify-center ml-auto flex-shrink-0 ' + (mode === opt.value ? 'border-[#E8B84B]' : 'border-white/20')}>
                   {mode === opt.value && <div className="w-2 h-2 rounded-full bg-[#E8B84B]" />}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-white/50 mb-2 block">Attendee list visibility</label>
+          <div className="space-y-2">
+            {[
+              { value: 'public', icon: '🌍', label: 'Public', desc: 'Anyone can see you on attendee lists' },
+              { value: 'connections', icon: '🤝', label: 'Connections only', desc: 'Only people you\'re connected with' },
+              { value: 'private', icon: '🔒', label: 'Private', desc: 'Only the event host can see you' },
+            ].map(opt => (
+              <div key={opt.value} onClick={() => setRsvpVisibility(opt.value)}
+                className={'flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ' + (rsvpVisibility === opt.value ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
+                <span className="text-lg flex-shrink-0">{opt.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-[#F0EDE6]">{opt.label}</div>
+                  <div className="text-xs text-white/40">{opt.desc}</div>
+                </div>
+                <div className={'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ' + (rsvpVisibility === opt.value ? 'border-[#E8B84B]' : 'border-white/20')}>
+                  {rsvpVisibility === opt.value && <div className="w-2 h-2 rounded-full bg-[#E8B84B]" />}
                 </div>
               </div>
             ))}
