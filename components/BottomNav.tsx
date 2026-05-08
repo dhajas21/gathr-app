@@ -11,10 +11,12 @@ const HomeIcon = () => (
   </svg>
 )
 
-const MapIcon = () => (
+const CommunitiesIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 21s-8-6-8-11a8 8 0 0116 0c0 5-8 11-8 11z"/>
-    <circle cx="12" cy="10" r="2.5" fill="currentColor" stroke="none"/>
+    <circle cx="9" cy="7" r="3"/>
+    <path d="M3 20c0-2.8 2.7-5 6-5s6 2.2 6 5"/>
+    <circle cx="17" cy="8" r="2.5"/>
+    <path d="M21 20c0-2.3-2-4-4.5-4"/>
   </svg>
 )
 
@@ -61,7 +63,7 @@ export default function BottomNav() {
 
   const active = (href: string) =>
     href === '/home' ? path === '/home'
-    : href === '/map' ? path?.startsWith('/map')
+    : href === '/communities' ? path?.startsWith('/communities')
     : href === '/messages' ? path?.startsWith('/messages')
     : href === '/profile' ? path?.startsWith('/profile')
     : false
@@ -86,9 +88,9 @@ export default function BottomNav() {
           <span className="text-[9px] font-bold tracking-wider">Gathr.</span>
         </button>
 
-        <button onClick={() => router.push('/map')} className={tabClass('/map')}>
-          <MapIcon />
-          <span className="text-[9px] font-semibold tracking-wider uppercase">Map</span>
+        <button onClick={() => router.push('/communities')} className={tabClass('/communities')}>
+          <CommunitiesIcon />
+          <span className="text-[9px] font-semibold tracking-wider uppercase">Groups</span>
         </button>
 
         <button onClick={() => router.push('/create')} className="flex-1 flex flex-col items-center -mt-3">

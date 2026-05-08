@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { EVENT_CATEGORIES } from '@/lib/constants'
 
 const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech', 'Outdoors', 'Arts & Culture', 'Social', 'Networking']
 const RECENT_SEARCHES_KEY = 'gathr_recent_searches'
@@ -87,6 +88,7 @@ export default function SearchPage() {
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [recentlyViewed, setRecentlyViewed] = useState<any[]>([])
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, string>>({})
+  const [showAllCats, setShowAllCats] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -406,21 +408,20 @@ export default function SearchPage() {
             )}
 
             {/* Browse by category */}
-            <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2 font-medium">Browse by category</div>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {[
-                { emoji: '🎸', label: 'Music', bg: '#1E2E1E' },
-                { emoji: '🏃', label: 'Fitness', bg: '#2A1E0E' },
-                { emoji: '💻', label: 'Tech', bg: '#1A1E2A' },
-                { emoji: '🥾', label: 'Outdoors', bg: '#1A2A1A' },
-                { emoji: '🎨', label: 'Arts', bg: '#2A1A1A' },
-                { emoji: '☕', label: 'Food & Drink', bg: '#2A2A1A' },
-              ].map(cat => (
-                <button key={cat.label} onClick={() => setActiveCategory(cat.label === 'Arts' ? 'Arts & Culture' : cat.label)}
-                  className="flex items-center gap-2 p-3 rounded-2xl border border-white/10"
-                  style={{ background: cat.bg }}>
-                  <span className="text-lg">{cat.emoji}</span>
-                  <span className="text-sm font-medium text-[#F0EDE6]">{cat.label}</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Browse by category</div>
+              <button onClick={() => setShowAllCats(v => !v)} className="text-[10px] text-[#E8B84B]">
+                {showAllCats ? 'Less ↑' : 'See all →'}
+              </button>
+            </div>
+            <div className={`grid gap-2 mb-4 ${showAllCats ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              {(showAllCats ? EVENT_CATEGORIES : EVENT_CATEGORIES.slice(0, 6)).map(cat => (
+                <button key={cat} onClick={() => setActiveCategory(cat)}
+                  className={'flex items-center gap-2 p-3 rounded-2xl border border-white/10 active:scale-95 transition-transform ' + (activeCategory === cat ? 'border-[#E8B84B]/30 bg-[#E8B84B]/5' : 'bg-[#1C241C]')}>
+                  <span className={showAllCats ? 'text-base' : 'text-lg'}>
+                    {cat === 'Music' ? '🎸' : cat === 'Fitness' ? '🏃' : cat === 'Food & Drink' ? '🍺' : cat === 'Tech & Coding' ? '💻' : cat === 'Outdoors & Adventure' ? '🥾' : cat === 'Arts & Culture' ? '🎨' : cat === 'Social & Parties' ? '🎉' : cat === 'Networking' ? '💼' : cat === 'Coffee & Brunch' ? '☕' : cat === 'Wellness & Mindfulness' ? '🌿' : cat === 'Dance & Movement' ? '💃' : cat === 'Gaming & Esports' ? '🎮' : '✨'}
+                  </span>
+                  <span className={`font-medium text-[#F0EDE6] text-left leading-tight ${showAllCats ? 'text-[10px]' : 'text-sm'}`}>{cat}</span>
                 </button>
               ))}
             </div>
