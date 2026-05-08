@@ -410,7 +410,12 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                 {events.map(event => (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer">
-                    <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">🎉</div>
+                    <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0 overflow-hidden relative">
+                      {event.cover_url
+                        ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        : '🎉'
+                      }
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
                       <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)}</div>
