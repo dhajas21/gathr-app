@@ -86,6 +86,7 @@ export default function SearchPage() {
   const [recommendations, setRecommendations] = useState<any[]>([])
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [recentlyViewed, setRecentlyViewed] = useState<any[]>([])
+  const [connectionStatuses, setConnectionStatuses] = useState<Record<string, string>>({})
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -192,8 +193,22 @@ export default function SearchPage() {
         .select('id, name, bio_social, city, avatar_url')
         .or('name.ilike.%' + q.trim() + '%,bio_social.ilike.%' + q.trim() + '%,city.ilike.%' + q.trim() + '%')
         .neq('id', user?.id).limit(10)
-      if (peopleData) setPeople(peopleData)
-    } else { setPeople([]) }
+      if (peopleData) {
+        setPeople(peopleData)
+        if (peopleData.length > 0 && user) {
+          const ids = peopleData.map((p: any) => p.id)
+          const { data: connData } = await supabase.from('connections')
+            .select('requester_id, addressee_id, status')
+            .or(ids.map((id: string) => `and(requester_id.eq.${user.id},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${user.id})`).join(','))
+          const statuses: Record<string, string> = {}
+          for (const c of (connData || [])) {
+            const otherId = c.requester_id === user.id ? c.addressee_id : c.requester_id
+            statuses[otherId] = c.status
+          }
+          setConnectionStatuses(statuses)
+        }
+      }
+    } else { setPeople([]); setConnectionStatuses({}) }
 
     // Search communities
     if (q.trim()) {
@@ -220,6 +235,22 @@ export default function SearchPage() {
     }, 400)
     return () => clearTimeout(timer)
   }, [query, activeCategory])
+
+  const handleConnect = async (e: React.MouseEvent, personId: string) => {
+    e.stopPropagation()
+    if (!user || connectionStatuses[personId]) return
+    const { data } = await supabase.from('connections').insert({
+      requester_id: user.id, addressee_id: personId, user_id: user.id, friend_id: personId,
+    }).select().single()
+    if (data) {
+      setConnectionStatuses(prev => ({ ...prev, [personId]: 'pending' }))
+      await supabase.from('notifications').insert({
+        user_id: personId, actor_id: user.id, type: 'connection_request',
+        title: 'wants to connect with you', body: 'Tap to view their profile.',
+        link: '/profile/' + user.id, read: false,
+      })
+    }
+  }
 
   const formatDate = (dt: string) => {
     const d = new Date(dt)
@@ -483,6 +514,14 @@ export default function SearchPage() {
                         <div className="text-sm font-semibold text-[#F0EDE6]">{person.name}</div>
                         <div className="text-[10px] text-white/40 mt-0.5">{person.bio_social || person.city || ''}</div>
                       </div>
+                      <button onClick={(e) => handleConnect(e, person.id)}
+                        className={'text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border flex-shrink-0 transition-all ' + (
+                          connectionStatuses[person.id] === 'accepted' ? 'bg-[#2A4A2A]/40 border-[#7EC87E]/20 text-[#7EC87E]'
+                          : connectionStatuses[person.id] === 'pending' ? 'bg-transparent border-[#E8B84B]/20 text-[#E8B84B]/60'
+                          : 'bg-[#E8B84B]/10 border-[#E8B84B]/20 text-[#E8B84B]'
+                        )}>
+                        {connectionStatuses[person.id] === 'accepted' ? '✓ Connected' : connectionStatuses[person.id] === 'pending' ? 'Sent' : '+ Connect'}
+                      </button>
                     </div>
                   ))}
                 </div>

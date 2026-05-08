@@ -174,6 +174,20 @@ export default function CommunitiesPage() {
           </>
         )}
 
+        {suggestedCats.size === 0 && activeCategory === 'All' && !search && discover.length > 0 && (
+          <div className="flex items-center gap-3 bg-[#1C241C] border border-dashed border-[#E8B84B]/20 rounded-2xl p-3.5 mb-4 mt-2">
+            <span className="text-xl flex-shrink-0">✦</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-medium text-[#F0EDE6]">Get personalized suggestions</div>
+              <div className="text-[10px] text-white/40 mt-0.5">Add interests to your profile to see communities picked for you</div>
+            </div>
+            <button onClick={() => router.push('/profile/edit')}
+              className="text-[10px] font-semibold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1.5 rounded-lg flex-shrink-0">
+              Add →
+            </button>
+          </div>
+        )}
+
         {suggestedDiscover.length > 0 && activeCategory === 'All' && !search && (
           <>
             <div className="flex items-center gap-2 mb-2 mt-2">

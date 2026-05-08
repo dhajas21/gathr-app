@@ -164,6 +164,9 @@ export default function HomePage() {
   const [showCityPicker, setShowCityPicker] = useState(false)
   const [citySearch, setCitySearch] = useState('')
   const [unreadCount, setUnreadCount] = useState(0)
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [geoGranted, setGeoGranted] = useState(false)
+  const [bookmarkedEventIds, setBookmarkedEventIds] = useState<string[]>([])
   const router = useRouter()
 
   useEffect(() => {
@@ -174,23 +177,54 @@ export default function HomePage() {
     })
   }, [])
 
+  const requestGeolocation = () => {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGeoGranted(true) },
+      () => { setGeoGranted(false) },
+      { timeout: 8000 }
+    )
+  }
+
+  const haversineDist = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLng = (lng2 - lng1) * Math.PI / 180
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  }
+
   const fetchAll = async (userId: string) => {
-    const [profileRes, eventsRes, rsvpRes, connRes, notifRes] = await Promise.all([
+    const [profileRes, eventsRes, rsvpRes, connRes, notifRes, bookmarkRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('events').select('*').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(100),
       supabase.from('rsvps').select('event_id').eq('user_id', userId),
       supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),
       supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false),
+      supabase.from('event_bookmarks').select('event_id').eq('user_id', userId),
     ])
     if (profileRes.data) setProfile(profileRes.data)
     if (rsvpRes.data) setRsvpEventIds(rsvpRes.data.map((r: any) => r.event_id))
     if (connRes.data) setConnectionIds(connRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id))
     if (notifRes.count) setUnreadCount(notifRes.count)
+    if (bookmarkRes.data) setBookmarkedEventIds(bookmarkRes.data.map((b: any) => b.event_id))
     const allEvents: Event[] = eventsRes.data || []
     setEvents(allEvents)
     setSoonEvents(allEvents.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
     setFeaturedEvent(allEvents.find(e => e.is_featured) || null)
     setLoading(false)
+  }
+
+  const handleBookmark = async (e: React.MouseEvent, eventId: string) => {
+    e.stopPropagation()
+    if (!user) return
+    if (bookmarkedEventIds.includes(eventId)) {
+      await supabase.from('event_bookmarks').delete().eq('event_id', eventId).eq('user_id', user.id)
+      setBookmarkedEventIds(prev => prev.filter(id => id !== eventId))
+    } else {
+      await supabase.from('event_bookmarks').insert({ event_id: eventId, user_id: user.id })
+      setBookmarkedEventIds(prev => [...prev, eventId])
+    }
   }
 
   const handleCityChange = async (newCity: string) => {
@@ -226,8 +260,16 @@ export default function HomePage() {
         }
         break
       case 2:
-        const userCity = profile?.city || 'Bellingham'
-        setFilteredEvents(events.filter(e => e.city?.toLowerCase() === userCity.toLowerCase()))
+        if (userLocation) {
+          const nearby = events
+            .map(e => ({ ...e, _dist: haversineDist(userLocation.lat, userLocation.lng, (e as any).latitude, (e as any).longitude) }))
+            .filter(e => !isNaN(e._dist) && e._dist <= 80)
+            .sort((a, b) => a._dist - b._dist)
+          setFilteredEvents(nearby)
+        } else {
+          const userCity = profile?.city || 'Bellingham'
+          setFilteredEvents(events.filter(e => e.city?.toLowerCase() === userCity.toLowerCase()))
+        }
         break
       case 3:
         setFilteredEvents(connectionIds.length > 0 ? events.filter(e => connectionIds.includes(e.host_id)) : [])
@@ -238,12 +280,12 @@ export default function HomePage() {
       default:
         setFilteredEvents(events)
     }
-  }, [activeTab, events, profile, rsvpEventIds, connectionIds, user])
+  }, [activeTab, events, profile, rsvpEventIds, connectionIds, user, userLocation])
 
   const getEmptyMessage = () => {
     switch (activeTab) {
       case 1: return profile?.interests?.length > 0 ? 'No events match your interests yet' : 'Add interests to get personalized picks'
-      case 2: return 'No events in ' + (profile?.city || 'your city') + ' yet'
+      case 2: return geoGranted ? 'No events within 80km of you' : 'No events in ' + (profile?.city || 'your city') + ' yet'
       case 3: return connectionIds.length > 0 ? 'No friends are hosting right now' : 'Connect with people to see their events here'
       case 4: return 'No events yet — create or RSVP to one!'
       default: return 'No events yet — be the first!'
@@ -388,13 +430,20 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="text-base font-bold text-[#F0EDE6]">
-              {activeTab === 0 ? "What's Popular" : activeTab === 1 ? 'Picked For You' : activeTab === 2 ? ('In ' + (profile?.city || 'Bellingham')) : activeTab === 3 ? "Friends' Events" : 'Your Events'}
+              {activeTab === 0 ? "What's Popular" : activeTab === 1 ? 'Picked For You' : activeTab === 2 ? (geoGranted ? 'Near You' : 'In ' + (profile?.city || 'Bellingham')) : activeTab === 3 ? "Friends' Events" : 'Your Events'}
             </h2>
             <p className="text-[10px] text-white/30 mt-0.5">
               {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
               {activeTab === 1 && profile?.interests?.length > 0 && (' · ' + profile.interests.slice(0, 3).join(', '))}
+              {activeTab === 2 && geoGranted && ' · GPS'}
             </p>
           </div>
+          {activeTab === 2 && !geoGranted && (
+            <button onClick={requestGeolocation}
+              className="flex items-center gap-1 text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1.5 rounded-xl">
+              📍 Use GPS
+            </button>
+          )}
         </div>
 
         {filteredEvents.length === 0 ? (
@@ -403,6 +452,12 @@ export default function HomePage() {
             <p className="text-white/40 text-sm text-center max-w-[240px]">{getEmptyMessage()}</p>
             {activeTab === 1 && !profile?.interests?.length && (
               <button onClick={() => router.push('/profile/edit')} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Add Interests</button>
+            )}
+            {activeTab === 2 && !geoGranted && (
+              <button onClick={requestGeolocation} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">📍 Use My Location</button>
+            )}
+            {activeTab === 2 && geoGranted && (
+              <button onClick={() => router.push('/create')} className="mt-1 bg-[#1C241C] border border-white/10 text-white/60 px-5 py-2.5 rounded-2xl font-semibold text-sm">Host something nearby</button>
             )}
             {activeTab === 3 && !connectionIds.length && (
               <button onClick={() => router.push('/communities')} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Find People</button>
@@ -418,6 +473,7 @@ export default function HomePage() {
               const isHost = event.host_id === user?.id
               const isSoon = isToday(event.start_datetime) || isTomorrow(event.start_datetime)
               const fillPct = event.capacity > 0 ? Math.round(((event.capacity - event.spots_left) / event.capacity) * 100) : 0
+              const isBookmarked = bookmarkedEventIds.includes(event.id)
               return (
                 <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                   className={'bg-[#1C241C] rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/25' : 'border-white/10')}>
@@ -431,8 +487,14 @@ export default function HomePage() {
                         {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">⭐ Featured</span>}
                         {isSoon && <span className={'text-[8px] font-bold px-2 py-0.5 rounded-full ' + (isToday(event.start_datetime) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>{isToday(event.start_datetime) ? '🔴 Today' : '🟡 Tomorrow'}</span>}
                       </div>
-                      {isRsvpd && <span className="bg-[#7EC87E]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Going ✓</span>}
-                      {isHost && !isRsvpd && <span className="bg-[#E8B84B]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Hosting</span>}
+                      <div className="flex items-center gap-1">
+                        {isRsvpd && <span className="bg-[#7EC87E]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Going ✓</span>}
+                        {isHost && !isRsvpd && <span className="bg-[#E8B84B]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Hosting</span>}
+                        <button onClick={(e) => handleBookmark(e, event.id)}
+                          className={'w-6 h-6 rounded-lg flex items-center justify-center text-[11px] transition-all ' + (isBookmarked ? 'bg-[#E8B84B]/25 text-[#E8B84B]' : 'bg-black/30 text-white/50')}>
+                          🔖
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="p-3">
@@ -440,6 +502,11 @@ export default function HomePage() {
                     <div className="flex items-center gap-3 text-[10px] text-white/45 mb-2">
                       <span>📅 {formatDate(event.start_datetime)}</span>
                       <span>📍 {event.location_name}</span>
+                      {activeTab === 2 && userLocation && (event as any)._dist !== undefined && (
+                        <span className="text-[#7EC87E]">
+                          {(event as any)._dist < 1 ? Math.round((event as any)._dist * 1000) + 'm' : ((event as any)._dist).toFixed(1) + 'km'}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex gap-1.5 flex-wrap flex-1">
