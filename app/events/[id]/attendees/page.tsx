@@ -4,74 +4,69 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-interface Attendee {
-  user_id: string
-  profiles: {
-    id: string
-    name: string
-    avatar_url: string | null
-    bio_social: string | null
-    city: string | null
-    rsvp_visibility: string | null
-  }
-}
-
 export default function AttendeesPage({ params }: { params: Promise<{ id: string }> }) {
-  const [attendees, setAttendees] = useState<Attendee[]>([])
-  const [eventTitle, setEventTitle] = useState('')
-  const [totalCount, setTotalCount] = useState(0)
+  const [user, setUser] = useState<any>(null)
+  const [event, setEvent] = useState<any>(null)
+  const [attendees, setAttendees] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentUserId, setCurrentUserId] = useState('')
-  const [connectionIds, setConnectionIds] = useState<string[]>([])
   const [isHost, setIsHost] = useState(false)
+  const [connectionIds, setConnectionIds] = useState<Set<string>>(new Set())
   const router = useRouter()
 
   useEffect(() => {
     params.then(({ id }) => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }
-        setCurrentUserId(session.user.id)
-        fetchAll(id, session.user.id)
+        setUser(session.user)
+        fetchData(id, session.user.id)
       })
     })
   }, [])
 
-  const fetchAll = async (eventId: string, userId: string) => {
-    const [eventRes, rsvpsRes, countRes, connRes] = await Promise.all([
-      supabase.from('events').select('title, host_id').eq('id', eventId).single(),
-      supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url, bio_social, city, rsvp_visibility)').eq('event_id', eventId),
-      supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
+  const fetchData = async (eventId: string, userId: string) => {
+    const { data: eventData } = await supabase
+      .from('events').select('id, title, visibility, host_id').eq('id', eventId).single()
+    if (!eventData) { router.push('/home'); return }
+    setEvent(eventData)
+
+    const host = eventData.host_id === userId
+    setIsHost(host)
+
+    if (!host && (eventData.visibility === 'private' || eventData.visibility === 'unlisted')) {
+      setLoading(false)
+      return
+    }
+
+    const [rsvpRes, connRes] = await Promise.all([
+      supabase.from('rsvps')
+        .select('user_id, profiles(id, name, avatar_url, rsvp_visibility)')
+        .eq('event_id', eventId),
       supabase.from('connections')
         .select('requester_id, addressee_id')
-        .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId)
-        .eq('status', 'accepted'),
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
     ])
 
-    if (eventRes.data) {
-      setEventTitle(eventRes.data.title)
-      setIsHost(eventRes.data.host_id === userId)
+    const connectedIds = new Set<string>()
+    connRes.data?.forEach((c: any) => {
+      connectedIds.add(c.requester_id === userId ? c.addressee_id : c.requester_id)
+    })
+    setConnectionIds(connectedIds)
+
+    if (rsvpRes.data) {
+      const filtered = rsvpRes.data.filter((r: any) => {
+        if (host) return true
+        if (r.user_id === userId) return true
+        const vis = r.profiles?.rsvp_visibility || 'public'
+        if (vis === 'public') return true
+        if (vis === 'connections') return connectedIds.has(r.user_id)
+        return false
+      })
+      setAttendees(filtered)
     }
-    if (countRes.count !== null) setTotalCount(countRes.count)
-    if (connRes.data) {
-      setConnectionIds(connRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id))
-    }
-    if (rsvpsRes.data) setAttendees(rsvpsRes.data as any)
+
     setLoading(false)
   }
-
-  const isVisible = (attendee: Attendee) => {
-    const profile = attendee.profiles
-    if (!profile) return false
-    if (attendee.user_id === currentUserId) return true
-    if (isHost) return true
-    const vis = profile.rsvp_visibility || 'public'
-    if (vis === 'public') return true
-    if (vis === 'connections') return connectionIds.includes(attendee.user_id)
-    return false
-  }
-
-  const visibleAttendees = attendees.filter(isVisible)
-  const hiddenCount = totalCount - visibleAttendees.length
 
   if (loading) return (
     <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
@@ -83,64 +78,61 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
     <div className="min-h-screen bg-[#0D110D] pb-10">
       <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
         <button onClick={() => router.back()}
-          className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">←</button>
+          className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
+          ←
+        </button>
         <div>
-          <h1 className="text-base font-bold text-[#F0EDE6]">Attendees</h1>
-          <p className="text-[10px] text-white/35 mt-0.5 truncate max-w-[220px]">{eventTitle}</p>
+          <h1 className="font-bold text-[#F0EDE6] text-lg">Who's going</h1>
+          {event && <p className="text-xs text-white/40 mt-0.5 truncate max-w-[220px]">{event.title}</p>}
         </div>
-        <span className="ml-auto text-xs text-white/30">{totalCount} going</span>
+        <span className="ml-auto text-xs text-white/30">{attendees.length} attendee{attendees.length !== 1 ? 's' : ''}</span>
       </div>
 
-      <div className="px-4 pt-4 space-y-2">
-        {visibleAttendees.map(a => {
-          const profile = a.profiles
-          if (!profile) return null
-          const isMe = a.user_id === currentUserId
-          return (
-            <div key={a.user_id}
-              onClick={() => router.push('/profile/' + profile.id)}
-              className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-3 cursor-pointer active:scale-[0.98] transition-transform">
-              {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="w-11 h-11 rounded-xl object-cover flex-shrink-0" />
-              ) : (
-                <div className="w-11 h-11 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0 border border-white/10">
-                  {profile.name?.charAt(0) || '?'}
+      {!isHost && (event?.visibility === 'private' || event?.visibility === 'unlisted') ? (
+        <div className="flex flex-col items-center justify-center py-24 gap-3 px-4 text-center">
+          <div className="text-4xl">🔒</div>
+          <p className="text-white/40 text-sm">Attendee list is only visible to the host</p>
+        </div>
+      ) : attendees.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 gap-3 px-4 text-center">
+          <div className="text-4xl">👋</div>
+          <p className="text-white/40 text-sm">No attendees yet — be the first!</p>
+        </div>
+      ) : (
+        <div className="px-4 py-3 divide-y divide-white/[0.06]">
+          {attendees.map((r: any) => {
+            const profile = r.profiles
+            const isSelf = r.user_id === user?.id
+            const canLink = isHost || isSelf || connectionIds.has(r.user_id)
+            return (
+              <div key={r.user_id}
+                onClick={() => canLink && router.push('/profile/' + r.user_id)}
+                className={'flex items-center gap-3 py-3 ' + (canLink ? 'cursor-pointer active:opacity-70' : '')}>
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">
+                    {profile?.name?.charAt(0) || '?'}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-[#F0EDE6] truncate">
+                    {profile?.name || 'Unknown'}
+                    {isSelf && <span className="text-[10px] text-white/30 ml-1.5">· You</span>}
+                  </div>
+                  {isHost && profile?.rsvp_visibility === 'private' && (
+                    <div className="text-[10px] text-white/30 mt-0.5">🔒 Hidden from other attendees</div>
+                  )}
+                  {isHost && profile?.rsvp_visibility === 'connections' && (
+                    <div className="text-[10px] text-white/30 mt-0.5">🤝 Visible to connections only</div>
+                  )}
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-medium text-[#F0EDE6] truncate">{profile.name}</span>
-                  {isMe && <span className="text-[9px] bg-[#E8B84B]/10 text-[#E8B84B] border border-[#E8B84B]/20 px-1.5 py-0.5 rounded-full flex-shrink-0">You</span>}
-                </div>
-                {profile.bio_social ? (
-                  <div className="text-xs text-white/40 mt-0.5 truncate">{profile.bio_social}</div>
-                ) : profile.city ? (
-                  <div className="text-xs text-white/40 mt-0.5">📍 {profile.city}</div>
-                ) : null}
+                {canLink && <span className="text-white/20 text-sm flex-shrink-0">›</span>}
               </div>
-              <span className="text-white/20 text-sm flex-shrink-0">›</span>
-            </div>
-          )
-        })}
-
-        {hiddenCount > 0 && (
-          <div className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-3">
-            <div className="w-11 h-11 bg-[#1A2A1A] rounded-xl flex items-center justify-center text-lg flex-shrink-0 border border-white/10">🔒</div>
-            <div>
-              <div className="text-sm font-medium text-white/50">{hiddenCount} private attendee{hiddenCount !== 1 ? 's' : ''}</div>
-              <div className="text-xs text-white/25 mt-0.5">Their profiles are hidden</div>
-            </div>
-          </div>
-        )}
-
-        {visibleAttendees.length === 0 && hiddenCount === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="text-4xl">👋</div>
-            <p className="text-white/40 text-sm">No attendees yet</p>
-            <p className="text-white/25 text-xs text-center max-w-[200px]">Be the first to RSVP to this event!</p>
-          </div>
-        )}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
