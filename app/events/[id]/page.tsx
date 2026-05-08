@@ -213,6 +213,16 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     setComments(prev => prev.filter(c => c.id !== commentId))
   }
 
+  const handleShare = async () => {
+    const url = window.location.href
+    const shareData = { title: event?.title || 'Gathr Event', text: event?.description || 'Check out this event on Gathr!', url }
+    if (navigator.share) {
+      try { await navigator.share(shareData) } catch {}
+    } else {
+      await navigator.clipboard.writeText(url)
+    }
+  }
+
   const handleOpenMaps = () => {
     if (!event) return
     const query = encodeURIComponent([event.location_name, event.location_address, event.city].filter(Boolean).join(', '))
@@ -301,7 +311,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 ✏️
               </button>
             )}
-            <button className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">↑</button>
+            <button onClick={handleShare} className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">↑</button>
             <button className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">🔖</button>
           </div>
         </div>

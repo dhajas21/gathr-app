@@ -197,6 +197,16 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     setPosts(prev => prev.filter(p => p.id !== postId))
   }
 
+  const handleShare = async () => {
+    const url = window.location.href
+    const shareData = { title: event?.title || 'Gathr Event', text: event?.description || 'Check out this event on Gathr!', url }
+    if (navigator.share) {
+      try { await navigator.share(shareData) } catch {}
+    } else {
+      await navigator.clipboard.writeText(url)
+    }
+  }
+
   const formatTime = (dt: string) => {
     const diff = Date.now() - new Date(dt).getTime()
     if (diff < 60000) return 'just now'
@@ -239,7 +249,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             ←
           </button>
           <div className="flex gap-2">
-            <button className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">↑</button>
+            <button onClick={handleShare} className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">↑</button>
             {memberRole === 'owner' && (
               <button onClick={() => router.push('/communities/' + communityId + '/settings')}
                 className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">⚙️</button>
