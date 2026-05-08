@@ -24,6 +24,8 @@ export default function ProfilePage() {
   const [attendedEvents, setAttendedEvents] = useState<any[]>([])
   const [connections, setConnections] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState(0)
+  const [celebrationAch, setCelebrationAch] = useState<any>(null)
+  const [pinnedBadges, setPinnedBadges] = useState<string[]>([])
   const [editingInterests, setEditingInterests] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -54,6 +56,33 @@ export default function ProfilePage() {
     }
   }, [])
 
+  const computedAchievements = (hosted: any[], attended: any[], conns: any[], ints: string[], prof: any) => {
+    const xp_ = (hosted.length * 10) + (attended.length * 5) + (conns.length * 3) + (ints.length * 2)
+    const level_ = Math.floor(xp_ / 50) + 1
+    return [
+      { icon: '🎉', title: 'First Event', tier: 'bronze', val: hosted.length, req: 1 },
+      { icon: '🎙', title: 'Rising Host', tier: 'silver', val: hosted.length, req: 3 },
+      { icon: '🏆', title: 'Host with the Most', tier: 'gold', val: hosted.length, req: 10 },
+      { icon: '🌆', title: 'Community Builder', tier: 'gold', val: hosted.length, req: 25 },
+      { icon: '👟', title: 'First Steps', tier: 'bronze', val: attended.length, req: 1 },
+      { icon: '📅', title: 'Scene Regular', tier: 'silver', val: attended.length, req: 5 },
+      { icon: '⭐', title: 'Event Veteran', tier: 'gold', val: attended.length, req: 20 },
+      { icon: '🌟', title: 'Gathr Legend', tier: 'gold', val: attended.length, req: 50 },
+      { icon: '🤝', title: 'First Connection', tier: 'bronze', val: conns.length, req: 1 },
+      { icon: '📡', title: 'Networker', tier: 'silver', val: conns.length, req: 10 },
+      { icon: '🦋', title: 'Social Butterfly', tier: 'gold', val: conns.length, req: 25 },
+      { icon: '👑', title: 'Connector', tier: 'gold', val: conns.length, req: 50 },
+      { icon: '🗺', title: 'Explorer', tier: 'bronze', val: ints.length, req: 5 },
+      { icon: '🎯', title: 'Passionate', tier: 'silver', val: ints.length, req: 10 },
+      { icon: '🔀', title: 'Dual Mode', tier: 'silver', val: (prof?.profile_mode === 'both' || prof?.profile_mode === 'professional') ? 1 : 0, req: 1 },
+      { icon: '💎', title: 'All-Rounder', tier: 'gold', val: Math.min(hosted.length, attended.length, conns.length), req: 5 },
+      { icon: '🔥', title: 'On Fire', tier: 'gold', val: level_, req: 5 },
+      { icon: '🚀', title: 'Power User', tier: 'gold', val: level_, req: 10 },
+      { icon: '📸', title: 'Avatar', tier: 'bronze', val: prof?.avatar_url ? 1 : 0, req: 1 },
+      { icon: '✍️', title: 'Storyteller', tier: 'bronze', val: prof?.bio_social ? 1 : 0, req: 1 },
+    ].filter(a => a.val >= a.req)
+  }
+
   const fetchAll = async (userId: string) => {
     const [profileRes, hostedRes, rsvpRes, connRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
@@ -65,7 +94,10 @@ export default function ProfilePage() {
         .eq('status', 'accepted'),
     ])
 
-    if (profileRes.data) setProfile(profileRes.data)
+    if (profileRes.data) {
+      setProfile(profileRes.data)
+      setPinnedBadges(profileRes.data.pinned_badges || [])
+    }
     if (hostedRes.data) setHostedEvents(hostedRes.data)
 
     if (rsvpRes.data && rsvpRes.data.length > 0) {
@@ -82,6 +114,9 @@ export default function ProfilePage() {
       if (connProfiles) setConnections(connProfiles)
     }
 
+    const attendedData = rsvpRes.data?.length ? await supabase.from('events').select('*').in('event_id', rsvpRes.data.map((r:any) => r.event_id)).then(r => r.data) : []
+    const earned = computedAchievements(hostedRes.data || [], attendedData || [], [], profileRes.data?.interests || [], profileRes.data)
+    checkNewAchievements(earned)
     setLoading(false)
   }
 
@@ -113,6 +148,32 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/auth')
+  }
+
+  const checkNewAchievements = (achieved: any[]) => {
+    if (!user) return
+    const key = 'gathr_badges_' + user.id
+    const prev: string[] = JSON.parse(localStorage.getItem(key) || '[]')
+    const current = achieved.map((a: any) => a.title)
+    const newOnes = current.filter((t: string) => !prev.includes(t))
+    if (newOnes.length > 0) {
+      const first = achieved.find((a: any) => a.title === newOnes[0])
+      if (first) setCelebrationAch(first)
+    }
+    localStorage.setItem(key, JSON.stringify(current))
+  }
+
+  const handleTogglePin = async (title: string) => {
+    if (!user) return
+    let next: string[]
+    if (pinnedBadges.includes(title)) {
+      next = pinnedBadges.filter(t => t !== title)
+    } else {
+      if (pinnedBadges.length >= 3) return
+      next = [...pinnedBadges, title]
+    }
+    setPinnedBadges(next)
+    await supabase.from('profiles').update({ pinned_badges: next }).eq('id', user.id)
   }
 
   const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -224,6 +285,19 @@ export default function ProfilePage() {
               <span className="text-[9px] text-white/30">{xp} XP</span>
             </div>
           </div>
+          {pinnedBadges.length > 0 && (
+            <div className="flex gap-1.5 mt-2">
+              {pinnedBadges.map(title => {
+                const ach = ACHIEVEMENTS.find(a => a.title === title)
+                if (!ach) return null
+                return (
+                  <span key={title} className={'text-[10px] px-2 py-1 rounded-lg border ' + tierBg(ach.tier, true) + ' ' + tierBorder(ach.tier, true) + ' ' + tierColor(ach.tier, true)}>
+                    {ach.icon} {ach.title}
+                  </span>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -487,9 +561,15 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex-shrink-0 text-right">
                         {unlocked ? (
+                        <div className="flex flex-col items-end gap-1">
                           <span className={'text-[9px] px-2 py-0.5 rounded border font-medium ' + tierColor(ach.tier, true) + ' ' + tierBorder(ach.tier, true)}>
                             {ach.tier === 'gold' ? '🥇' : ach.tier === 'silver' ? '🥈' : '🥉'}
                           </span>
+                          <button onClick={() => handleTogglePin(ach.title)}
+                            className={'text-[8px] px-1.5 py-0.5 rounded border transition-all ' + (pinnedBadges.includes(ach.title) ? 'border-[#E8B84B]/40 text-[#E8B84B] bg-[#E8B84B]/10' : 'border-white/10 text-white/25')}>
+                            {pinnedBadges.includes(ach.title) ? '📌 Pinned' : pinnedBadges.length >= 3 ? '—' : 'Pin'}
+                          </button>
+                        </div>
                         ) : (
                           <span className="text-[9px] text-white/20">{ach.val}/{ach.req}</span>
                         )}
@@ -543,6 +623,32 @@ export default function ProfilePage() {
 
       </div>
 
+      {celebrationAch && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-6"
+          style={{ background: 'rgba(13,17,13,0.92)', backdropFilter: 'blur(12px)' }}>
+          <div className="w-full max-w-sm text-center">
+            <div className="text-8xl mb-4 animate-bounce">{celebrationAch.icon}</div>
+            <div className="text-[10px] uppercase tracking-widest text-[#E8B84B] font-bold mb-2">Achievement Unlocked</div>
+            <div className={'text-2xl font-bold mb-2 ' + tierColor(celebrationAch.tier, true)}>{celebrationAch.title}</div>
+            <div className="text-sm text-white/50 mb-8">{celebrationAch.desc}</div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  if (navigator.share) navigator.share({ title: 'Achievement Unlocked on Gathr!', text: `Just earned the "${celebrationAch.title}" badge on Gathr ${celebrationAch.icon}` })
+                  else navigator.clipboard.writeText(`Just earned the "${celebrationAch.title}" badge on Gathr ${celebrationAch.icon}`)
+                }}
+                className="flex-1 py-3.5 rounded-2xl bg-[#1C241C] border border-white/10 text-sm text-white/60 font-medium">
+                Share 🔗
+              </button>
+              <button onClick={() => setCelebrationAch(null)}
+                className="flex-[2] py-3.5 rounded-2xl bg-[#E8B84B] text-[#0D110D] font-bold text-sm active:scale-95 transition-transform"
+                style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.3)' }}>
+                Nice! 🎉
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <BottomNav />
     </div>
   )
