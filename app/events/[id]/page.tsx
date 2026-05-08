@@ -49,6 +49,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [totalAttendees, setTotalAttendees] = useState(0)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [comments, setComments] = useState<Comment[]>([])
   const [commentText, setCommentText] = useState('')
   const [postingComment, setPostingComment] = useState(false)
@@ -234,6 +235,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       try { await navigator.share(shareData) } catch {}
     } else {
       await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 
@@ -328,7 +331,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 ✏️
               </button>
             )}
-            <button onClick={handleShare} className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">↑</button>
+            <button onClick={handleShare} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center text-base transition-colors ' + (copied ? 'border-[#7EC87E]/40 text-[#7EC87E]' : 'border-white/15')}>
+              {copied ? '✓' : '↑'}
+            </button>
             <button onClick={handleBookmark} className={'w-9 h-9 border rounded-xl flex items-center justify-center text-base transition-all ' + (bookmarked ? 'bg-[#E8B84B]/20 border-[#E8B84B]/40' : 'bg-[#0D110D]/70 border-white/15')}>🔖</button>
           </div>
         </div>

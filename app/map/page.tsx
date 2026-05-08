@@ -25,7 +25,7 @@ export default function MapPage() {
   const fetchEvents = async () => {
     const { data } = await supabase
       .from('events')
-      .select('id, title, category, location_name, city, start_datetime, latitude, longitude, spots_left, capacity')
+      .select('id, title, category, location_name, city, start_datetime, latitude, longitude, spots_left, capacity, cover_url')
       .eq('visibility', 'public')
       .gte('start_datetime', new Date().toISOString())
       .order('start_datetime', { ascending: true })
@@ -115,8 +115,11 @@ export default function MapPage() {
           <div className="bg-[#1C241C] border border-white/15 rounded-2xl p-3.5 shadow-2xl cursor-pointer"
             onClick={() => router.push('/events/' + selected.id)}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">
-                {catEmoji(selected.category)}
+              <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0 overflow-hidden relative">
+                {selected.cover_url
+                  ? <img src={selected.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  : catEmoji(selected.category)
+                }
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-[#F0EDE6] truncate">{selected.title}</div>

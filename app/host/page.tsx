@@ -83,7 +83,7 @@ export default function HostDashboardPage() {
             <p className="text-xs text-white/40 mt-0.5">Your events at a glance</p>
           </div>
         </div>
-        <button onClick={() => router.push('/events/create')}
+        <button onClick={() => router.push('/create')}
           className="bg-[#E8B84B] text-[#0D110D] font-bold text-xs px-3 py-2 rounded-xl"
           style={{ boxShadow: '0 4px 14px rgba(232,184,75,0.28)' }}>
           + Event
@@ -119,8 +119,11 @@ export default function HostDashboardPage() {
                 return (
                   <div key={event.id} className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">
-                        {catEmoji(event.category)}
+                      <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0 overflow-hidden relative">
+                        {event.cover_url
+                          ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                          : catEmoji(event.category)
+                        }
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-[#F0EDE6] truncate">{event.title}</div>
@@ -182,8 +185,11 @@ export default function HostDashboardPage() {
                 return (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="bg-[#1C241C] border border-white/10 rounded-2xl p-3 flex items-center gap-3 cursor-pointer active:opacity-70">
-                    <div className="w-9 h-9 bg-[#1A2A1A] rounded-xl flex items-center justify-center text-base flex-shrink-0 opacity-60">
-                      {catEmoji(event.category)}
+                    <div className="w-9 h-9 bg-[#1A2A1A] rounded-xl flex items-center justify-center text-base flex-shrink-0 overflow-hidden relative opacity-60">
+                      {event.cover_url
+                        ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        : catEmoji(event.category)
+                      }
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-white/50 truncate">{event.title}</div>
@@ -205,7 +211,7 @@ export default function HostDashboardPage() {
             <div className="text-4xl">🎉</div>
             <p className="text-white/40 text-sm text-center">No events yet</p>
             <p className="text-white/25 text-xs text-center max-w-[240px]">Create your first event and start gathering people.</p>
-            <button onClick={() => router.push('/events/create')}
+            <button onClick={() => router.push('/create')}
               className="mt-3 bg-[#E8B84B] text-[#0D110D] font-bold px-6 py-3 rounded-2xl text-sm"
               style={{ boxShadow: '0 4px 14px rgba(232,184,75,0.28)' }}>
               Create Event
