@@ -175,7 +175,10 @@ export default function AuthPage() {
             </button>
 
             <p className="text-[10px] text-white/15 text-center mt-6 leading-relaxed">
-              By continuing you agree to Gathr's Terms of Service and Privacy Policy
+              By continuing you agree to Gathr's{' '}
+              <a href="/terms" className="underline text-white/25">Terms of Service</a>
+              {' '}and{' '}
+              <a href="/privacy" className="underline text-white/25">Privacy Policy</a>
             </p>
           </>
         )}
