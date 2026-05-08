@@ -55,6 +55,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [showCalendarModal, setShowCalendarModal] = useState(false)
   const [bookmarked, setBookmarked] = useState(false)
   const [blocked, setBlocked] = useState(false)
+  const [matches, setMatches] = useState<any[]>([])
+  const [matchConnStatuses, setMatchConnStatuses] = useState<Record<string, string>>({})
+  const [matchConnLoading, setMatchConnLoading] = useState<string | null>(null)
   const [inviteCode, setInviteCode] = useState('')
   const [inviteCopied, setInviteCopied] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -177,6 +180,77 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     }
 
     setLoading(false)
+
+    if (rsvpRes.data && new Date(eventData.end_datetime) > new Date()) {
+      fetchMatches(id, userId)
+    }
+  }
+
+  const fetchMatches = async (evtId: string, userId: string) => {
+    const { data: rsvpData } = await supabase
+      .from('rsvps')
+      .select('user_id')
+      .eq('event_id', evtId)
+      .neq('user_id', userId)
+      .limit(50)
+
+    if (!rsvpData || rsvpData.length === 0) return
+
+    const attendeeIds = rsvpData.map((r: any) => r.user_id)
+
+    const [profilesRes, myProfileRes, connectionsRes] = await Promise.all([
+      supabase.from('profiles').select('id, name, avatar_url, interests, bio').in('id', attendeeIds).eq('matching_enabled', true),
+      supabase.from('profiles').select('interests').eq('id', userId).single(),
+      supabase.from('connections').select('requester_id, addressee_id, status').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
+    ])
+
+    const myInterests: string[] = (myProfileRes.data?.interests || []).map((i: string) => i.toLowerCase())
+    const connections = connectionsRes.data || []
+
+    const connMap: Record<string, string> = {}
+    connections.forEach((c: any) => {
+      const otherId = c.requester_id === userId ? c.addressee_id : c.requester_id
+      connMap[otherId] = c.status
+    })
+    setMatchConnStatuses(connMap)
+
+    const scored = (profilesRes.data || [])
+      .filter((p: any) => !connMap[p.id] || connMap[p.id] === 'declined')
+      .map((p: any) => {
+        const their = (p.interests || []).map((i: string) => i.toLowerCase())
+        const shared = myInterests.filter(i => their.includes(i))
+        const trust = (p.avatar_url ? 1 : 0) + (p.bio ? 1 : 0) + (their.length >= 3 ? 1 : 0)
+        return { ...p, shared, trust }
+      })
+      .sort((a: any, b: any) => b.shared.length - a.shared.length || b.trust - a.trust)
+      .slice(0, 5)
+
+    setMatches(scored)
+  }
+
+  const handleMatchConnect = async (e: React.MouseEvent, personId: string) => {
+    e.stopPropagation()
+    if (!user || matchConnLoading) return
+    setMatchConnLoading(personId)
+    const { data } = await supabase.from('connections').insert({
+      requester_id: user.id,
+      addressee_id: personId,
+      user_id: user.id,
+      friend_id: personId,
+    }).select().single()
+    if (data) {
+      setMatchConnStatuses(prev => ({ ...prev, [personId]: 'pending' }))
+      await supabase.from('notifications').insert({
+        user_id: personId,
+        actor_id: user.id,
+        type: 'connection_request',
+        title: 'wants to connect with you',
+        body: "You're both going to the same event.",
+        link: '/profile/' + user.id,
+        read: false,
+      })
+    }
+    setMatchConnLoading(null)
   }
 
   const handleRsvp = async () => {
@@ -463,6 +537,65 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </div>
           )}
         </div>
+
+        {/* People Matching */}
+        {matches.length > 0 && (
+          <div className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl p-3.5 mb-3">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium flex-1">People you might vibe with</div>
+              <span className="text-[9px] text-[#E8B84B]/50">✦ Also going</span>
+            </div>
+            <div className="space-y-3">
+              {matches.map((match: any) => {
+                const status = matchConnStatuses[match.id]
+                const trustIcon = match.trust === 3 ? '⭐' : match.trust === 2 ? '✦' : '🌱'
+                return (
+                  <div key={match.id} className="flex items-center gap-3">
+                    <button onClick={() => router.push('/profile/' + match.id)} className="flex-shrink-0">
+                      {match.avatar_url ? (
+                        <img src={match.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10" />
+                      ) : (
+                        <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base border border-white/10">
+                          {match.name?.charAt(0) || '?'}
+                        </div>
+                      )}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-[#F0EDE6] truncate">{match.name}</span>
+                        <span className="text-[10px]" title="Trust level">{trustIcon}</span>
+                      </div>
+                      {match.shared.length > 0 ? (
+                        <div className="text-[10px] text-white/35 mt-0.5 truncate">
+                          {match.shared.slice(0, 3).join(' · ')}
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-white/25 mt-0.5">Also going to this event</div>
+                      )}
+                    </div>
+                    {!status ? (
+                      <button
+                        onClick={e => handleMatchConnect(e, match.id)}
+                        disabled={matchConnLoading === match.id}
+                        className="flex-shrink-0 bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-[10px] font-semibold px-3 py-1.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50">
+                        {matchConnLoading === match.id ? '...' : '+ Hi'}
+                      </button>
+                    ) : status === 'accepted' ? (
+                      <span className="flex-shrink-0 text-[10px] text-[#7EC87E] px-2">✓ Connected</span>
+                    ) : (
+                      <span className="flex-shrink-0 text-[10px] text-white/30 px-2">Sent</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-white/[0.06] text-center">
+              <button onClick={() => router.push('/settings')} className="text-[9px] text-white/20">
+                Manage matching preferences →
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Spots */}
         {event.capacity > 0 && (

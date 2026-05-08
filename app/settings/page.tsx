@@ -10,9 +10,11 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [discoverable, setDiscoverable] = useState(true)
+  const [matchingEnabled, setMatchingEnabled] = useState(true)
   const [profileMode, setProfileMode] = useState('both')
   const [savingMode, setSavingMode] = useState(false)
   const [savingDiscoverable, setSavingDiscoverable] = useState(false)
+  const [savingMatching, setSavingMatching] = useState(false)
   const [showPasswordSection, setShowPasswordSection] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -26,12 +28,13 @@ export default function SettingsPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
-      supabase.from('profiles').select('name, avatar_url, profile_mode, discoverable, city').eq('id', session.user.id).single()
+      supabase.from('profiles').select('name, avatar_url, profile_mode, discoverable, matching_enabled, city').eq('id', session.user.id).single()
         .then(({ data }) => {
           if (data) {
             setProfile(data)
             setProfileMode(data.profile_mode || 'both')
             setDiscoverable(data.discoverable !== false)
+            setMatchingEnabled(data.matching_enabled !== false)
           }
           setLoading(false)
         })
@@ -62,6 +65,15 @@ export default function SettingsPage() {
     setDiscoverable(next)
     await supabase.from('profiles').update({ discoverable: next }).eq('id', user.id)
     setSavingDiscoverable(false)
+  }
+
+  const handleToggleMatching = async () => {
+    if (savingMatching) return
+    setSavingMatching(true)
+    const next = !matchingEnabled
+    setMatchingEnabled(next)
+    await supabase.from('profiles').update({ matching_enabled: next }).eq('id', user.id)
+    setSavingMatching(false)
   }
 
   const handleChangePassword = async () => {
@@ -230,6 +242,20 @@ export default function SettingsPage() {
             </div>
             <div className={'w-11 h-6 rounded-full transition-all flex-shrink-0 relative ' + (discoverable ? 'bg-[#7EC87E]' : 'bg-white/15')}>
               <div className={'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ' + (discoverable ? 'left-[22px]' : 'left-0.5')} />
+            </div>
+          </button>
+
+          <button
+            onClick={handleToggleMatching}
+            disabled={savingMatching}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] active:bg-white/[0.03] transition-colors"
+          >
+            <div className="text-left flex-1 pr-3">
+              <div className="text-sm text-[#F0EDE6]">People Matching</div>
+              <div className="text-[10px] text-white/35 mt-0.5">Show me people I might like at events I'm going to</div>
+            </div>
+            <div className={'w-11 h-6 rounded-full transition-all flex-shrink-0 relative ' + (matchingEnabled ? 'bg-[#7EC87E]' : 'bg-white/15')}>
+              <div className={'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ' + (matchingEnabled ? 'left-[22px]' : 'left-0.5')} />
             </div>
           </button>
 
