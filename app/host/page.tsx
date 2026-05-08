@@ -151,6 +151,28 @@ export default function HostDashboardPage() {
               ))}
             </div>
 
+            {/* Host Pro CTA */}
+            <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/20 rounded-2xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center text-lg">⭐</div>
+                <div>
+                  <div className="text-sm font-bold text-[#F0EDE6]">Host Pro</div>
+                  <div className="text-[10px] text-white/35">Paid tickets · Analytics · Promoted events</div>
+                </div>
+                <button onClick={() => router.push('/waitlist')}
+                  className="ml-auto bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-3 py-1.5 rounded-xl active:scale-95 transition-transform"
+                  style={{ boxShadow: '0 4px 14px rgba(232,184,75,0.25)' }}>
+                  Join Waitlist
+                </button>
+              </div>
+              <div className="flex gap-3 text-[10px] text-white/30">
+                <span>🎟 Ticketing</span>
+                <span>📊 Revenue</span>
+                <span>📣 Promotions</span>
+                <span>✉️ Mass message</span>
+              </div>
+            </div>
+
             {/* This month */}
             {eventsThisMonth > 0 && (
               <div className="bg-gradient-to-br from-[#1E3A1E] to-[#1A2A1A] border border-[#7EC87E]/20 rounded-2xl p-4">

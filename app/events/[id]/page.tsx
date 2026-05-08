@@ -21,6 +21,8 @@ interface Event {
   visibility: string
   is_featured: boolean
   host_id: string
+  ticket_type?: string
+  ticket_price?: number
 }
 
 interface Attendee {
@@ -615,6 +617,25 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
+        {/* Tickets */}
+        {event.ticket_type && event.ticket_type !== 'free' && (
+          <div className="bg-[#1C241C] border border-[#E8B84B]/20 rounded-2xl p-3.5 mb-3 flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
+              {event.ticket_type === 'paid' ? '🎟' : '🎁'}
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-[#F0EDE6]">
+                {event.ticket_type === 'paid'
+                  ? (event.ticket_price ? `$${event.ticket_price.toFixed(2)} per ticket` : 'Paid entry')
+                  : 'Donation welcome'}
+              </div>
+              <div className="text-xs text-white/40 mt-0.5">
+                {event.ticket_type === 'paid' ? 'Ticket required to attend' : 'Pay what you can'}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Host */}
         {host && (
           <div
@@ -739,7 +760,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <button onClick={handleRsvp} disabled={rsvpLoading}
             className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]' : 'bg-[#E8B84B] text-[#0D110D]'}`}
             style={{boxShadow: rsvped ? 'none' : '0 5px 22px rgba(232,184,75,0.3)'}}>
-            {rsvpLoading ? 'Loading...' : rsvped ? '✓ You\'re going · Cancel RSVP' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
+            {rsvpLoading ? 'Loading...' : rsvped ? '✓ You\'re going · Cancel RSVP' : event.ticket_type === 'paid' ? `🎟 Get Ticket${event.ticket_price ? ` · $${event.ticket_price.toFixed(2)}` : ''}` : event.ticket_type === 'donation' ? '🎁 Join · Donation welcome' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
           </button>
         </div>
       )}
