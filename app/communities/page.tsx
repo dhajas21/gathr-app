@@ -7,8 +7,38 @@ import BottomNav from '@/components/BottomNav'
 
 const CATEGORIES = ['All', 'Fitness', 'Startups', 'Arts', 'Music', 'Tech', 'Food & Drink', 'Outdoors']
 
+const INTEREST_TO_COMMUNITY_CAT: Record<string, string> = {
+  'fitness': 'Fitness', 'running': 'Fitness', 'gym': 'Fitness', 'yoga': 'Fitness',
+  'pilates': 'Fitness', 'cycling': 'Fitness', 'swimming': 'Fitness', 'hiking': 'Outdoors',
+  'rock climbing': 'Fitness', 'martial arts': 'Fitness', 'boxing': 'Fitness',
+  'crossfit': 'Fitness', 'dancing': 'Fitness', 'sports': 'Fitness', 'football': 'Fitness',
+  'basketball': 'Fitness', 'soccer': 'Fitness', 'tennis': 'Fitness', 'golf': 'Fitness',
+  'volleyball': 'Fitness', 'skiing': 'Outdoors', 'snowboarding': 'Outdoors',
+  'surfing': 'Outdoors', 'kayaking': 'Outdoors',
+  'startups': 'Startups', 'entrepreneurship': 'Startups', 'product': 'Startups',
+  'investing': 'Startups', 'business': 'Startups', 'marketing': 'Startups',
+  'venture capital': 'Startups', 'founder': 'Startups',
+  'art': 'Arts', 'painting': 'Arts', 'drawing': 'Arts', 'ceramics': 'Arts',
+  'fashion': 'Arts', 'design': 'Arts', 'photography': 'Arts', 'film': 'Arts',
+  'theatre': 'Arts', 'comedy': 'Arts', 'writing': 'Arts', 'poetry': 'Arts',
+  'books': 'Arts', 'literature': 'Arts', 'architecture': 'Arts',
+  'music': 'Music', 'concerts': 'Music', 'dj': 'Music', 'electronic': 'Music',
+  'hip hop': 'Music', 'jazz': 'Music', 'classical': 'Music', 'indie': 'Music',
+  'rock': 'Music', 'r&b': 'Music', 'pop': 'Music', 'rap': 'Music', 'karaoke': 'Music',
+  'tech': 'Tech', 'coding': 'Tech', 'ai': 'Tech', 'crypto': 'Tech',
+  'web3': 'Tech', 'gaming': 'Tech', 'ux': 'Tech', 'science': 'Tech',
+  'food': 'Food & Drink', 'coffee': 'Food & Drink', 'wine': 'Food & Drink',
+  'beer': 'Food & Drink', 'cocktails': 'Food & Drink', 'cooking': 'Food & Drink',
+  'baking': 'Food & Drink', 'brunch': 'Food & Drink', 'restaurants': 'Food & Drink',
+  'vegan': 'Food & Drink', 'tea': 'Food & Drink', 'whiskey': 'Food & Drink',
+  'outdoors': 'Outdoors', 'camping': 'Outdoors', 'travel': 'Outdoors',
+  'adventure': 'Outdoors', 'nature': 'Outdoors', 'birdwatching': 'Outdoors',
+  'gardening': 'Outdoors',
+}
+
 export default function CommunitiesPage() {
   const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
   const [joined, setJoined] = useState<any[]>([])
   const [discover, setDiscover] = useState<any[]>([])
   const [activeCategory, setActiveCategory] = useState('All')
@@ -25,38 +55,19 @@ export default function CommunitiesPage() {
   }, [])
 
   const fetchCommunities = async (userId: string) => {
-    // Get communities user has joined
-    const { data: memberData } = await supabase
-      .from('community_members')
-      .select('community_id')
-      .eq('user_id', userId)
+    const [memberData, profileData, allCommData] = await Promise.all([
+      supabase.from('community_members').select('community_id').eq('user_id', userId),
+      supabase.from('profiles').select('interests, city').eq('id', userId).single(),
+      supabase.from('communities').select('*').order('member_count', { ascending: false }).limit(50),
+    ])
 
-    const joinedIds = memberData?.map(m => m.community_id) || []
+    if (profileData.data) setProfile(profileData.data)
 
-    if (joinedIds.length > 0) {
-      const { data: joinedData } = await supabase
-        .from('communities')
-        .select('*')
-        .in('id', joinedIds)
-      if (joinedData) setJoined(joinedData)
-    }
+    const joinedIds = memberData.data?.map((m: any) => m.community_id) || []
+    const allComms: any[] = allCommData.data || []
 
-    // Get communities user has NOT joined (discover)
-    let discoverQuery = supabase
-      .from('communities')
-      .select('*')
-      .order('member_count', { ascending: false })
-      .limit(20)
-
-    if (joinedIds.length > 0) {
-      // Filter out joined communities manually after fetch
-      const { data: allData } = await discoverQuery
-      if (allData) setDiscover(allData.filter(c => !joinedIds.includes(c.id)))
-    } else {
-      const { data: allData } = await discoverQuery
-      if (allData) setDiscover(allData)
-    }
-
+    setJoined(allComms.filter(c => joinedIds.includes(c.id)))
+    setDiscover(allComms.filter(c => !joinedIds.includes(c.id)))
     setLoading(false)
   }
 
@@ -67,8 +78,7 @@ export default function CommunitiesPage() {
       user_id: user.id,
       role: 'member',
     })
-      if (!error) {
-      // Update member count directly
+    if (!error) {
       const comm = discover.find(c => c.id === communityId)
       await supabase.from('communities').update({
         member_count: (comm?.member_count || 0) + 1
@@ -77,10 +87,23 @@ export default function CommunitiesPage() {
     }
   }
 
+  const suggestedCats = new Set<string>(
+    (profile?.interests || []).flatMap((i: string) => {
+      const cat = INTEREST_TO_COMMUNITY_CAT[i.toLowerCase()]
+      return cat ? [cat] : []
+    })
+  )
+
+  const suggestedDiscover = discover.filter(c =>
+    suggestedCats.has(c.category) &&
+    (!search || c.name.toLowerCase().includes(search.toLowerCase()))
+  )
+
   const filteredDiscover = discover.filter(c => {
     const matchesCategory = activeCategory === 'All' || c.category === activeCategory
     const matchesSearch = !search || c.name.toLowerCase().includes(search.toLowerCase())
-    return matchesCategory && matchesSearch
+    const notSuggested = activeCategory !== 'All' || !suggestedCats.has(c.category)
+    return matchesCategory && matchesSearch && (activeCategory !== 'All' || notSuggested)
   })
 
   if (loading) return (
@@ -92,7 +115,6 @@ export default function CommunitiesPage() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
 
-      {/* Header */}
       <div className="px-4 pt-14 pb-2">
         <div className="flex items-center justify-between mb-1">
           <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>Communities</h1>
@@ -103,7 +125,6 @@ export default function CommunitiesPage() {
         </div>
         <p className="text-xs text-white/40">Groups built around shared interests</p>
 
-        {/* Search */}
         <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mt-3">
           <span className="text-sm text-white/30">🔍</span>
           <input
@@ -116,7 +137,6 @@ export default function CommunitiesPage() {
         </div>
       </div>
 
-      {/* Category chips */}
       <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
         {CATEGORIES.map(cat => (
           <button key={cat} onClick={() => setActiveCategory(cat)}
@@ -132,7 +152,6 @@ export default function CommunitiesPage() {
 
       <div className="px-4">
 
-        {/* Your communities */}
         {joined.length > 0 && (
           <>
             <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2 font-medium mt-2">Your communities</div>
@@ -155,8 +174,49 @@ export default function CommunitiesPage() {
           </>
         )}
 
-        {/* Discover */}
-        <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2 font-medium">Discover</div>
+        {suggestedDiscover.length > 0 && activeCategory === 'All' && !search && (
+          <>
+            <div className="flex items-center gap-2 mb-2 mt-2">
+              <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Suggested for you</div>
+              <div className="flex-1 h-px bg-white/5"></div>
+              <span className="text-[9px] text-[#E8B84B]/60">✦ Based on your interests</span>
+            </div>
+            <div className="space-y-3 mb-5">
+              {suggestedDiscover.map(comm => (
+                <div key={comm.id} className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl overflow-hidden">
+                  <div className="h-14 flex items-center justify-center text-2xl relative"
+                    style={{ background: comm.banner_gradient || 'linear-gradient(135deg,#1E2E1E,#0E1A0E)' }}>
+                    {comm.icon || '👥'}
+                    <div className="absolute top-1.5 right-2">
+                      <span className="text-[8px] bg-[#E8B84B]/20 text-[#E8B84B] px-2 py-0.5 rounded-full border border-[#E8B84B]/20 font-medium">✦ For you</span>
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <div className="font-bold text-sm text-[#F0EDE6] mb-1">{comm.name}</div>
+                    <div className="text-[10px] text-white/40">{comm.member_count} members · {comm.description || comm.category}</div>
+                    <div className="flex items-center justify-between mt-3">
+                      <div className="flex gap-1.5">
+                        {comm.category && (
+                          <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
+                            #{comm.category.toLowerCase().replace(/\s/g, '')}
+                          </span>
+                        )}
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id) }}
+                        className="bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
+                        + Join
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2 font-medium">
+          {activeCategory === 'All' && suggestedDiscover.length > 0 ? 'More communities' : 'Discover'}
+        </div>
 
         {filteredDiscover.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -186,11 +246,11 @@ export default function CommunitiesPage() {
                         </span>
                       )}
                     </div>
-            <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id) }}
-  className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
-  + Join
-</button>
-</div>
+                    <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id) }}
+                      className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
+                      + Join
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
