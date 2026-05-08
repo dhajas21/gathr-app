@@ -174,8 +174,7 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
 
-      <div className="px-4 pt-12 pb-3 border-b border-white/10">
-        <button onClick={() => router.push('/home')} className="text-[#E8B84B] font-bold text-[10px] tracking-widest mb-1.5 block">Gathr.</button>
+      <div className="px-4 pt-14 pb-3 border-b border-white/10">
         <div className="flex items-center justify-between">
           <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>Messages</h1>
           {totalUnread > 0 && (

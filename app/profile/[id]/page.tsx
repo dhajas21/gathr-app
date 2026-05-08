@@ -133,10 +133,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     <div className="min-h-screen bg-[#0D110D] pb-32">
 
       <div style={{ background: 'linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%)' }}>
-        <div className="px-4 pt-12 mb-1">
-          <button onClick={() => router.push('/home')} className="text-[#E8B84B] font-bold text-[10px] tracking-widest">Gathr.</button>
-        </div>
-        <div className="flex items-start justify-between px-4 mb-3">
+        <div className="flex items-start justify-between px-4 pt-14 mb-3">
           <button onClick={() => router.back()}
             className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
             ←
