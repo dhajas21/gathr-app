@@ -427,6 +427,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <img src={(event as any).cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
+        <button onClick={() => router.push('/home')} className="absolute top-12 left-4 z-20 text-[#E8B84B] font-bold text-[10px] tracking-widest bg-[#0D110D]/60 backdrop-blur-sm px-2 py-1 rounded-lg">Gathr.</button>
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
           <button onClick={() => router.push('/home')}
             className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-[#F0EDE6]">

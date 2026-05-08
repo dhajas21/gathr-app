@@ -115,7 +115,8 @@ export default function CommunitiesPage() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
 
-      <div className="px-4 pt-14 pb-2">
+      <div className="px-4 pt-12 pb-2">
+        <button onClick={() => router.push('/home')} className="text-[#E8B84B] font-bold text-[10px] tracking-widest mb-1.5 block">Gathr.</button>
         <div className="flex items-center justify-between mb-1">
           <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>Communities</h1>
           <button onClick={() => router.push('/communities/create')}

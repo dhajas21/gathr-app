@@ -113,7 +113,8 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-28">
 
-      <div className="px-4 pt-14 pb-4 border-b border-white/10">
+      <div className="px-4 pt-12 pb-4 border-b border-white/10">
+        <button onClick={() => router.push('/home')} className="text-[#E8B84B] font-bold text-[10px] tracking-widest mb-1.5 block">Gathr.</button>
         <h1 className="font-bold text-[#F0EDE6] text-xl">Settings</h1>
         <p className="text-xs text-white/35 mt-0.5">Account, privacy & preferences</p>
       </div>
