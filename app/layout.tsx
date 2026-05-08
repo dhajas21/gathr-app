@@ -9,6 +9,9 @@ const syne = Syne({ subsets: ["latin"], variable: "--font-syne", weight: ["700",
 export const metadata: Metadata = {
   title: "Gathr — Find your people",
   description: "Discover local events and connect with people who share your vibe.",
+  verification: {
+    google: 'GrXBgixypH69plo7mOJgzxGYpMJfR_5qZqTnY2Dq-nA',
+  },
 }
 
 export const viewport: Viewport = {
