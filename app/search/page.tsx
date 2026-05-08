@@ -4,9 +4,8 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
-import { EVENT_CATEGORIES } from '@/lib/constants'
 
-const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech', 'Outdoors', 'Arts & Culture', 'Social', 'Networking']
+const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding', 'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness', 'Networking']
 const RECENT_SEARCHES_KEY = 'gathr_recent_searches'
 const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
 
@@ -316,7 +315,7 @@ export default function SearchPage() {
       {/* Result tabs */}
       {searched && (
         <div className="flex border-b border-white/10 px-4 overflow-x-auto">
-          {['All', 'Events', 'People', 'Communities', 'Tags'].map(tab => (
+          {['All', 'Events', 'People', 'Tags'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={'flex-1 py-2.5 text-xs text-center border-b-2 -mb-px whitespace-nowrap ' + (activeTab === tab ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
               {tab}{tab === 'Tags' && tagResults.length > 0 ? ' · ' + tagResults.length : ''}
@@ -414,16 +413,30 @@ export default function SearchPage() {
                 {showAllCats ? 'Less ↑' : 'See all →'}
               </button>
             </div>
-            <div className={`grid gap-2 mb-4 ${showAllCats ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              {(showAllCats ? EVENT_CATEGORIES : EVENT_CATEGORIES.slice(0, 6)).map(cat => (
-                <button key={cat} onClick={() => setActiveCategory(cat)}
-                  className={'flex items-center gap-2 p-3 rounded-2xl border border-white/10 active:scale-95 transition-transform ' + (activeCategory === cat ? 'border-[#E8B84B]/30 bg-[#E8B84B]/5' : 'bg-[#1C241C]')}>
-                  <span className={showAllCats ? 'text-base' : 'text-lg'}>
-                    {cat === 'Music' ? '🎸' : cat === 'Fitness' ? '🏃' : cat === 'Food & Drink' ? '🍺' : cat === 'Tech & Coding' ? '💻' : cat === 'Outdoors & Adventure' ? '🥾' : cat === 'Arts & Culture' ? '🎨' : cat === 'Social & Parties' ? '🎉' : cat === 'Networking' ? '💼' : cat === 'Coffee & Brunch' ? '☕' : cat === 'Wellness & Mindfulness' ? '🌿' : cat === 'Dance & Movement' ? '💃' : cat === 'Gaming & Esports' ? '🎮' : '✨'}
-                  </span>
-                  <span className={`font-medium text-[#F0EDE6] text-left leading-tight ${showAllCats ? 'text-[10px]' : 'text-sm'}`}>{cat}</span>
-                </button>
-              ))}
+            <div className={'grid gap-2 mb-4 ' + (showAllCats ? 'grid-cols-3' : 'grid-cols-2')}>
+              {(showAllCats ? [
+                'Music', 'DJ & Electronic', 'Hip Hop & R&B', 'Jazz & Blues', 'Live Concerts & Festivals',
+                'Fitness', 'Yoga & Pilates', 'Running & Cycling', 'Climbing & Hiking', 'Combat Sports & CrossFit',
+                'Food & Drink', 'Coffee & Brunch', 'Wine & Cocktails', 'Cooking & Culinary', 'Street Food & Markets',
+                'Tech & Coding', 'Startups & Entrepreneurship', 'AI & Innovation', 'Gaming & Esports', 'Web3 & Crypto',
+                'Outdoors & Adventure', 'Hiking & Camping', 'Water Sports', 'Snow Sports',
+                'Arts & Culture', 'Photography & Film', 'Theatre & Comedy', 'Fashion & Style', 'Literature & Writing',
+                'Social & Parties', 'Nightlife', 'Networking', 'Business & Finance',
+                'Wellness & Mindfulness', 'Dance & Movement', 'Spirituality', 'Volunteering & Activism',
+                'Education & Workshops', 'Sports & Recreation', 'Pets & Animals', 'Science & Innovation', 'Markets & Pop-ups',
+              ] : [
+                'Music', 'Fitness', 'Food & Drink', 'Tech & Coding',
+                'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness',
+              ]).map(cat => {
+                const emoji: Record<string,string> = {'Music':'🎸','DJ & Electronic':'🎧','Hip Hop & R&B':'🎤','Jazz & Blues':'🎷','Live Concerts & Festivals':'🎪','Fitness':'🏃','Yoga & Pilates':'🧘','Running & Cycling':'🚴','Climbing & Hiking':'🧗','Combat Sports & CrossFit':'🥊','Food & Drink':'🍺','Coffee & Brunch':'☕','Wine & Cocktails':'🍷','Cooking & Culinary':'👨‍🍳','Street Food & Markets':'🌮','Tech & Coding':'💻','Startups & Entrepreneurship':'🚀','AI & Innovation':'🤖','Gaming & Esports':'🎮','Web3 & Crypto':'⛓','Outdoors & Adventure':'🥾','Hiking & Camping':'⛺','Water Sports':'🏄','Snow Sports':'🎿','Arts & Culture':'🎨','Photography & Film':'📷','Theatre & Comedy':'🎭','Fashion & Style':'👗','Literature & Writing':'📚','Social & Parties':'🎉','Nightlife':'🌙','Networking':'💼','Business & Finance':'📈','Wellness & Mindfulness':'🌿','Dance & Movement':'💃','Spirituality':'✨','Volunteering & Activism':'🌱','Education & Workshops':'🎓','Sports & Recreation':'⚽','Pets & Animals':'🐾','Science & Innovation':'🔬','Markets & Pop-ups':'🏪'}
+                return (
+                  <button key={cat} onClick={() => setActiveCategory(cat)}
+                    className={'flex items-center gap-2 p-3 rounded-2xl border transition-all active:scale-95 ' + (activeCategory === cat ? 'border-[#E8B84B]/30 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
+                    <span className={showAllCats ? 'text-base' : 'text-lg'}>{emoji[cat] || '🎉'}</span>
+                    <span className={'font-medium text-[#F0EDE6] text-left leading-tight ' + (showAllCats ? 'text-[10px]' : 'text-sm')}>{cat}</span>
+                  </button>
+                )
+              })}
             </div>
 
             {/* Trending */}

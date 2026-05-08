@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 
-const CATEGORIES = ['All', 'Fitness', 'Startups', 'Arts', 'Music', 'Tech', 'Food & Drink', 'Outdoors']
+const CATEGORIES = ['All', 'Fitness', 'Wellness', 'Startups', 'Arts', 'Music', 'Tech', 'Food & Drink', 'Outdoors', 'Nightlife', 'Social']
 
 const INTEREST_TO_COMMUNITY_CAT: Record<string, string> = {
   'fitness': 'Fitness', 'running': 'Fitness', 'gym': 'Fitness', 'yoga': 'Fitness',
