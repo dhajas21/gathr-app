@@ -53,6 +53,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [commentText, setCommentText] = useState('')
   const [postingComment, setPostingComment] = useState(false)
   const [showCalendarModal, setShowCalendarModal] = useState(false)
+  const [bookmarked, setBookmarked] = useState(false)
   const commentInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -143,13 +144,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(updated))
     } catch {}
 
-    const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes, hostCountRes] = await Promise.all([
+    const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes, hostCountRes, bookmarkRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', eventData.host_id).single(),
       supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).single(),
       supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', id).limit(12),
       supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('event_id', id),
       supabase.from('event_comments').select('id, user_id, text, created_at, profiles(id, name, avatar_url)').eq('event_id', id).order('created_at', { ascending: true }),
       supabase.from('events').select('*', { count: 'exact', head: true }).eq('host_id', eventData.host_id),
+      supabase.from('event_bookmarks').select('id').eq('event_id', id).eq('user_id', userId).single(),
     ])
 
     if (hostRes.data) setHost(hostRes.data)
@@ -158,6 +160,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (attendeesRes.data) setAttendees(attendeesRes.data as any)
     if (countRes.count !== null) setTotalAttendees(countRes.count)
     if (commentsRes.data) setComments(commentsRes.data as any)
+    if (bookmarkRes.data) setBookmarked(true)
 
     setLoading(false)
   }
@@ -185,6 +188,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       if (data) setAttendees(data as any)
     }
     setRsvpLoading(false)
+  }
+
+  const handleBookmark = async () => {
+    if (!user || !event) return
+    if (bookmarked) {
+      await supabase.from('event_bookmarks').delete().eq('event_id', event.id).eq('user_id', user.id)
+      setBookmarked(false)
+    } else {
+      await supabase.from('event_bookmarks').insert({ event_id: event.id, user_id: user.id })
+      setBookmarked(true)
+    }
   }
 
   const handleDelete = async () => {
@@ -312,7 +326,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </button>
             )}
             <button onClick={handleShare} className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">↑</button>
-            <button className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">🔖</button>
+            <button onClick={handleBookmark} className={'w-9 h-9 border rounded-xl flex items-center justify-center text-base transition-all ' + (bookmarked ? 'bg-[#E8B84B]/20 border-[#E8B84B]/40' : 'bg-[#0D110D]/70 border-white/15')}>🔖</button>
           </div>
         </div>
         <span className="relative z-5">
