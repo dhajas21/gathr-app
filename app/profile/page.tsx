@@ -280,10 +280,21 @@ export default function ProfilePage() {
                 (isProfessional ? 'bg-[#2A4A2A]/60 border-[#7EC87E]/40 text-[#7EC87E]' : 'bg-white/5 border-white/10 text-white/30')}>
               💼 Professional
             </button>
-            <div className="ml-auto flex items-center gap-1.5 bg-[#2A2010]/60 border border-[#E8B84B]/20 rounded-lg px-2.5 py-1">
-              <span className="text-[10px] text-[#E8B84B] font-bold">Lv.{level}</span>
-              <span className="text-[9px] text-white/30">{xp} XP</span>
-            </div>
+            {(() => {
+              const tier = level >= 20 ? { label: 'Legend', icon: '👑', color: 'text-[#E8B84B]', border: 'border-[#E8B84B]/30', bg: 'bg-[#2A2010]/60' }
+                : level >= 10 ? { label: 'Veteran', icon: '🔥', color: 'text-[#E85B5B]', border: 'border-[#E85B5B]/30', bg: 'bg-[#2A1010]/60' }
+                : level >= 5 ? { label: 'Regular', icon: '⭐', color: 'text-[#A0AEC0]', border: 'border-[#A0AEC0]/30', bg: 'bg-[#1A1E24]/60' }
+                : { label: 'Newcomer', icon: '🌱', color: 'text-[#7EC87E]', border: 'border-[#7EC87E]/30', bg: 'bg-[#1A2A1A]/60' }
+              return (
+                <div className={'ml-auto flex items-center gap-1.5 border rounded-lg px-2.5 py-1 ' + tier.bg + ' ' + tier.border}>
+                  <span className="text-sm">{tier.icon}</span>
+                  <div>
+                    <div className={'text-[10px] font-bold ' + tier.color}>{tier.label}</div>
+                    <div className="text-[9px] text-white/30">Lv.{level} · {xp} XP</div>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
           {pinnedBadges.length > 0 && (
             <div className="flex gap-1.5 mt-2">
@@ -455,6 +466,27 @@ export default function ProfilePage() {
 
         {activeTab === 2 && (
           <>
+            {(() => {
+              const earned = ACHIEVEMENTS.filter(a => a.val >= a.req)
+              if (earned.length === 0) return null
+              return (
+                <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Earned Badges</div>
+                    <span className="text-[10px] text-[#E8B84B]">{earned.length} unlocked</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {earned.map(ach => (
+                      <div key={ach.title}
+                        className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border ' + tierBg(ach.tier, true) + ' ' + tierBorder(ach.tier, true)}>
+                        <span className="text-sm">{ach.icon}</span>
+                        <span className={'text-[10px] font-semibold ' + tierColor(ach.tier, true)}>{ach.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
             <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/20 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
