@@ -189,7 +189,8 @@ export default function SearchPage() {
     // Search people
     if (q.trim()) {
       const { data: peopleData } = await supabase.from('profiles')
-        .select('id, name, bio_social, city, avatar_url').ilike('name', '%' + q.trim() + '%')
+        .select('id, name, bio_social, city, avatar_url')
+        .or('name.ilike.%' + q.trim() + '%,bio_social.ilike.%' + q.trim() + '%,city.ilike.%' + q.trim() + '%')
         .neq('id', user?.id).limit(10)
       if (peopleData) setPeople(peopleData)
     } else { setPeople([]) }
@@ -197,7 +198,7 @@ export default function SearchPage() {
     // Search communities
     if (q.trim()) {
       const { data: commData } = await supabase.from('communities').select('*')
-        .ilike('name', '%' + q.trim() + '%').limit(10)
+        .or('name.ilike.%' + q.trim() + '%,description.ilike.%' + q.trim() + '%').limit(10)
       if (commData) setCommunities(commData)
     } else { setCommunities([]) }
 
