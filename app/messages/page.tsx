@@ -9,6 +9,7 @@ export default function MessagesPage() {
   const [user, setUser] = useState<any>(null)
   const [threads, setThreads] = useState<any[]>([])
   const [connections, setConnections] = useState<any[]>([])
+  const [acceptedConnections, setAcceptedConnections] = useState<any[]>([])
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -36,7 +37,7 @@ export default function MessagesPage() {
   }, [])
 
   const fetchData = async (userId: string) => {
-    const [connRes, msgRes, unreadRes] = await Promise.all([
+    const [connRes, msgRes, unreadRes, acceptedRes] = await Promise.all([
       supabase
         .from('connections')
         .select('*, requester:profiles!connections_requester_id_fkey(id, name, avatar_url)')
@@ -52,9 +53,28 @@ export default function MessagesPage() {
         .select('thread_id')
         .eq('recipient_id', userId)
         .is('read_at', null),
+      supabase
+        .from('connections')
+        .select(`
+          id,
+          requester_id,
+          addressee_id,
+          requester:profiles!connections_requester_id_fkey(id, name, avatar_url),
+          addressee:profiles!connections_addressee_id_fkey(id, name, avatar_url)
+        `)
+        .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId)
+        .eq('status', 'accepted'),
     ])
 
     if (connRes.data) setConnections(connRes.data)
+
+    if (acceptedRes.data) {
+      const mapped = acceptedRes.data.map((c: any) => {
+        const other = c.requester_id === userId ? c.addressee : c.requester
+        return { ...c, otherProfile: other }
+      })
+      setAcceptedConnections(mapped)
+    }
 
     if (unreadRes.data) {
       const counts: Record<string, number> = {}
@@ -200,10 +220,36 @@ export default function MessagesPage() {
       )}
 
       {threads.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 px-4">
-          <div className="text-4xl">💬</div>
-          <p className="text-[#F0EDE6] opacity-50 text-sm text-center">No messages yet</p>
-          <p className="text-white/25 text-xs text-center max-w-[220px]">Connect with people at events and start a conversation</p>
+        <div className="flex flex-col items-center pt-10 pb-20 px-4">
+          <div className="text-4xl mb-3">💬</div>
+          <p className="text-[#F0EDE6] opacity-50 text-sm text-center mb-1">No messages yet</p>
+          {acceptedConnections.length === 0 ? (
+            <p className="text-white/25 text-xs text-center max-w-[220px]">Connect with people at events and start a conversation</p>
+          ) : (
+            <>
+              <p className="text-white/25 text-xs text-center mb-5">Say hi to one of your connections</p>
+              <div className="w-full space-y-2">
+                {acceptedConnections.map(conn => (
+                  <button
+                    key={conn.id}
+                    onClick={() => router.push('/messages/' + [conn.requester_id, conn.addressee_id].sort().join('_'))}
+                    className="w-full flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] transition-transform"
+                  >
+                    {conn.otherProfile?.avatar_url ? (
+                      <img src={conn.otherProfile.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0">🧑</div>
+                    )}
+                    <div className="flex-1 text-left">
+                      <div className="text-sm font-medium text-[#F0EDE6]">{conn.otherProfile?.name}</div>
+                      <div className="text-xs text-white/30">Tap to say hi</div>
+                    </div>
+                    <span className="text-white/20 text-lg">→</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="mt-2">
