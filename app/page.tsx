@@ -60,6 +60,12 @@ export default function SplashPage() {
           className="w-full py-3.5 rounded-2xl bg-transparent border border-white/10 text-white/45 text-sm active:scale-95 transition-transform">
           Sign In
         </button>
+        <p className="text-[10px] text-white/15 text-center mt-2 leading-relaxed">
+          By continuing you agree to Gathr's{' '}
+          <a href="/terms" className="underline text-white/25">Terms of Service</a>
+          {' '}and{' '}
+          <a href="/privacy" className="underline text-white/25">Privacy Policy</a>
+        </p>
       </div>
     </div>
   )
