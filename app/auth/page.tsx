@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { CITY_NAMES } from '@/lib/constants'
 
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -127,9 +128,7 @@ export default function AuthPage() {
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()} maxLength={72}/>
               {isSignUp && (
                 <select className={inputClass + ' appearance-none'} value={city} onChange={e => setCity(e.target.value)}>
-                  {['Bellingham','Seattle','Vancouver','Portland','San Francisco','Los Angeles','New York','Chicago','Austin','Denver'].map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
+                  {CITY_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               )}
 

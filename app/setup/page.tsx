@@ -3,47 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-
-const POPULAR_INTERESTS = [
-  'music', 'hiking', 'coffee', 'food', 'fitness', 'art', 'tech', 'travel',
-  'running', 'yoga', 'gaming', 'photography', 'cooking', 'nightlife',
-  'startups', 'design', 'film', 'reading', 'sports', 'dancing',
-  'networking', 'outdoors', 'wellness', 'volunteering',
-]
-
-const ALL_INTERESTS = [
-  'music', 'live music', 'concerts', 'festivals', 'dj', 'electronic', 'hip hop',
-  'jazz', 'classical', 'indie', 'rock', 'r&b', 'pop', 'rap', 'karaoke',
-  'film', 'movies', 'theatre', 'comedy', 'stand-up', 'podcasts', 'art',
-  'photography', 'painting', 'drawing', 'ceramics', 'sculpture', 'fashion',
-  'style', 'design', 'architecture', 'writing', 'poetry', 'books', 'reading',
-  'history', 'museums',
-  'food', 'coffee', 'wine', 'beer', 'cocktails', 'cooking', 'baking',
-  'brunch', 'restaurants', 'street food', 'vegan', 'vegetarian', 'craft beer',
-  'whiskey', 'tea',
-  'fitness', 'running', 'gym', 'yoga', 'pilates', 'cycling', 'swimming',
-  'rock climbing', 'martial arts', 'boxing', 'crossfit', 'wellness',
-  'meditation', 'mental health', 'nutrition', 'dancing', 'salsa', 'bachata',
-  'mindfulness',
-  'outdoors', 'hiking', 'camping', 'surfing', 'skiing', 'snowboarding',
-  'kayaking', 'travel', 'adventure', 'nature', 'gardening', 'birdwatching',
-  'sustainability',
-  'tech', 'startups', 'ai', 'crypto', 'coding', 'ux', 'product',
-  'entrepreneurship', 'investing', 'web3', 'gaming', 'esports', 'science',
-  'sports', 'football', 'basketball', 'soccer', 'tennis', 'golf', 'baseball',
-  'hockey', 'volleyball', 'f1', 'motorsports', 'mma',
-  'networking', 'volunteering', 'activism', 'community', 'nightlife',
-  'parties', 'self-improvement', 'astrology', 'spirituality', 'languages',
-  'pets', 'dogs', 'marketing', 'business',
-]
-
-const ALL_CITIES = [
-  'Bellingham', 'Seattle', 'Tacoma', 'Olympia', 'Spokane',
-  'Vancouver', 'Victoria', 'Surrey', 'Portland', 'Eugene',
-  'San Francisco', 'Los Angeles', 'San Diego', 'Sacramento',
-  'New York', 'Brooklyn', 'Chicago', 'Austin', 'Denver',
-  'Miami', 'Atlanta', 'Nashville', 'Boston', 'Philadelphia'
-]
+import { POPULAR_INTERESTS, ALL_INTERESTS, CITY_NAMES } from '@/lib/constants'
 
 const STEPS = ['photo', 'mode', 'interests', 'city', 'done']
 
@@ -115,7 +75,7 @@ export default function SetupPage() {
     router.push(destination)
   }
 
-  const filteredCities = ALL_CITIES.filter(c =>
+  const filteredCities = CITY_NAMES.filter(c =>
     !citySearch || c.toLowerCase().includes(citySearch.toLowerCase())
   )
 
@@ -276,7 +236,7 @@ export default function SetupPage() {
                   <span className="text-sm text-[#F0EDE6]">{c}</span>
                 </button>
               ))}
-              {citySearch.trim() && !ALL_CITIES.some(c => c.toLowerCase() === citySearch.trim().toLowerCase()) && (
+              {citySearch.trim() && !CITY_NAMES.some(c => c.toLowerCase() === citySearch.trim().toLowerCase()) && (
                 <button onClick={() => setCity(citySearch.trim())}
                   className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-dashed border-[#E8B84B]/30 bg-[#0D110D]">
                   <span className="text-sm">📍</span>

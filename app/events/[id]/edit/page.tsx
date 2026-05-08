@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-
-const EVENT_CATEGORIES = ['Social', 'Networking', 'Fitness', 'Food & Drink', 'Arts & Culture', 'Music', 'Outdoors', 'Tech']
+import { EVENT_CATEGORIES } from '@/lib/constants'
 
 export default function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()

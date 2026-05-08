@@ -3,39 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-
-const POPULAR_INTERESTS = [
-  'music', 'hiking', 'coffee', 'food', 'fitness', 'art', 'tech', 'travel',
-  'running', 'yoga', 'gaming', 'photography', 'cooking', 'nightlife',
-  'startups', 'design', 'film', 'reading', 'sports', 'dancing',
-  'networking', 'outdoors', 'wellness', 'volunteering',
-]
-
-const ALL_INTERESTS = [
-  'music', 'live music', 'concerts', 'festivals', 'dj', 'electronic', 'hip hop',
-  'jazz', 'classical', 'indie', 'rock', 'r&b', 'pop', 'rap', 'karaoke',
-  'film', 'movies', 'theatre', 'comedy', 'stand-up', 'podcasts', 'art',
-  'photography', 'painting', 'drawing', 'ceramics', 'sculpture', 'fashion',
-  'style', 'design', 'architecture', 'writing', 'poetry', 'books', 'reading',
-  'history', 'museums',
-  'food', 'coffee', 'wine', 'beer', 'cocktails', 'cooking', 'baking',
-  'brunch', 'restaurants', 'street food', 'vegan', 'vegetarian', 'craft beer',
-  'whiskey', 'tea',
-  'fitness', 'running', 'gym', 'yoga', 'pilates', 'cycling', 'swimming',
-  'rock climbing', 'martial arts', 'boxing', 'crossfit', 'wellness',
-  'meditation', 'mental health', 'nutrition', 'dancing', 'salsa', 'bachata',
-  'mindfulness',
-  'outdoors', 'hiking', 'camping', 'surfing', 'skiing', 'snowboarding',
-  'kayaking', 'travel', 'adventure', 'nature', 'gardening', 'birdwatching',
-  'sustainability',
-  'tech', 'startups', 'ai', 'crypto', 'coding', 'ux', 'product',
-  'entrepreneurship', 'investing', 'web3', 'gaming', 'esports', 'science',
-  'sports', 'football', 'basketball', 'soccer', 'tennis', 'golf', 'baseball',
-  'hockey', 'volleyball', 'f1', 'motorsports', 'mma',
-  'networking', 'volunteering', 'activism', 'community', 'nightlife',
-  'parties', 'self-improvement', 'astrology', 'spirituality', 'languages',
-  'pets', 'dogs', 'marketing', 'business',
-]
+import { POPULAR_INTERESTS, ALL_INTERESTS, CITY_NAMES } from '@/lib/constants'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_FILE_SIZE = 2 * 1024 * 1024
@@ -183,9 +151,7 @@ export default function EditProfilePage() {
         <div>
           <label className="text-xs text-white/50 mb-1.5 block">City</label>
           <select className={inputClass} value={city} onChange={e => setCity(e.target.value)}>
-            {['Bellingham', 'Seattle', 'Vancouver', 'Portland', 'San Francisco', 'Los Angeles', 'New York', 'Chicago', 'Austin', 'Denver'].map(c => (
-              <option key={c} value={c}>{c}</option>
-            ))}
+            {CITY_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 

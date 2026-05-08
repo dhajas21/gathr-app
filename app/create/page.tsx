@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-
-const EVENT_CATEGORIES = ['Social', 'Networking', 'Fitness', 'Food & Drink', 'Arts & Culture', 'Music', 'Outdoors', 'Tech']
+import { CITY_NAMES, getCityCoords, EVENT_CATEGORIES } from '@/lib/constants'
 
 export default function CreateEventPage() {
   const router = useRouter()
@@ -82,8 +81,8 @@ export default function CreateEventPage() {
       tags,
       visibility: privacy,
       host_id: session.user.id,
-      latitude: lat ?? 48.7519,
-      longitude: lng ?? -122.4787,
+      latitude: lat ?? getCityCoords(city).lat,
+      longitude: lng ?? getCityCoords(city).lng,
     })
 
     if (insertError) {
@@ -185,9 +184,7 @@ export default function CreateEventPage() {
               <div>
                 <label className={labelClass}>City</label>
                 <select className={inputClass} value={city} onChange={e => setCity(e.target.value)}>
-                  {['Bellingham', 'Seattle', 'Vancouver'].map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
+                  {CITY_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
