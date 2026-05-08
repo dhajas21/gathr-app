@@ -13,6 +13,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const [connectionId, setConnectionId] = useState<string | null>(null)
   const [mutualCount, setMutualCount] = useState(0)
+  const [mutualProfiles, setMutualProfiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [profileId, setProfileId] = useState('')
@@ -54,9 +55,16 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     if (myConnsRes.data && theirConnsRes.data) {
       const myIds = new Set(myConnsRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id))
       const theirIds = new Set(theirConnsRes.data.map((c: any) => c.requester_id === id ? c.addressee_id : c.requester_id))
-      let mutual = 0
-      myIds.forEach(mid => { if (theirIds.has(mid)) mutual++ })
-      setMutualCount(mutual)
+      const mutualIds: string[] = []
+      myIds.forEach(mid => { if (theirIds.has(mid)) mutualIds.push(mid as string) })
+      setMutualCount(mutualIds.length)
+      if (mutualIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', mutualIds.slice(0, 5))
+        if (profiles) setMutualProfiles(profiles)
+      }
     }
 
     const { data: rsvps } = await supabase.from('rsvps').select('event_id').eq('user_id', id)
@@ -183,8 +191,20 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
 
         {mutualCount > 0 && (
           <div className="bg-[#2A4A2A]/15 border border-[#7EC87E]/15 rounded-2xl p-3.5">
-            <div className="text-[9px] uppercase tracking-widest text-[#7EC87E] mb-1.5 font-medium">{mutualCount} mutual connection{mutualCount !== 1 ? 's' : ''}</div>
-            <div className="text-xs text-[#7EC87E]/70">You have friends in common</div>
+            <div className="text-[9px] uppercase tracking-widest text-[#7EC87E] mb-2 font-medium">{mutualCount} mutual connection{mutualCount !== 1 ? 's' : ''}</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {mutualProfiles.map(p => (
+                <button key={p.id} onClick={() => router.push('/profile/' + p.id)} className="flex items-center gap-1.5 active:opacity-70">
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt="" className="w-6 h-6 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-6 h-6 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-[10px]">🧑</div>
+                  )}
+                  <span className="text-xs text-[#7EC87E]/80">{p.name}</span>
+                </button>
+              ))}
+              {mutualCount > 5 && <span className="text-xs text-[#7EC87E]/50">+{mutualCount - 5} more</span>}
+            </div>
           </div>
         )}
 
