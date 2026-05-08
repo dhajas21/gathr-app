@@ -236,8 +236,11 @@ export default function SearchPage() {
   const EventCard = ({ event }: { event: any }) => (
     <div onClick={() => router.push('/events/' + event.id)}
       className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
-      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: '#1E2E1E' }}>
-        {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : event.category === 'Outdoors' ? '🥾' : '🎉'}
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ background: '#1E2E1E' }}>
+        {event.cover_url
+          ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          : (event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : event.category === 'Outdoors' ? '🥾' : '🎉')
+        }
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
@@ -354,8 +357,11 @@ export default function SearchPage() {
                   {recommendations.map(event => (
                     <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                       className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: '#1E2E1E' }}>
-                        {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : '🎉'}
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ background: '#1E2E1E' }}>
+                        {event.cover_url
+                          ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                          : (event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : '🎉')
+                        }
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
