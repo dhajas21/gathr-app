@@ -757,7 +757,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Calendar picker modal */}
       {showCalendarModal && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => setShowCalendarModal(false)}>
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end justify-center" onClick={() => setShowCalendarModal(false)}>
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5"></div>
             <div className="text-xs text-white/30 uppercase tracking-widest mb-4 text-center font-medium">Add to Calendar</div>
@@ -785,7 +785,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Delete confirm modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => setShowDeleteConfirm(false)}>
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end justify-center" onClick={() => setShowDeleteConfirm(false)}>
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4"></div>
             <div className="text-center mb-5">

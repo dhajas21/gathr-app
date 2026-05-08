@@ -138,7 +138,16 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
             ←
           </button>
-          <button className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">↑</button>
+          <button
+  onClick={() => {
+    const url = window.location.href
+    if (navigator.share) {
+      navigator.share({ title: profile?.name, url })
+    } else {
+      navigator.clipboard.writeText(url)
+    }
+  }}
+  className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm active:scale-95 transition-transform">↑</button>
         </div>
         <div className="px-4 pb-4">
           {profile.avatar_url ? (

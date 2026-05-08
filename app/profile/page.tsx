@@ -144,10 +144,15 @@ export default function ProfilePage() {
     { icon: '🤝', title: 'First Connection', desc: 'Make your first connection', tier: 'bronze', val: connections.length, req: 1 },
     { icon: '📡', title: 'Networker', desc: 'Make 10 connections', tier: 'silver', val: connections.length, req: 10 },
     { icon: '🦋', title: 'Social Butterfly', desc: 'Make 25 connections', tier: 'gold', val: connections.length, req: 25 },
+    { icon: '👑', title: 'Connector', desc: 'Make 50 connections', tier: 'gold', val: connections.length, req: 50 },
     { icon: '🗺', title: 'Explorer', desc: 'Add 5 interests', tier: 'bronze', val: interests.length, req: 5 },
-    { icon: '🔀', title: 'Dual Mode', desc: 'Enable both Social & Professional', tier: 'silver', val: profile?.profile_mode === 'both' ? 1 : 0, req: 1 },
+    { icon: '🎯', title: 'Passionate', desc: 'Add 10 interests', tier: 'silver', val: interests.length, req: 10 },
+    { icon: '🔀', title: 'Dual Mode', desc: 'Activate Professional mode', tier: 'silver', val: (profile?.profile_mode === 'both' || profile?.profile_mode === 'professional') ? 1 : 0, req: 1 },
     { icon: '💎', title: 'All-Rounder', desc: 'Host, attend & connect (5 each)', tier: 'gold', val: Math.min(hostedEvents.length, attendedEvents.length, connections.length), req: 5 },
     { icon: '🔥', title: 'On Fire', desc: 'Reach level 5', tier: 'gold', val: level, req: 5 },
+    { icon: '🚀', title: 'Power User', desc: 'Reach level 10', tier: 'gold', val: level, req: 10 },
+    { icon: '📸', title: 'Avatar', desc: 'Add a profile photo', tier: 'bronze', val: profile?.avatar_url ? 1 : 0, req: 1 },
+    { icon: '✍️', title: 'Storyteller', desc: 'Write your bio', tier: 'bronze', val: profile?.bio_social ? 1 : 0, req: 1 },
   ]
 
   const tierColor = (tier: string, unlocked: boolean) =>

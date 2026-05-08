@@ -48,6 +48,14 @@ export const ALL_INTERESTS = [
 ]
 
 export const EVENT_CATEGORIES = [
-  'Music', 'Fitness', 'Food & Drink', 'Tech', 'Outdoors',
-  'Arts & Culture', 'Social', 'Networking',
+  'Music', 'DJ & Electronic', 'Hip Hop & R&B', 'Jazz & Blues', 'Live Concerts & Festivals',
+  'Fitness', 'Yoga & Pilates', 'Running & Cycling', 'Climbing & Hiking', 'Combat Sports & CrossFit',
+  'Food & Drink', 'Coffee & Brunch', 'Wine & Cocktails', 'Cooking & Culinary', 'Street Food & Markets',
+  'Tech & Coding', 'Startups & Entrepreneurship', 'AI & Innovation', 'Gaming & Esports', 'Web3 & Crypto',
+  'Outdoors & Adventure', 'Hiking & Camping', 'Water Sports', 'Snow Sports',
+  'Arts & Culture', 'Photography & Film', 'Theatre & Comedy', 'Fashion & Style', 'Literature & Writing',
+  'Social & Parties', 'Nightlife', 'Networking', 'Business & Finance',
+  'Wellness & Mindfulness', 'Dance & Movement', 'Spirituality', 'Volunteering & Activism',
+  'Education & Workshops', 'Sports & Recreation', 'Pets & Animals', 'Science & Innovation',
+  'Markets & Pop-ups',
 ]

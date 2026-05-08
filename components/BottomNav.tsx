@@ -83,7 +83,7 @@ export default function BottomNav() {
 
         <button onClick={() => router.push('/home')} className={tabClass('/home')}>
           <HomeIcon />
-          <span className="text-[9px] font-semibold tracking-wider uppercase">Home</span>
+          <span className="text-[9px] font-bold tracking-wider">Gathr.</span>
         </button>
 
         <button onClick={() => router.push('/map')} className={tabClass('/map')}>
