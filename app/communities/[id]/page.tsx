@@ -199,7 +199,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
 
   const handleShare = async () => {
     const url = window.location.href
-    const shareData = { title: event?.title || 'Gathr Event', text: event?.description || 'Check out this event on Gathr!', url }
+    const shareData = { title: community?.name || 'Gathr Community', text: community?.description || 'Check out this community on Gathr!', url }
     if (navigator.share) {
       try { await navigator.share(shareData) } catch {}
     } else {
