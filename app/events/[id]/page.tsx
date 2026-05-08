@@ -49,12 +49,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [totalAttendees, setTotalAttendees] = useState(0)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [comments, setComments] = useState<Comment[]>([])
   const [commentText, setCommentText] = useState('')
   const [postingComment, setPostingComment] = useState(false)
   const [showCalendarModal, setShowCalendarModal] = useState(false)
   const [bookmarked, setBookmarked] = useState(false)
+  const [blocked, setBlocked] = useState(false)
+  const [inviteCode, setInviteCode] = useState('')
+  const [inviteCopied, setInviteCopied] = useState(false)
+  const [copied, setCopied] = useState(false)
   const commentInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -162,6 +165,16 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (countRes.count !== null) setTotalAttendees(countRes.count)
     if (commentsRes.data) setComments(commentsRes.data as any)
     if (bookmarkRes.data) setBookmarked(true)
+    if (eventData.invite_code) setInviteCode(eventData.invite_code)
+
+    if (eventData.visibility === 'private' && eventData.host_id !== userId && !rsvpRes.data) {
+      const inviteParam = new URLSearchParams(window.location.search).get('invite')
+      if (inviteParam !== eventData.invite_code) {
+        setBlocked(true)
+        setLoading(false)
+        return
+      }
+    }
 
     setLoading(false)
   }
@@ -226,6 +239,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const handleDeleteComment = async (commentId: string) => {
     await supabase.from('event_comments').delete().eq('id', commentId)
     setComments(prev => prev.filter(c => c.id !== commentId))
+  }
+
+  const handleCopyInvite = async () => {
+    const url = window.location.origin + '/events/' + event?.id + '?invite=' + inviteCode
+    await navigator.clipboard.writeText(url)
+    setInviteCopied(true)
+    setTimeout(() => setInviteCopied(false), 2000)
   }
 
   const handleShare = async () => {
@@ -304,6 +324,18 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     </div>
   )
 
+  if (blocked) return (
+    <div className="min-h-screen bg-[#0D110D] flex flex-col items-center justify-center px-6 gap-4 text-center">
+      <div className="w-16 h-16 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center text-3xl mb-2">🔒</div>
+      <h2 className="text-lg font-bold text-[#F0EDE6]">Private Event</h2>
+      <p className="text-sm text-white/40 max-w-[240px]">You need an invite link from the host to access this event.</p>
+      <button onClick={() => router.push('/home')}
+        className="mt-4 bg-[#E8B84B] text-[#0D110D] px-8 py-3.5 rounded-2xl font-bold text-sm active:scale-95 transition-transform">
+        Back to Home
+      </button>
+    </div>
+  )
+
   if (!event) return null
 
   const isHost = user?.id === event.host_id
@@ -329,6 +361,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <button onClick={() => router.push('/events/' + event.id + '/edit')}
                 className="w-9 h-9 bg-[#E8B84B]/20 border border-[#E8B84B]/30 rounded-xl flex items-center justify-center text-sm">
                 ✏️
+              </button>
+            )}
+            {isHost && (event.visibility === 'private' || event.visibility === 'unlisted') && inviteCode && (
+              <button onClick={handleCopyInvite} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center text-base transition-colors ' + (inviteCopied ? 'border-[#7EC87E]/40 text-[#7EC87E]' : 'border-[#E8B84B]/30')}>
+                {inviteCopied ? '✓' : '🔗'}
               </button>
             )}
             <button onClick={handleShare} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center text-base transition-colors ' + (copied ? 'border-[#7EC87E]/40 text-[#7EC87E]' : 'border-white/15')}>

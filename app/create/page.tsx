@@ -107,6 +107,7 @@ export default function CreateEventPage() {
       latitude: lat ?? getCityCoords(city).lat,
       longitude: lng ?? getCityCoords(city).lng,
       cover_url: coverUrl,
+      invite_code: Math.random().toString(36).substring(2, 10).toUpperCase(),
     })
 
     if (insertError) {
