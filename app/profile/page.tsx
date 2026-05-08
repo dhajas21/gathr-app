@@ -180,6 +180,8 @@ export default function ProfilePage() {
           <div className="flex gap-2">
             <button onClick={() => router.push('/notifications')}
               className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">🔔</button>
+            <button onClick={() => router.push('/bookmarks')}
+              className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">🔖</button>
             <button onClick={() => router.push('/settings')}
               className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">⚙️</button>
             <button onClick={() => router.push('/host')}

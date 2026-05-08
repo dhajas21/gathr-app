@@ -351,7 +351,8 @@ export default function HomePage() {
             className="rounded-3xl overflow-hidden mb-4 cursor-pointer active:scale-[0.98] transition-transform border border-[#E8B84B]/20">
             <div className="h-36 flex items-center justify-center text-5xl relative"
               style={{ background: CAT_GRADIENT[featuredEvent.category] || CAT_GRADIENT['Social'] }}>
-              <span>{CAT_EMOJI[featuredEvent.category] || '🎉'}</span>
+              {(featuredEvent as any).cover_url && <img src={(featuredEvent as any).cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+              <span className="relative z-10">{CAT_EMOJI[featuredEvent.category] || '🎉'}</span>
               <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
               <div className="absolute top-3 left-3">
                 <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2.5 py-1 rounded-full">⭐ Featured</span>
@@ -422,7 +423,8 @@ export default function HomePage() {
                   className={'bg-[#1C241C] rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/25' : 'border-white/10')}>
                   <div className="h-28 flex items-center justify-center text-4xl relative"
                     style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
-                    <span>{CAT_EMOJI[event.category] || '🎉'}</span>
+                    {(event as any).cover_url && <img src={(event as any).cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+                    <span className="relative z-10">{CAT_EMOJI[event.category] || '🎉'}</span>
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80"></div>
                     <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
                       <div className="flex gap-1">
