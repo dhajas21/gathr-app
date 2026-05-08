@@ -181,7 +181,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
     setLoading(false)
 
-    if (rsvpRes.data && new Date(eventData.end_datetime) > new Date()) {
+    const endTime = new Date(eventData.end_datetime).getTime()
+    const nowMs = Date.now()
+    if (rsvpRes.data && (endTime > nowMs || nowMs - endTime < 48 * 3600000)) {
       fetchMatches(id, userId)
     }
   }

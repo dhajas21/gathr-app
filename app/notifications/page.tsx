@@ -131,6 +131,7 @@ export default function NotificationsPage() {
     switch (type) {
       case 'connection_request': return '👋'
       case 'connection_accepted': return '🤝'
+      case 'after_event_match': return '✨'
       case 'rsvp': return '📅'
       case 'event_comment': return '💬'
       case 'message': return '✉️'

@@ -213,6 +213,57 @@ export default function HomePage() {
     setSoonEvents(allEvents.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
     setFeaturedEvent(allEvents.find(e => e.is_featured) || null)
     setLoading(false)
+    checkAfterEventMatches(userId)
+  }
+
+  const checkAfterEventMatches = async (userId: string) => {
+    const now = new Date().toISOString()
+    const cutoff = new Date(Date.now() - 48 * 3600000).toISOString()
+
+    const { data: rsvpData } = await supabase.from('rsvps').select('event_id').eq('user_id', userId)
+    if (!rsvpData?.length) return
+    const eventIds = rsvpData.map((r: any) => r.event_id)
+
+    const [eventsRes, existingNotifsRes] = await Promise.all([
+      supabase.from('events').select('id, title').in('id', eventIds).gte('end_datetime', cutoff).lte('end_datetime', now),
+      supabase.from('notifications').select('link').eq('user_id', userId).eq('type', 'after_event_match'),
+    ])
+
+    const recentEvents = eventsRes.data || []
+    if (!recentEvents.length) return
+
+    const notifiedLinks = new Set((existingNotifsRes.data || []).map((n: any) => n.link))
+
+    for (const evt of recentEvents) {
+      const link = '/events/' + evt.id
+      if (notifiedLinks.has(link)) continue
+
+      const { data: otherAttendees } = await supabase
+        .from('rsvps').select('user_id').eq('event_id', evt.id).neq('user_id', userId)
+      if (!otherAttendees?.length) continue
+
+      const otherIds = otherAttendees.map((a: any) => a.user_id)
+      const [matchingRes, connectionsRes] = await Promise.all([
+        supabase.from('profiles').select('id').in('id', otherIds).eq('matching_enabled', true),
+        supabase.from('connections').select('requester_id, addressee_id').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
+      ])
+
+      const connectedIds = new Set(
+        (connectionsRes.data || []).map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id)
+      )
+      const unconnected = (matchingRes.data || []).filter((p: any) => !connectedIds.has(p.id))
+      if (!unconnected.length) continue
+
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        actor_id: null,
+        type: 'after_event_match',
+        title: `You were at ${evt.title}`,
+        body: `${unconnected.length} ${unconnected.length === 1 ? 'person' : 'people'} you crossed paths with ${unconnected.length === 1 ? 'is' : 'are'} open to connecting`,
+        link,
+        read: false,
+      })
+    }
   }
 
   const handleBookmark = async (e: React.MouseEvent, eventId: string) => {
