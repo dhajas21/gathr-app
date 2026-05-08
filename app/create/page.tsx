@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CITY_NAMES, getCityCoords, EVENT_CATEGORIES } from '@/lib/constants'
@@ -28,6 +28,18 @@ export default function CreateEventPage() {
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [privacy, setPrivacy] = useState('public')
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  const coverRef = useRef<HTMLInputElement>(null)
+
+  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || file.size > 5 * 1024 * 1024) return
+    setCoverFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setCoverPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
 
   const geocodeAddress = async (addr: string, venue: string, c: string) => {
     const query = [addr || venue, c].filter(Boolean).join(', ')
@@ -67,6 +79,17 @@ export default function CreateEventPage() {
     const startDatetime = new Date(date + 'T' + startTime)
     const endDatetime = endTime ? new Date(date + 'T' + endTime) : new Date(date + 'T' + startTime)
 
+    let coverUrl: string | null = null
+    if (coverFile) {
+      const ext = coverFile.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const path = session.user.id + '/' + Date.now() + '.' + ext
+      const { error: uploadErr } = await supabase.storage.from('event-covers').upload(path, coverFile, { upsert: true })
+      if (!uploadErr) {
+        const { data: urlData } = supabase.storage.from('event-covers').getPublicUrl(path)
+        coverUrl = urlData?.publicUrl ?? null
+      }
+    }
+
     const { error: insertError } = await supabase.from('events').insert({
       title: title.trim(),
       category,
@@ -83,6 +106,7 @@ export default function CreateEventPage() {
       host_id: session.user.id,
       latitude: lat ?? getCityCoords(city).lat,
       longitude: lng ?? getCityCoords(city).lng,
+      cover_url: coverUrl,
     })
 
     if (insertError) {
@@ -128,10 +152,22 @@ export default function CreateEventPage() {
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4 pb-32">
         {step === 1 ? (
           <>
-            <div className="w-full h-28 bg-[#1C241C] border border-dashed border-[#E8B84B]/25 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer">
-              <span className="text-2xl">🖼</span>
-              <span className="text-xs text-white/30">Upload a cover photo</span>
-              <span className="text-[10px] text-white/20">JPG, PNG — Recommended 16:9</span>
+            <input ref={coverRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCoverSelect} className="hidden" />
+            <div onClick={() => coverRef.current?.click()} className="w-full h-28 bg-[#1C241C] border border-dashed border-[#E8B84B]/25 rounded-2xl overflow-hidden cursor-pointer relative">
+              {coverPreview ? (
+                <>
+                  <img src={coverPreview} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                    <span className="text-xs text-white/80 font-medium">Tap to change</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-1">
+                  <span className="text-2xl">🖼</span>
+                  <span className="text-xs text-white/30">Upload a cover photo</span>
+                  <span className="text-[10px] text-white/20">JPG, PNG — Recommended 16:9</span>
+                </div>
+              )}
             </div>
 
             <div>

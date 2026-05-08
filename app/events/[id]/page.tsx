@@ -312,6 +312,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       {/* Hero */}
       <div className="relative h-52 flex items-center justify-center text-6xl flex-shrink-0"
         style={{background: 'linear-gradient(135deg,#1E3A1E,#2A1A0E)'}}>
+        {(event as any).cover_url && (
+          <img src={(event as any).cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
           <button onClick={() => router.back()}

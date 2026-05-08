@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { EVENT_CATEGORIES } from '@/lib/constants'
@@ -26,6 +26,10 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const [tagInput, setTagInput] = useState('')
   const [privacy, setPrivacy] = useState('public')
   const [geocoding, setGeocoding] = useState(false)
+  const [coverUrl, setCoverUrl] = useState<string | null>(null)
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  const coverRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     params.then(({ id }) => {
@@ -42,6 +46,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     if (!data) { router.push('/home'); return }
     if (data.host_id !== session.user.id) { router.push('/events/' + id); return }
 
+    if (data.cover_url) { setCoverUrl(data.cover_url); setCoverPreview(data.cover_url) }
     setTitle(data.title)
     setCategory(data.category)
     setDescription(data.description || '')
@@ -59,6 +64,15 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     setEndTime(end.toTimeString().slice(0, 5))
 
     setLoading(false)
+  }
+
+  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || file.size > 5 * 1024 * 1024) return
+    setCoverFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setCoverPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
   }
 
   const geocodeAddress = async (addr: string, venue: string, c: string) => {
@@ -99,6 +113,17 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     setSaving(true)
     setError('')
 
+    let finalCoverUrl = coverUrl
+    if (coverFile) {
+      const ext = coverFile.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const path = eventId + '/' + Date.now() + '.' + ext
+      const { error: uploadErr } = await supabase.storage.from('event-covers').upload(path, coverFile, { upsert: true })
+      if (!uploadErr) {
+        const { data: urlData } = supabase.storage.from('event-covers').getPublicUrl(path)
+        finalCoverUrl = urlData?.publicUrl ?? coverUrl
+      }
+    }
+
     const startDatetime = new Date(date + 'T' + startTime)
     const endDatetime = endTime ? new Date(date + 'T' + endTime) : startDatetime
     const cap = parseInt(capacity) || 0
@@ -115,6 +140,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       capacity: cap,
       tags,
       visibility: privacy,
+      cover_url: finalCoverUrl,
     }).eq('id', eventId)
 
     if (updateError) {
@@ -146,6 +172,27 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4 pb-32">
+        <div>
+          <label className={labelClass}>Cover Photo</label>
+          <input ref={coverRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCoverSelect} className="hidden" />
+          <div onClick={() => coverRef.current?.click()} className="w-full h-28 bg-[#1C241C] border border-dashed border-[#E8B84B]/25 rounded-2xl overflow-hidden cursor-pointer relative">
+            {coverPreview ? (
+              <>
+                <img src={coverPreview} alt="" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                  <span className="text-xs text-white/80 font-medium">Tap to change</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full gap-1">
+                <span className="text-2xl">🖼</span>
+                <span className="text-xs text-white/30">Upload a cover photo</span>
+                <span className="text-[10px] text-white/20">JPG, PNG — Recommended 16:9</span>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div>
           <label className={labelClass}>Title *</label>
           <input className={inputClass} placeholder="Event title" value={title} onChange={e => setTitle(e.target.value)} maxLength={120} />
