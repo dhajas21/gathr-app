@@ -263,7 +263,7 @@ export default function NotificationsPage() {
     <div className="min-h-screen bg-[#0D110D] pb-24">
       <div className="flex items-center justify-between px-4 pt-14 pb-3 border-b border-white/10">
         <div>
-          <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>Activity</h1>
+          <h1 className="font-bold text-[#F0EDE6] text-xl font-display">Activity</h1>
           {unreadCount > 0 && <p className="text-xs text-white/40 mt-0.5">{unreadCount} new</p>}
         </div>
         {unreadCount > 0 && (

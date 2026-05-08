@@ -10,9 +10,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [other, setOther] = useState<any>(null)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [threadId, setThreadId] = useState('')
+  const [uploadError, setUploadError] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -42,7 +45,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           return [...prev, msg]
         })
         scrollToBottom()
-        // Mark incoming messages as read immediately
         const { data: { session } } = await supabase.auth.getSession()
         if (session && msg.recipient_id === session.user.id && !msg.read_at) {
           await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id)
@@ -60,28 +62,17 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       .eq('thread_id', tId)
       .order('sent_at', { ascending: true })
 
-    if (error) {
-      console.error('Fetch error:', error)
-      return
-    }
+    if (error) { console.error('Fetch error:', error); return }
 
     if (data && data.length > 0) {
       setMessages(data)
-
       const otherId = data[0].sender_id === userId ? data[0].recipient_id : data[0].sender_id
       const { data: otherProfile } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url')
-        .eq('id', otherId)
-        .single()
+        .from('profiles').select('id, name, avatar_url').eq('id', otherId).single()
       if (otherProfile) setOther(otherProfile)
-
-      await supabase
-        .from('messages')
+      await supabase.from('messages')
         .update({ read_at: new Date().toISOString() })
-        .eq('thread_id', tId)
-        .eq('recipient_id', userId)
-        .is('read_at', null)
+        .eq('thread_id', tId).eq('recipient_id', userId).is('read_at', null)
     }
     setLoading(false)
     scrollToBottom()
@@ -93,29 +84,80 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }, 100)
   }
 
+  const getRecipientId = () => {
+    if (!messages.length || !user) return null
+    return messages[0].sender_id === user.id ? messages[0].recipient_id : messages[0].sender_id
+  }
+
   const handleSend = async () => {
     if (!text.trim() || !user || sending) return
     const trimmed = text.trim()
     if (trimmed.length > 2000) return
+    const recipientId = getRecipientId()
+    if (!recipientId) return
 
     setSending(true)
     setText('')
-
-    const recipientId = messages[0]?.sender_id === user.id
-      ? messages[0]?.recipient_id
-      : messages[0]?.sender_id
-
-    if (!recipientId) { setSending(false); return }
-
     const { error } = await supabase.from('messages').insert({
       thread_id: threadId,
       sender_id: user.id,
       recipient_id: recipientId,
       text: trimmed,
     })
-
     if (error) console.error('Send error:', error)
     setSending(false)
+    scrollToBottom()
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !user) return
+
+    setUploadError('')
+
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File too large — max 10 MB')
+      setTimeout(() => setUploadError(''), 3000)
+      return
+    }
+
+    const recipientId = getRecipientId()
+    if (!recipientId) return
+
+    setUploading(true)
+
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'bin'
+    const path = `${threadId}/${Date.now()}.${ext}`
+
+    const { error: storageError } = await supabase.storage
+      .from('chat-attachments')
+      .upload(path, file, { upsert: false })
+
+    if (storageError) {
+      console.error('Upload error:', storageError)
+      setUploadError('Upload failed — try again')
+      setTimeout(() => setUploadError(''), 3000)
+      setUploading(false)
+      return
+    }
+
+    const { data: urlData } = supabase.storage.from('chat-attachments').getPublicUrl(path)
+    if (!urlData?.publicUrl) { setUploading(false); return }
+
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(ext)
+    const msgText = isImage
+      ? `[image]${urlData.publicUrl}`
+      : `[file:${file.name}]${urlData.publicUrl}`
+
+    await supabase.from('messages').insert({
+      thread_id: threadId,
+      sender_id: user.id,
+      recipient_id: recipientId,
+      text: msgText,
+    })
+
+    setUploading(false)
     scrollToBottom()
   }
 
@@ -126,8 +168,39 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }
   }
 
-  const formatTime = (dt: string) => {
-    return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const formatTime = (dt: string) =>
+    new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+
+  const renderContent = (msg: any) => {
+    const t = msg.text || ''
+    if (t.startsWith('[image]')) {
+      const url = t.slice(7)
+      return (
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          <img
+            src={url}
+            alt="Image"
+            className="max-w-[220px] rounded-xl object-cover"
+            style={{ maxHeight: 260 }}
+          />
+        </a>
+      )
+    }
+    const fileMatch = t.match(/^\[file:(.+?)\](.+)$/)
+    if (fileMatch) {
+      return (
+        <a
+          href={fileMatch[2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2"
+        >
+          <span className="text-base flex-shrink-0">📎</span>
+          <span className="underline underline-offset-2 break-all text-xs">{fileMatch[1]}</span>
+        </a>
+      )
+    }
+    return <span>{t}</span>
   }
 
   if (loading) return (
@@ -139,7 +212,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   return (
     <div className="h-screen bg-[#0D110D] flex flex-col">
 
-      {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-3 border-b border-white/10 flex-shrink-0">
         <button onClick={() => router.push('/messages')}
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
@@ -160,12 +232,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         </button>
       </div>
 
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map((msg, i) => {
           const mine = msg.sender_id === user?.id
           const showTime = i === 0 ||
             new Date(msg.sent_at).getTime() - new Date(messages[i - 1]?.sent_at).getTime() > 300000
+          const isImageMsg = (msg.text || '').startsWith('[image]')
 
           return (
             <div key={msg.id}>
@@ -184,22 +256,51 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                     </div>
                   )
                 )}
-                <div className={'max-w-[78%] px-3 py-2 text-sm leading-relaxed ' + (
-                  mine
-                    ? 'bg-[#E8B84B] text-[#0D110D] rounded-2xl rounded-br-sm font-medium'
-                    : 'bg-[#1C241C] text-[#F0EDE6] rounded-2xl rounded-bl-sm'
-                )}>
-                  {msg.text}
+                <div className={
+                  isImageMsg
+                    ? 'max-w-[78%] overflow-hidden rounded-2xl ' + (mine ? 'rounded-br-sm' : 'rounded-bl-sm')
+                    : 'max-w-[78%] px-3 py-2 text-sm leading-relaxed ' + (
+                      mine
+                        ? 'bg-[#E8B84B] text-[#0D110D] rounded-2xl rounded-br-sm font-medium'
+                        : 'bg-[#1C241C] text-[#F0EDE6] rounded-2xl rounded-bl-sm'
+                    )
+                }>
+                  {renderContent(msg)}
                 </div>
               </div>
             </div>
           )
         })}
+
+        {uploading && (
+          <div className="flex justify-end">
+            <div className="bg-[#1C241C] border border-white/10 rounded-2xl rounded-br-sm px-4 py-2.5 flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full border-2 border-[#E8B84B] border-t-transparent animate-spin" />
+              <span className="text-xs text-white/40">Uploading…</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Input bar */}
+      {uploadError && (
+        <div className="mx-4 mb-2 bg-[#E85B5B]/10 border border-[#E85B5B]/25 rounded-xl px-3 py-2 text-xs text-[#E85B5B] text-center">
+          {uploadError}
+        </div>
+      )}
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
       <div className="flex items-center gap-2 px-4 py-3 pb-8 border-t border-white/10 flex-shrink-0 bg-[#0D110D]">
-        <button className="w-8 h-8 bg-[#1C241C] border border-white/10 rounded-lg flex items-center justify-center text-sm flex-shrink-0">
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="w-8 h-8 bg-[#1C241C] border border-white/10 rounded-lg flex items-center justify-center text-sm flex-shrink-0 active:scale-95 transition-transform disabled:opacity-40"
+        >
           📎
         </button>
         <div className="flex-1 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5">
@@ -213,8 +314,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
             className="w-full bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none"
           />
         </div>
-        <button onClick={handleSend} disabled={!text.trim() || sending}
-          className="w-8 h-8 bg-[#E8B84B] rounded-lg flex items-center justify-center text-sm text-[#0D110D] flex-shrink-0 disabled:opacity-40 active:scale-95 transition-transform">
+        <button
+          onClick={handleSend}
+          disabled={!text.trim() || sending}
+          className="w-8 h-8 bg-[#E8B84B] rounded-lg flex items-center justify-center text-sm text-[#0D110D] flex-shrink-0 disabled:opacity-40 active:scale-95 transition-transform"
+        >
           ↑
         </button>
       </div>

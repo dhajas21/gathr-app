@@ -6,20 +6,9 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 
 interface Event {
-  id: string
-  title: string
-  category: string
-  start_datetime: string
-  end_datetime: string
-  location_name: string
-  city: string
-  spots_left: number
-  capacity: number
-  tags: string[]
-  visibility: string
-  is_featured: boolean
-  host_id: string
-  rsvp_count?: number
+  id: string; title: string; category: string; start_datetime: string; end_datetime: string
+  location_name: string; city: string; spots_left: number; capacity: number
+  tags: string[]; visibility: string; is_featured: boolean; host_id: string; rsvp_count?: number
 }
 
 const TABS = ['🔥 Trending', '✦ For You', '🏙 Near Me', '👥 Friends', '📌 Mine']
@@ -35,83 +24,125 @@ const ALL_CITIES = [
 ]
 
 const CAT_EMOJI: Record<string, string> = {
-  'Music': '🎸', 'Fitness': '🏃', 'Food & Drink': '🍺',
-  'Tech': '💻', 'Outdoors': '🥾', 'Arts & Culture': '🎨',
-  'Networking': '💼', 'Social': '🎉',
+  'Music': '🎸', 'DJ & Electronic': '🎧', 'Hip Hop & R&B': '🎤', 'Jazz & Blues': '🎷', 'Live Concerts & Festivals': '🎪',
+  'Fitness': '🏃', 'Yoga & Pilates': '🧘', 'Running & Cycling': '🚴', 'Climbing & Hiking': '🧗', 'Combat Sports & CrossFit': '🥊',
+  'Food & Drink': '🍺', 'Coffee & Brunch': '☕', 'Wine & Cocktails': '🍷', 'Cooking & Culinary': '👨‍🍳', 'Street Food & Markets': '🌮',
+  'Tech & Coding': '💻', 'Startups & Entrepreneurship': '🚀', 'AI & Innovation': '🤖', 'Gaming & Esports': '🎮', 'Web3 & Crypto': '⛓',
+  'Outdoors & Adventure': '🥾', 'Hiking & Camping': '⛺', 'Water Sports': '🏄', 'Snow Sports': '🎿',
+  'Arts & Culture': '🎨', 'Photography & Film': '📷', 'Theatre & Comedy': '🎭', 'Fashion & Style': '👗', 'Literature & Writing': '📚',
+  'Social & Parties': '🎉', 'Nightlife': '🌙', 'Networking': '💼', 'Business & Finance': '📈',
+  'Wellness & Mindfulness': '🌿', 'Dance & Movement': '💃', 'Spirituality': '✨', 'Volunteering & Activism': '🌱',
+  'Education & Workshops': '🎓', 'Sports & Recreation': '⚽', 'Pets & Animals': '🐾', 'Science & Innovation': '🔬',
+  'Markets & Pop-ups': '🏪',
+  'Tech': '💻', 'Outdoors': '🥾', 'Social': '🎉',
 }
 
 const CAT_GRADIENT: Record<string, string> = {
   'Music': 'linear-gradient(135deg,#1E2E3A,#1A0E2A)',
+  'DJ & Electronic': 'linear-gradient(135deg,#1A0E2A,#0E0A1E)',
+  'Hip Hop & R&B': 'linear-gradient(135deg,#2A0E1A,#1A0E0E)',
+  'Jazz & Blues': 'linear-gradient(135deg,#0E1A2A,#1A1E2A)',
+  'Live Concerts & Festivals': 'linear-gradient(135deg,#1E1A2A,#2A1E0E)',
   'Fitness': 'linear-gradient(135deg,#2A1E0E,#1A2A0E)',
+  'Yoga & Pilates': 'linear-gradient(135deg,#1A2A1A,#0E2A1A)',
+  'Running & Cycling': 'linear-gradient(135deg,#2A2A0E,#1A2A0E)',
+  'Climbing & Hiking': 'linear-gradient(135deg,#1A2A1A,#0E1A0E)',
+  'Combat Sports & CrossFit': 'linear-gradient(135deg,#2A1A0E,#1A0E0E)',
   'Food & Drink': 'linear-gradient(135deg,#2A1A0E,#1E1A0E)',
+  'Coffee & Brunch': 'linear-gradient(135deg,#2A1E0E,#1A1A0E)',
+  'Wine & Cocktails': 'linear-gradient(135deg,#2A0E1A,#1A0E0E)',
+  'Cooking & Culinary': 'linear-gradient(135deg,#2A1A0E,#2A0E0E)',
+  'Street Food & Markets': 'linear-gradient(135deg,#2A1E0E,#1E2A0E)',
+  'Tech & Coding': 'linear-gradient(135deg,#1A1E2A,#0E1A2A)',
+  'Startups & Entrepreneurship': 'linear-gradient(135deg,#1E1A2A,#2A1A0E)',
+  'AI & Innovation': 'linear-gradient(135deg,#0E1A2A,#1A0E2A)',
+  'Gaming & Esports': 'linear-gradient(135deg,#1A0E2A,#0E0A1E)',
+  'Web3 & Crypto': 'linear-gradient(135deg,#1A1E0E,#0E1A2A)',
+  'Outdoors & Adventure': 'linear-gradient(135deg,#1A2A1A,#0E2A1A)',
+  'Hiking & Camping': 'linear-gradient(135deg,#1A2A1A,#0E1A0E)',
+  'Water Sports': 'linear-gradient(135deg,#0E1A2A,#1A2A2A)',
+  'Snow Sports': 'linear-gradient(135deg,#1A1E2A,#0E1A2A)',
+  'Arts & Culture': 'linear-gradient(135deg,#2A1A2A,#1A0E1E)',
+  'Photography & Film': 'linear-gradient(135deg,#1A1A1A,#2A1A0E)',
+  'Theatre & Comedy': 'linear-gradient(135deg,#2A1A0E,#1A0E2A)',
+  'Fashion & Style': 'linear-gradient(135deg,#2A0E1A,#1A0E2A)',
+  'Literature & Writing': 'linear-gradient(135deg,#1A1E2A,#0E1A1A)',
+  'Social & Parties': 'linear-gradient(135deg,#1E3A1E,#2A1A0E)',
+  'Nightlife': 'linear-gradient(135deg,#1A0E2A,#0E0A1A)',
+  'Networking': 'linear-gradient(135deg,#1E1A2A,#1A1E2A)',
+  'Business & Finance': 'linear-gradient(135deg,#1A1E2A,#2A1A0E)',
+  'Wellness & Mindfulness': 'linear-gradient(135deg,#1A2A1A,#2A2A0E)',
+  'Dance & Movement': 'linear-gradient(135deg,#2A0E1A,#1A0E2A)',
+  'Spirituality': 'linear-gradient(135deg,#1A0E2A,#2A1A0E)',
+  'Volunteering & Activism': 'linear-gradient(135deg,#1A2A1A,#0E2A1A)',
+  'Education & Workshops': 'linear-gradient(135deg,#1A1E2A,#0E1A2A)',
+  'Sports & Recreation': 'linear-gradient(135deg,#1E2A0E,#2A1E0E)',
+  'Pets & Animals': 'linear-gradient(135deg,#2A2A0E,#1A2A0E)',
+  'Science & Innovation': 'linear-gradient(135deg,#0E1A2A,#1A1E2A)',
+  'Markets & Pop-ups': 'linear-gradient(135deg,#2A1E0E,#1A2A0E)',
   'Tech': 'linear-gradient(135deg,#1A1E2A,#0E1A2A)',
   'Outdoors': 'linear-gradient(135deg,#1A2A1A,#0E2A1A)',
-  'Arts & Culture': 'linear-gradient(135deg,#2A1A2A,#1A0E1E)',
-  'Networking': 'linear-gradient(135deg,#1E1A2A,#1A1E2A)',
   'Social': 'linear-gradient(135deg,#1E3A1E,#2A1A0E)',
 }
 
 const INTEREST_TO_CATS: Record<string, string[]> = {
-  'music': ['Music'], 'live music': ['Music'], 'concerts': ['Music'], 'festivals': ['Music'],
-  'dj': ['Music'], 'electronic': ['Music'], 'hip hop': ['Music'], 'jazz': ['Music'],
-  'classical': ['Music'], 'indie': ['Music'], 'rock': ['Music'], 'r&b': ['Music'],
-  'pop': ['Music'], 'rap': ['Music'], 'karaoke': ['Music', 'Social'],
-  'film': ['Arts & Culture'], 'movies': ['Arts & Culture'], 'theatre': ['Arts & Culture'],
-  'comedy': ['Arts & Culture', 'Social'], 'stand-up': ['Arts & Culture', 'Social'],
-  'podcasts': ['Tech', 'Social'], 'art': ['Arts & Culture'], 'photography': ['Arts & Culture', 'Outdoors'],
+  'music': ['Music', 'Live Concerts & Festivals'], 'live music': ['Music', 'Live Concerts & Festivals'],
+  'concerts': ['Live Concerts & Festivals'], 'festivals': ['Live Concerts & Festivals'],
+  'dj': ['DJ & Electronic'], 'electronic': ['DJ & Electronic'], 'hip hop': ['Hip Hop & R&B'],
+  'jazz': ['Jazz & Blues'], 'classical': ['Jazz & Blues'], 'indie': ['Music'], 'rock': ['Music'],
+  'r&b': ['Hip Hop & R&B'], 'pop': ['Music'], 'rap': ['Hip Hop & R&B'], 'karaoke': ['Music', 'Social & Parties'],
+  'film': ['Photography & Film'], 'movies': ['Photography & Film'], 'theatre': ['Theatre & Comedy'],
+  'comedy': ['Theatre & Comedy'], 'stand-up': ['Theatre & Comedy'], 'podcasts': ['Tech & Coding', 'Social & Parties'],
+  'art': ['Arts & Culture'], 'photography': ['Photography & Film'],
   'painting': ['Arts & Culture'], 'drawing': ['Arts & Culture'], 'ceramics': ['Arts & Culture'],
-  'sculpture': ['Arts & Culture'], 'fashion': ['Arts & Culture', 'Social'],
-  'style': ['Arts & Culture'], 'design': ['Tech', 'Arts & Culture'],
-  'architecture': ['Arts & Culture'], 'writing': ['Arts & Culture'], 'poetry': ['Arts & Culture'],
-  'books': ['Social'], 'reading': ['Social'],
-  'food': ['Food & Drink'], 'coffee': ['Food & Drink', 'Social'], 'wine': ['Food & Drink', 'Social'],
-  'beer': ['Food & Drink'], 'cocktails': ['Food & Drink', 'Social'], 'cooking': ['Food & Drink'],
-  'baking': ['Food & Drink'], 'brunch': ['Food & Drink', 'Social'], 'restaurants': ['Food & Drink'],
-  'street food': ['Food & Drink'], 'vegan': ['Food & Drink', 'Fitness'], 'vegetarian': ['Food & Drink'],
-  'craft beer': ['Food & Drink'], 'whiskey': ['Food & Drink'], 'tea': ['Food & Drink', 'Social'],
-  'fitness': ['Fitness'], 'running': ['Fitness'], 'gym': ['Fitness'], 'yoga': ['Fitness'],
-  'pilates': ['Fitness'], 'cycling': ['Fitness', 'Outdoors'], 'swimming': ['Fitness', 'Outdoors'],
-  'rock climbing': ['Fitness', 'Outdoors'], 'martial arts': ['Fitness'], 'boxing': ['Fitness'],
-  'crossfit': ['Fitness'], 'wellness': ['Fitness'], 'meditation': ['Fitness', 'Social'],
-  'mental health': ['Fitness', 'Social'], 'nutrition': ['Fitness', 'Food & Drink'],
-  'dancing': ['Music', 'Social', 'Fitness'], 'salsa': ['Music', 'Social'], 'bachata': ['Music', 'Social'],
-  'outdoors': ['Outdoors'], 'hiking': ['Outdoors', 'Fitness'], 'camping': ['Outdoors'],
-  'surfing': ['Outdoors', 'Fitness'], 'skiing': ['Outdoors', 'Fitness'], 'snowboarding': ['Outdoors', 'Fitness'],
-  'kayaking': ['Outdoors', 'Fitness'], 'travel': ['Outdoors', 'Social'], 'adventure': ['Outdoors'],
-  'nature': ['Outdoors'], 'gardening': ['Outdoors', 'Social'], 'birdwatching': ['Outdoors'],
-  'tech': ['Tech'], 'startups': ['Tech', 'Networking'], 'ai': ['Tech'], 'crypto': ['Tech'],
-  'coding': ['Tech'], 'ux': ['Tech', 'Arts & Culture'], 'product': ['Tech', 'Networking'],
-  'entrepreneurship': ['Tech', 'Networking'], 'investing': ['Tech', 'Networking'],
-  'business': ['Networking'], 'marketing': ['Networking'], 'web3': ['Tech'],
-  'gaming': ['Tech', 'Social'], 'esports': ['Tech', 'Social'],
-  'sports': ['Fitness', 'Outdoors'], 'football': ['Fitness', 'Social'], 'basketball': ['Fitness', 'Social'],
-  'soccer': ['Fitness', 'Social'], 'tennis': ['Fitness'], 'golf': ['Fitness', 'Social'],
-  'baseball': ['Fitness', 'Social'], 'hockey': ['Fitness', 'Social'], 'volleyball': ['Fitness', 'Social'],
-  'f1': ['Social'], 'motorsports': ['Social'], 'mma': ['Fitness'],
-  'networking': ['Networking'], 'volunteering': ['Social', 'Networking'],
-  'activism': ['Social', 'Networking'], 'sustainability': ['Outdoors', 'Social'],
-  'community': ['Social', 'Networking'], 'nightlife': ['Music', 'Social', 'Food & Drink'],
-  'parties': ['Social'], 'mindfulness': ['Fitness'], 'self-improvement': ['Social', 'Fitness'],
-  'astrology': ['Social'], 'spirituality': ['Social'], 'history': ['Arts & Culture'],
-  'museums': ['Arts & Culture'], 'science': ['Tech'], 'languages': ['Social'],
-  'pets': ['Social', 'Outdoors'], 'dogs': ['Outdoors', 'Social'],
+  'fashion': ['Fashion & Style'], 'design': ['Arts & Culture'], 'architecture': ['Arts & Culture'],
+  'writing': ['Literature & Writing'], 'poetry': ['Literature & Writing'], 'books': ['Literature & Writing'],
+  'reading': ['Literature & Writing'], 'history': ['Arts & Culture'], 'museums': ['Arts & Culture'],
+  'food': ['Food & Drink', 'Street Food & Markets'], 'coffee': ['Coffee & Brunch'],
+  'wine': ['Wine & Cocktails'], 'beer': ['Food & Drink', 'Wine & Cocktails'],
+  'cocktails': ['Wine & Cocktails'], 'cooking': ['Cooking & Culinary'], 'baking': ['Cooking & Culinary'],
+  'brunch': ['Coffee & Brunch'], 'restaurants': ['Food & Drink'], 'street food': ['Street Food & Markets'],
+  'vegan': ['Cooking & Culinary'], 'vegetarian': ['Cooking & Culinary'],
+  'craft beer': ['Wine & Cocktails'], 'whiskey': ['Wine & Cocktails'], 'tea': ['Coffee & Brunch'],
+  'fitness': ['Fitness'], 'running': ['Running & Cycling'], 'gym': ['Fitness'],
+  'yoga': ['Yoga & Pilates'], 'pilates': ['Yoga & Pilates'], 'cycling': ['Running & Cycling'],
+  'swimming': ['Water Sports'], 'rock climbing': ['Climbing & Hiking'], 'martial arts': ['Combat Sports & CrossFit'],
+  'boxing': ['Combat Sports & CrossFit'], 'crossfit': ['Combat Sports & CrossFit'],
+  'wellness': ['Wellness & Mindfulness'], 'meditation': ['Wellness & Mindfulness'],
+  'mental health': ['Wellness & Mindfulness'], 'nutrition': ['Cooking & Culinary'],
+  'dancing': ['Dance & Movement'], 'salsa': ['Dance & Movement'], 'bachata': ['Dance & Movement'],
+  'outdoors': ['Outdoors & Adventure'], 'hiking': ['Climbing & Hiking', 'Hiking & Camping'],
+  'camping': ['Hiking & Camping'], 'surfing': ['Water Sports'], 'skiing': ['Snow Sports'],
+  'snowboarding': ['Snow Sports'], 'kayaking': ['Water Sports'], 'travel': ['Outdoors & Adventure'],
+  'adventure': ['Outdoors & Adventure'], 'nature': ['Outdoors & Adventure', 'Hiking & Camping'],
+  'gardening': ['Volunteering & Activism'], 'birdwatching': ['Outdoors & Adventure'],
+  'tech': ['Tech & Coding'], 'startups': ['Startups & Entrepreneurship'], 'ai': ['AI & Innovation'],
+  'crypto': ['Web3 & Crypto'], 'coding': ['Tech & Coding'], 'ux': ['Tech & Coding'],
+  'product': ['Startups & Entrepreneurship'], 'entrepreneurship': ['Startups & Entrepreneurship'],
+  'investing': ['Business & Finance'], 'business': ['Business & Finance'], 'marketing': ['Business & Finance'],
+  'web3': ['Web3 & Crypto'], 'gaming': ['Gaming & Esports'], 'esports': ['Gaming & Esports'],
+  'sports': ['Sports & Recreation'], 'football': ['Sports & Recreation'], 'basketball': ['Sports & Recreation'],
+  'soccer': ['Sports & Recreation'], 'tennis': ['Sports & Recreation'], 'golf': ['Sports & Recreation'],
+  'baseball': ['Sports & Recreation'], 'hockey': ['Sports & Recreation'], 'volleyball': ['Sports & Recreation'],
+  'f1': ['Sports & Recreation'], 'motorsports': ['Sports & Recreation'], 'mma': ['Combat Sports & CrossFit'],
+  'networking': ['Networking'], 'volunteering': ['Volunteering & Activism'],
+  'activism': ['Volunteering & Activism'], 'sustainability': ['Volunteering & Activism'],
+  'community': ['Social & Parties', 'Volunteering & Activism'], 'nightlife': ['Nightlife'],
+  'parties': ['Social & Parties'], 'mindfulness': ['Wellness & Mindfulness'],
+  'self-improvement': ['Wellness & Mindfulness', 'Education & Workshops'],
+  'astrology': ['Spirituality'], 'spirituality': ['Spirituality'], 'science': ['Science & Innovation'],
+  'languages': ['Education & Workshops'], 'pets': ['Pets & Animals'], 'dogs': ['Pets & Animals'],
 }
 
 function isToday(dt: string) {
   const d = new Date(dt), now = new Date()
   return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
 }
-
 function isTomorrow(dt: string) {
-  const d = new Date(dt), tom = new Date()
-  tom.setDate(tom.getDate() + 1)
+  const d = new Date(dt), tom = new Date(); tom.setDate(tom.getDate() + 1)
   return d.getDate() === tom.getDate() && d.getMonth() === tom.getMonth() && d.getFullYear() === tom.getFullYear()
 }
-
-function formatTime(dt: string) {
-  return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-}
-
+function formatTime(dt: string) { return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }
 function formatDate(dt: string) {
   const d = new Date(dt)
   if (isToday(dt)) return 'Today · ' + formatTime(dt)
@@ -132,6 +163,7 @@ export default function HomePage() {
   const [connectionIds, setConnectionIds] = useState<string[]>([])
   const [showCityPicker, setShowCityPicker] = useState(false)
   const [citySearch, setCitySearch] = useState('')
+  const [unreadCount, setUnreadCount] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -143,26 +175,21 @@ export default function HomePage() {
   }, [])
 
   const fetchAll = async (userId: string) => {
-    const [profileRes, eventsRes, rsvpRes, connRes] = await Promise.all([
+    const [profileRes, eventsRes, rsvpRes, connRes, notifRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('events').select('*').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(100),
       supabase.from('rsvps').select('event_id').eq('user_id', userId),
       supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),
+      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false),
     ])
-
     if (profileRes.data) setProfile(profileRes.data)
     if (rsvpRes.data) setRsvpEventIds(rsvpRes.data.map((r: any) => r.event_id))
     if (connRes.data) setConnectionIds(connRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id))
-
+    if (notifRes.count) setUnreadCount(notifRes.count)
     const allEvents: Event[] = eventsRes.data || []
     setEvents(allEvents)
-
-    const soon = allEvents.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime))
-    setSoonEvents(soon)
-
-    const featured = allEvents.find(e => e.is_featured) || null
-    setFeaturedEvent(featured)
-
+    setSoonEvents(allEvents.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
+    setFeaturedEvent(allEvents.find(e => e.is_featured) || null)
     setLoading(false)
   }
 
@@ -228,13 +255,10 @@ export default function HomePage() {
   if (loading) return (
     <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <h1 className="text-5xl font-extrabold text-[#F0EDE6] tracking-tight leading-none font-display">
-          Gathr<span className="text-[#E8B84B]">.</span>
-        </h1>
+        <h1 className="text-5xl font-extrabold text-[#F0EDE6] tracking-tight leading-none font-display">Gathr<span className="text-[#E8B84B]">.</span></h1>
         <div className="flex gap-1.5">
           {[0, 1, 2].map(i => (
-            <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#E8B84B] animate-pulse"
-              style={{ animationDelay: `${i * 180}ms` }} />
+            <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#E8B84B] animate-pulse" style={{ animationDelay: `${i * 180}ms` }} />
           ))}
         </div>
       </div>
@@ -243,23 +267,23 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
-
       <div className="px-4 pt-14 pb-0 bg-[#0D110D]">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="font-extrabold text-[#F0EDE6] text-2xl tracking-tight leading-none font-display">
-              Gathr<span className="text-[#E8B84B]">.</span>
-            </h1>
-            {profile?.name && (
-              <p className="text-xs text-white/30 mt-0.5">Hey {profile.name.split(' ')[0]} 👋</p>
-            )}
+            <h1 className="font-extrabold text-[#F0EDE6] text-2xl tracking-tight leading-none font-display">Gathr<span className="text-[#E8B84B]">.</span></h1>
+            {profile?.name && <p className="text-xs text-white/30 mt-0.5">Hey {profile.name.split(' ')[0]} 👋</p>}
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => router.push('/notifications')}
-              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center">
+              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center relative">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0EDE6" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
               </svg>
+              {unreadCount > 0 && (
+                <div className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-[#E85B5B] rounded-full flex items-center justify-center border-2 border-[#0D110D]">
+                  <span className="text-[9px] font-bold text-white px-0.5">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                </div>
+              )}
             </button>
             <button onClick={() => setShowCityPicker(true)}
               className="flex items-center gap-1.5 bg-[#1C241C] border border-white/10 rounded-full px-3 py-1.5">
@@ -293,7 +317,7 @@ export default function HomePage() {
               </div>
               <span className="text-[10px] text-white/30">{soonEvents.length} event{soonEvents.length !== 1 ? 's' : ''}</span>
             </div>
-            <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4">
+            <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
               {soonEvents.map(event => {
                 const isRsvpd = rsvpEventIds.includes(event.id)
                 return (
@@ -303,9 +327,7 @@ export default function HomePage() {
                       style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
                       <span>{CAT_EMOJI[event.category] || '🎉'}</span>
                       <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-70"></div>
-                      {isRsvpd && (
-                        <div className="absolute top-1.5 right-1.5 bg-[#7EC87E] text-[#0D110D] text-[8px] font-bold px-1.5 py-0.5 rounded-full">Going ✓</div>
-                      )}
+                      {isRsvpd && <div className="absolute top-1.5 right-1.5 bg-[#7EC87E] text-[#0D110D] text-[8px] font-bold px-1.5 py-0.5 rounded-full">Going ✓</div>}
                       <div className="absolute bottom-1.5 left-2 right-2">
                         <div className={'text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-block ' + (isToday(event.start_datetime) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>
                           {isToday(event.start_datetime) ? 'Today' : 'Tomorrow'} · {formatTime(event.start_datetime)}
@@ -315,9 +337,7 @@ export default function HomePage() {
                     <div className="p-2 bg-[#1C241C]">
                       <div className="text-xs font-semibold text-[#F0EDE6] truncate leading-snug">{event.title}</div>
                       <div className="text-[9px] text-white/40 mt-0.5 truncate">{event.location_name}</div>
-                      {event.spots_left > 0 && event.spots_left < 15 && (
-                        <div className="text-[9px] text-[#E8A84B] mt-0.5">{event.spots_left} spots left</div>
-                      )}
+                      {event.spots_left > 0 && event.spots_left < 15 && <div className="text-[9px] text-[#E8A84B] mt-0.5">{event.spots_left} spots left</div>}
                     </div>
                   </div>
                 )
@@ -353,7 +373,7 @@ export default function HomePage() {
           </div>
         )}
 
-        <div className="flex border-b border-white/10 -mx-4 px-4 overflow-x-auto">
+        <div className="flex border-b border-white/10 -mx-4 px-4 overflow-x-auto scrollbar-hide">
           {TABS.map((tab, i) => (
             <button key={tab} onClick={() => setActiveTab(i)}
               className={'px-3 py-2.5 text-xs whitespace-nowrap border-b-2 -mb-px transition-colors ' + (activeTab === i ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
@@ -381,16 +401,13 @@ export default function HomePage() {
             <div className="text-4xl">{activeTab === 3 ? '👥' : activeTab === 4 ? '📌' : '🎉'}</div>
             <p className="text-white/40 text-sm text-center max-w-[240px]">{getEmptyMessage()}</p>
             {activeTab === 1 && !profile?.interests?.length && (
-              <button onClick={() => router.push('/profile/edit')}
-                className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Add Interests</button>
+              <button onClick={() => router.push('/profile/edit')} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Add Interests</button>
             )}
             {activeTab === 3 && !connectionIds.length && (
-              <button onClick={() => router.push('/communities')}
-                className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Find People</button>
+              <button onClick={() => router.push('/communities')} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Find People</button>
             )}
             {activeTab === 4 && (
-              <button onClick={() => router.push('/create')}
-                className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Create Event</button>
+              <button onClick={() => router.push('/create')} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Create Event</button>
             )}
           </div>
         ) : (
@@ -400,7 +417,6 @@ export default function HomePage() {
               const isHost = event.host_id === user?.id
               const isSoon = isToday(event.start_datetime) || isTomorrow(event.start_datetime)
               const fillPct = event.capacity > 0 ? Math.round(((event.capacity - event.spots_left) / event.capacity) * 100) : 0
-
               return (
                 <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                   className={'bg-[#1C241C] rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/25' : 'border-white/10')}>

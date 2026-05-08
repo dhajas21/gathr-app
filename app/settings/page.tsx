@@ -5,82 +5,43 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 
-const ALL_INTERESTS = [
-  'Hiking', 'Coffee', 'Tech', 'Music', 'Art', 'Food', 'Gaming', 'Fitness',
-  'Travel', 'Photography', 'Reading', 'Movies', 'Yoga', 'Cycling', 'Cooking',
-  'Dancing', 'Volunteering', 'Networking', 'Entrepreneurship', 'Design',
-  'Outdoors', 'Sports', 'Wellness', 'Fashion', 'Podcasts',
-]
-
-export default function ProfilePage() {
+export default function SettingsPage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [hostedEvents, setHostedEvents] = useState<any[]>([])
-  const [attendedEvents, setAttendedEvents] = useState<any[]>([])
-  const [connections, setConnections] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [editingInterests, setEditingInterests] = useState(false)
-  const [savingInterests, setSavingInterests] = useState(false)
+  const [discoverable, setDiscoverable] = useState(true)
+  const [profileMode, setProfileMode] = useState('both')
   const [savingMode, setSavingMode] = useState(false)
+  const [savingDiscoverable, setSavingDiscoverable] = useState(false)
+  const [showPasswordSection, setShowPasswordSection] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    const loadData = () => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session) { router.push('/auth'); return }
-        setUser(session.user)
-        fetchAll(session.user.id)
-      })
-    }
-    loadData()
-    const handleVisibility = () => { if (document.visibilityState === 'visible') loadData() }
-    document.addEventListener('visibilitychange', handleVisibility)
-    window.addEventListener('focus', loadData)
-    window.addEventListener('popstate', loadData)
-    window.addEventListener('pageshow', loadData)
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility)
-      window.removeEventListener('focus', loadData)
-      window.removeEventListener('popstate', loadData)
-      window.removeEventListener('pageshow', loadData)
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) { router.push('/auth'); return }
+      setUser(session.user)
+      supabase.from('profiles').select('name, avatar_url, profile_mode, discoverable, city').eq('id', session.user.id).single()
+        .then(({ data }) => {
+          if (data) {
+            setProfile(data)
+            setProfileMode(data.profile_mode || 'both')
+            setDiscoverable(data.discoverable !== false)
+          }
+          setLoading(false)
+        })
+    })
   }, [])
 
-  const fetchAll = async (userId: string) => {
-    const { data: profileData } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    if (profileData) setProfile(profileData)
-
-    const { data: hosted } = await supabase.from('events').select('*').eq('host_id', userId).order('start_datetime', { ascending: false })
-    if (hosted) setHostedEvents(hosted)
-
-    const { data: rsvps } = await supabase.from('rsvps').select('event_id').eq('user_id', userId)
-    if (rsvps && rsvps.length > 0) {
-      const eventIds = rsvps.map((r: any) => r.event_id)
-      const { data: attended } = await supabase.from('events').select('*').in('id', eventIds).order('start_datetime', { ascending: false })
-      if (attended) setAttendedEvents(attended)
-    }
-
-    const { data: connData } = await supabase.from('connections').select('requester_id, addressee_id')
-      .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted')
-    if (connData && connData.length > 0) {
-      const otherIds = connData.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id)
-      const { data: connProfiles } = await supabase.from('profiles').select('id, name, bio_social, city, profile_mode').in('id', otherIds)
-      if (connProfiles) setConnections(connProfiles)
-    }
-
-    setLoading(false)
-  }
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/auth')
-  }
-
   const handleToggleMode = async (mode: 'social' | 'professional') => {
-    if (!user || !profile || savingMode) return
+    if (savingMode) return
     setSavingMode(true)
-    const current = profile.profile_mode || 'social'
+    const current = profileMode
     let next: string
     if (current === 'both') {
       next = mode === 'social' ? 'professional' : 'social'
@@ -89,57 +50,47 @@ export default function ProfilePage() {
     } else {
       next = 'both'
     }
-    setProfile((p: any) => ({ ...p, profile_mode: next }))
+    setProfileMode(next)
     await supabase.from('profiles').update({ profile_mode: next }).eq('id', user.id)
     setSavingMode(false)
   }
 
-  const handleToggleInterest = async (interest: string) => {
-    if (!user || !profile) return
-    const current: string[] = profile.interests || []
-    const updated = current.includes(interest) ? current.filter((i: string) => i !== interest) : [...current, interest]
-    setProfile((p: any) => ({ ...p, interests: updated }))
-    setSavingInterests(true)
-    await supabase.from('profiles').update({ interests: updated }).eq('id', user.id)
-    setSavingInterests(false)
+  const handleToggleDiscoverable = async () => {
+    if (savingDiscoverable) return
+    setSavingDiscoverable(true)
+    const next = !discoverable
+    setDiscoverable(next)
+    await supabase.from('profiles').update({ discoverable: next }).eq('id', user.id)
+    setSavingDiscoverable(false)
   }
 
-  const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const handleChangePassword = async () => {
+    setPasswordError('')
+    if (!newPassword) { setPasswordError('Enter a new password'); return }
+    if (newPassword.length < 6) { setPasswordError('Password must be at least 6 characters'); return }
+    if (newPassword !== confirmPassword) { setPasswordError('Passwords do not match'); return }
+    setSavingPassword(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) {
+      setPasswordError(error.message)
+    } else {
+      setPasswordSuccess(true)
+      setNewPassword('')
+      setConfirmPassword('')
+      setTimeout(() => { setPasswordSuccess(false); setShowPasswordSection(false) }, 2000)
+    }
+    setSavingPassword(false)
+  }
 
-  const isSocial = profile?.profile_mode === 'social' || profile?.profile_mode === 'both' || !profile?.profile_mode
-  const isProfessional = profile?.profile_mode === 'professional' || profile?.profile_mode === 'both'
-  const interests: string[] = profile?.interests || []
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/auth')
+  }
 
-  // XP + Level system
-  const xp = (hostedEvents.length * 10) + (attendedEvents.length * 5) + (connections.length * 3) + (interests.length * 2)
-  const level = Math.floor(xp / 50) + 1
-  const xpInLevel = xp % 50
-  const xpToNext = 50
+  const isSocial = profileMode === 'social' || profileMode === 'both'
+  const isProfessional = profileMode === 'professional' || profileMode === 'both'
 
-  const achievements = [
-    // Hosting
-    { icon: '🎉', title: 'First Event', desc: 'Host your first event', unlocked: hostedEvents.length >= 1, progress: Math.min(hostedEvents.length, 1), max: 1, tier: 'bronze' },
-    { icon: '🎙', title: 'Rising Host', desc: 'Host 3 events', unlocked: hostedEvents.length >= 3, progress: Math.min(hostedEvents.length, 3), max: 3, tier: 'bronze' },
-    { icon: '🌟', title: 'Host with the Most', desc: 'Host 5 events', unlocked: hostedEvents.length >= 5, progress: Math.min(hostedEvents.length, 5), max: 5, tier: 'silver' },
-    { icon: '🏟', title: 'Community Builder', desc: 'Host 10 events', unlocked: hostedEvents.length >= 10, progress: Math.min(hostedEvents.length, 10), max: 10, tier: 'gold' },
-    { icon: '🏆', title: 'Super Host', desc: 'Host 25 events', unlocked: hostedEvents.length >= 25, progress: Math.min(hostedEvents.length, 25), max: 25, tier: 'gold' },
-    // Attending
-    { icon: '👟', title: 'First Steps', desc: 'RSVP to your first event', unlocked: attendedEvents.length >= 1, progress: Math.min(attendedEvents.length, 1), max: 1, tier: 'bronze' },
-    { icon: '📅', title: 'Scene Regular', desc: 'Attend 5 events', unlocked: attendedEvents.length >= 5, progress: Math.min(attendedEvents.length, 5), max: 5, tier: 'silver' },
-    { icon: '⭐', title: 'Event Veteran', desc: 'Attend 10 events', unlocked: attendedEvents.length >= 10, progress: Math.min(attendedEvents.length, 10), max: 10, tier: 'silver' },
-    { icon: '🔥', title: 'Gathr Legend', desc: 'Attend 25 events', unlocked: attendedEvents.length >= 25, progress: Math.min(attendedEvents.length, 25), max: 25, tier: 'gold' },
-    // Social
-    { icon: '👋', title: 'First Connection', desc: 'Make your first connection', unlocked: connections.length >= 1, progress: Math.min(connections.length, 1), max: 1, tier: 'bronze' },
-    { icon: '🤝', title: 'Networker', desc: 'Make 5 connections', unlocked: connections.length >= 5, progress: Math.min(connections.length, 5), max: 5, tier: 'silver' },
-    { icon: '🦋', title: 'Social Butterfly', desc: 'Make 20 connections', unlocked: connections.length >= 20, progress: Math.min(connections.length, 20), max: 20, tier: 'gold' },
-    // Profile
-    { icon: '🎨', title: 'Explorer', desc: 'Add 5+ interests', unlocked: interests.length >= 5, progress: Math.min(interests.length, 5), max: 5, tier: 'bronze' },
-    { icon: '⚡', title: 'Dual Mode', desc: 'Enable both Social & Professional', unlocked: profile?.profile_mode === 'both', progress: profile?.profile_mode === 'both' ? 1 : 0, max: 1, tier: 'silver' },
-    { icon: '💎', title: 'All-Rounder', desc: 'Host, attend & connect', unlocked: hostedEvents.length >= 1 && attendedEvents.length >= 1 && connections.length >= 1, progress: (hostedEvents.length >= 1 ? 1 : 0) + (attendedEvents.length >= 1 ? 1 : 0) + (connections.length >= 1 ? 1 : 0), max: 3, tier: 'gold' },
-  ]
-
-  const unlockedCount = achievements.filter(a => a.unlocked).length
-  const tierColor = (tier: string) => tier === 'gold' ? '#E8B84B' : tier === 'silver' ? '#A0AEC0' : '#CD7F32'
+  const inputClass = 'w-full bg-[#0D110D] border border-white/10 rounded-2xl px-4 py-3 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm'
 
   if (loading) return (
     <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
@@ -147,351 +98,226 @@ export default function ProfilePage() {
     </div>
   )
 
-  const tabs = ['Overview', 'Events', 'Stats', 'Connections']
-
   return (
-    <div className="min-h-screen bg-[#0D110D] pb-24">
+    <div className="min-h-screen bg-[#0D110D] pb-28">
 
-      {/* Hero */}
-      <div style={{ background: 'linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%)' }}>
-        <div className="flex items-start justify-between px-4 pt-14 mb-3">
-          <div></div>
-          <div className="flex gap-2">
-            <button onClick={() => router.push('/notifications')}
-              className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">🔔</button>
-            <button onClick={() => router.push('/settings')}
-              className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">⚙️</button>
-            <button onClick={() => router.push('/profile/edit')}
-              className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-[#F0EDE6]">
-              ✏️ Edit
-            </button>
-          </div>
-        </div>
-        <div className="px-4 pb-4">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3" />
-          ) : (
-            <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-2xl mb-3">🧑‍💻</div>
-          )}
-          <div className="flex items-center gap-2 mb-0.5">
-            <div className="font-bold text-[#F0EDE6] text-lg">{profile?.name || 'Your Name'}</div>
-            <div className="bg-[#E8B84B]/15 border border-[#E8B84B]/25 text-[#E8B84B] text-[9px] font-bold px-2 py-0.5 rounded-full">Lv.{level}</div>
-          </div>
-          <div className="text-xs text-white/45">@{profile?.name?.toLowerCase().replace(/\s/g, '')} · {profile?.city || 'Bellingham, WA'}</div>
-          {profile?.bio_social && (
-            <div className="text-sm text-white/60 mt-2 leading-relaxed font-light">{profile.bio_social}</div>
-          )}
-          {/* Side-by-side interactive mode toggles */}
-          <div className="flex gap-2 mt-3">
-            <button onClick={() => handleToggleMode('social')}
-              className={'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all active:scale-95 ' + (isSocial ? 'bg-[#2A4A2A]/60 border-[#7EC87E]/30 text-[#7EC87E]' : 'bg-white/5 border-white/10 text-white/30')}>
-              👋 Social
-            </button>
-            <button onClick={() => handleToggleMode('professional')}
-              className={'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all active:scale-95 ' + (isProfessional ? 'bg-[#2A4A2A]/60 border-[#7EC87E]/30 text-[#7EC87E]' : 'bg-white/5 border-white/10 text-white/30')}>
-              💼 Professional
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats bar */}
-      <div className="flex border-t border-b border-white/10">
-        {[
-          { num: hostedEvents.length, label: 'Hosted' },
-          { num: attendedEvents.length, label: 'Attended' },
-          { num: connections.length, label: 'Connections' },
-          { num: unlockedCount + '/' + achievements.length, label: 'Badges' },
-        ].map((stat, i) => (
-          <div key={stat.label} className={'flex-1 text-center py-3 ' + (i < 3 ? 'border-r border-white/10' : '')}>
-            <div className="font-bold text-[#E8B84B] text-base">{stat.num}</div>
-            <div className="text-[9px] text-white/40 mt-0.5 uppercase tracking-wide">{stat.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-white/10">
-        {tabs.map((tab, i) => (
-          <button key={tab} onClick={() => setActiveTab(i)}
-            className={'flex-1 py-2.5 text-[10px] text-center border-b-2 -mb-px transition-colors ' + (activeTab === i ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
-            {tab}
-          </button>
-        ))}
+      <div className="px-4 pt-14 pb-4 border-b border-white/10">
+        <h1 className="font-bold text-[#F0EDE6] text-xl">Settings</h1>
+        <p className="text-xs text-white/35 mt-0.5">Account, privacy & preferences</p>
       </div>
 
       <div className="px-4 pt-4 space-y-3">
 
-        {/* OVERVIEW */}
-        {activeTab === 0 && (
-          <>
-            {/* Interests with inline edit */}
-            <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">
-                  Interests{savingInterests && <span className="text-[#E8B84B]/50 normal-case tracking-normal ml-1">saving…</span>}
-                </div>
-                <button onClick={() => setEditingInterests(!editingInterests)}
-                  className={'text-[10px] px-2.5 py-1 rounded-lg border transition-colors ' + (editingInterests ? 'bg-[#E8B84B]/15 border-[#E8B84B]/25 text-[#E8B84B]' : 'bg-white/5 border-white/10 text-white/40')}>
-                  {editingInterests ? 'Done' : '+ Edit'}
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {interests.map(interest => (
-                  <button key={interest} onClick={() => editingInterests && handleToggleInterest(interest)}
-                    className={'text-xs px-2.5 py-1 rounded-lg border transition-all ' + (editingInterests ? 'bg-[#E85B5B]/10 border-[#E85B5B]/20 text-[#E85B5B]' : 'bg-[#2A4A2A]/35 border-[#7EC87E]/10 text-[#7EC87E]')}>
-                    {interest}{editingInterests && ' ×'}
-                  </button>
-                ))}
-                {interests.length === 0 && !editingInterests && (
-                  <button onClick={() => setEditingInterests(true)} className="text-xs text-white/30 border border-dashed border-white/15 px-3 py-1 rounded-lg">+ Add interests</button>
-                )}
-              </div>
-              {editingInterests && (
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <div className="text-[9px] text-white/30 mb-2 uppercase tracking-wider">Add more</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ALL_INTERESTS.filter(i => !interests.includes(i)).map(interest => (
-                      <button key={interest} onClick={() => handleToggleInterest(interest)}
-                        className="text-xs px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 text-white/50 active:bg-[#7EC87E]/10 active:border-[#7EC87E]/20 active:text-[#7EC87E] transition-colors">
-                        + {interest}
-                      </button>
-                    ))}
-                  </div>
+        <div
+          onClick={() => router.push('/profile/edit')}
+          className="bg-[#1C241C] border border-white/10 rounded-2xl p-4 flex items-center gap-3 cursor-pointer active:opacity-75 transition-opacity"
+        >
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-[#E8B84B]/20 flex-shrink-0" />
+          ) : (
+            <div className="w-12 h-12 bg-[#1E3A1E] rounded-2xl flex items-center justify-center text-xl border border-[#E8B84B]/20 flex-shrink-0">
+              🧑
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-[#F0EDE6]">{profile?.name || 'Your Profile'}</div>
+            <div className="text-xs text-white/40 mt-0.5">{profile?.city || 'Set your city'}</div>
+          </div>
+          <div className="text-xs text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1 rounded-lg flex-shrink-0">
+            Edit ›
+          </div>
+        </div>
+
+        <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
+          <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium px-4 pt-3.5 pb-2">Account</div>
+
+          <div className="px-4 pb-3.5 border-b border-white/[0.06]">
+            <div className="text-[10px] text-white/35 mb-1">Email address</div>
+            <div className="text-sm text-[#F0EDE6]/70">{user?.email}</div>
+          </div>
+
+          <button
+            onClick={() => { setShowPasswordSection(!showPasswordSection); setPasswordError(''); setPasswordSuccess(false) }}
+            className="w-full flex items-center justify-between px-4 py-3.5 active:bg-white/[0.03] transition-colors"
+          >
+            <span className="text-sm text-[#F0EDE6]">Change Password</span>
+            <span className="text-white/30 text-sm">{showPasswordSection ? '↑' : '›'}</span>
+          </button>
+
+          {showPasswordSection && (
+            <div className="px-4 pb-4 space-y-2.5 border-t border-white/[0.06] pt-3">
+              <input
+                className={inputClass}
+                type="password"
+                placeholder="New password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                maxLength={72}
+              />
+              <input
+                className={inputClass}
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
+                maxLength={72}
+              />
+              {passwordError && (
+                <div className="text-xs text-[#E85B5B] bg-[#E85B5B]/8 border border-[#E85B5B]/20 rounded-xl px-3 py-2">
+                  {passwordError}
                 </div>
               )}
+              {passwordSuccess && (
+                <div className="text-xs text-[#7EC87E] bg-[#7EC87E]/8 border border-[#7EC87E]/20 rounded-xl px-3 py-2">
+                  ✓ Password updated
+                </div>
+              )}
+              <button
+                onClick={handleChangePassword}
+                disabled={savingPassword}
+                className="w-full bg-[#E8B84B] text-[#0D110D] rounded-xl py-3 text-sm font-bold disabled:opacity-50 active:scale-[0.98] transition-transform"
+              >
+                {savingPassword ? 'Saving…' : 'Update Password'}
+              </button>
             </div>
+          )}
+        </div>
 
-            {/* Settings shortcut */}
-            <button onClick={() => router.push('/settings')}
-              className="w-full bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 flex items-center justify-between active:opacity-70 transition-opacity">
-              <span className="text-sm text-[#F0EDE6]">Privacy & Visibility</span>
-              <span className="text-xs text-white/30">Manage in Settings ›</span>
-            </button>
-
-            {hostedEvents.length > 0 && (
-              <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
-                <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">Recent Events</div>
-                {hostedEvents.slice(0, 3).map(event => (
-                  <div key={event.id} onClick={() => router.push('/events/' + event.id)}
-                    className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer">
-                    <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">🎉</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)}</div>
-                    </div>
+        <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
+          <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium px-4 pt-3.5 pb-1">
+            Profile Mode{savingMode && <span className="text-[#E8B84B]/50 normal-case tracking-normal ml-1">saving…</span>}
+          </div>
+          <div className="px-4 pb-3.5">
+            <p className="text-[10px] text-white/35 mb-3">Controls how you appear to others and what you see.</p>
+            <div className="space-y-2">
+              {[
+                { value: 'social', icon: '👋', label: 'Social', desc: 'Meet people, attend events', active: isSocial },
+                { value: 'professional', icon: '💼', label: 'Professional', desc: 'Network, find collaborators', active: isProfessional },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleToggleMode(opt.value as 'social' | 'professional')}
+                  className={'w-full flex items-center gap-3 p-3 rounded-2xl border transition-all ' +
+                    (opt.active ? 'border-[#E8B84B]/30 bg-[#E8B84B]/5' : 'border-white/10 bg-[#0D110D]')}
+                >
+                  <span className="text-base">{opt.icon}</span>
+                  <div className="text-left flex-1">
+                    <div className={'text-sm font-medium ' + (opt.active ? 'text-[#F0EDE6]' : 'text-white/45')}>{opt.label}</div>
+                    <div className="text-[10px] text-white/30">{opt.desc}</div>
                   </div>
-                ))}
-              </div>
-            )}
-
-            <button onClick={handleSignOut}
-              className="w-full bg-[#1C241C] border border-white/10 rounded-2xl py-4 text-[#E85B5B] text-sm font-medium">
-              Sign Out
-            </button>
-          </>
-        )}
-
-        {/* EVENTS */}
-        {activeTab === 1 && (
-          <>
-            {hostedEvents.length > 0 && (
-              <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
-                <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">Hosted by you</div>
-                {hostedEvents.map(event => (
-                  <div key={event.id} onClick={() => router.push('/events/' + event.id)}
-                    className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer">
-                    <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">
-                      {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : '🎉'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
-                    </div>
-                    <span className="text-[9px] bg-[#E8B84B]/10 text-[#E8B84B] px-2 py-0.5 rounded border border-[#E8B84B]/20">Host</span>
+                  <div className={'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ' +
+                    (opt.active ? 'border-[#E8B84B]' : 'border-white/20')}>
+                    {opt.active && <div className="w-2 h-2 rounded-full bg-[#E8B84B]" />}
                   </div>
-                ))}
-              </div>
-            )}
-            {attendedEvents.length > 0 && (
-              <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
-                <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">RSVPd to</div>
-                {attendedEvents.map(event => (
-                  <div key={event.id} onClick={() => router.push('/events/' + event.id)}
-                    className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer">
-                    <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">
-                      {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : '🎉'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
-                    </div>
-                    <span className="text-[9px] bg-[#7EC87E]/10 text-[#7EC87E] px-2 py-0.5 rounded border border-[#7EC87E]/20">Going</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {hostedEvents.length === 0 && attendedEvents.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="text-4xl">📅</div>
-                <p className="text-white/40 text-sm text-center">No events yet</p>
-                <button onClick={() => router.push('/create')}
-                  className="mt-2 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">
-                  Create Your First Event
                 </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* STATS */}
-        {activeTab === 2 && (
-          <>
-            {/* Level card */}
-            <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/20 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/50 font-medium">Gathr Level</div>
-                  <div className="text-3xl font-bold text-[#E8B84B] mt-0.5">{level}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[9px] text-white/30 mb-1">{xpInLevel} / {xpToNext} XP to next level</div>
-                  <div className="text-xs text-white/50">{xp} total XP</div>
-                </div>
-              </div>
-              <div className="h-2 bg-black/30 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#E8B84B] to-[#F0C96B] rounded-full transition-all"
-                  style={{ width: (xpInLevel / xpToNext * 100) + '%' }} />
-              </div>
-              <div className="flex justify-between text-[9px] text-white/25 mt-1.5">
-                <span>Lv.{level}</span>
-                <span>Lv.{level + 1}</span>
-              </div>
+              ))}
             </div>
+          </div>
+        </div>
 
-            {/* Activity grid */}
-            <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-4">
-              <div className="text-[9px] uppercase tracking-widest text-white/20 mb-3 font-medium">Activity</div>
-              <div className="grid grid-cols-2 gap-2.5">
-                {[
-                  { num: hostedEvents.length, label: 'Events Hosted', xp: hostedEvents.length * 10, icon: '🎉' },
-                  { num: attendedEvents.length, label: 'Events Attended', xp: attendedEvents.length * 5, icon: '📅' },
-                  { num: connections.length, label: 'Connections', xp: connections.length * 3, icon: '🤝' },
-                  { num: interests.length, label: 'Interests', xp: interests.length * 2, icon: '🎨' },
-                ].map(stat => (
-                  <div key={stat.label} className="bg-[#0D110D] border border-white/10 rounded-xl p-3">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-base">{stat.icon}</span>
-                      <span className="text-[9px] text-[#E8B84B]/50">+{stat.xp} XP</span>
-                    </div>
-                    <div className="text-2xl font-bold text-[#E8B84B]">{stat.num}</div>
-                    <div className="text-[9px] text-white/35 mt-0.5">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
+        <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
+          <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium px-4 pt-3.5 pb-2">Privacy</div>
+
+          <button
+            onClick={handleToggleDiscoverable}
+            disabled={savingDiscoverable}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] active:bg-white/[0.03] transition-colors"
+          >
+            <div className="text-left flex-1 pr-3">
+              <div className="text-sm text-[#F0EDE6]">Discoverable</div>
+              <div className="text-[10px] text-white/35 mt-0.5">Others can find you in search and communities</div>
             </div>
-
-            {/* Achievements */}
-            <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Badges</div>
-                <div className="text-xs text-[#E8B84B]">{unlockedCount} / {achievements.length} unlocked</div>
-              </div>
-              <div className="h-1.5 bg-white/10 rounded-full mb-4 overflow-hidden">
-                <div className="h-full bg-[#E8B84B] rounded-full transition-all"
-                  style={{ width: (unlockedCount / achievements.length * 100) + '%' }} />
-              </div>
-              <div className="space-y-2.5">
-                {achievements.map(ach => {
-                  const color = tierColor(ach.tier)
-                  const pct = ach.max > 0 ? Math.round((ach.progress / ach.max) * 100) : 0
-                  return (
-                    <div key={ach.title}
-                      className={'flex items-center gap-3 p-3 rounded-xl border transition-all ' + (ach.unlocked
-                        ? 'border-opacity-20 bg-[#1A1408]'
-                        : 'bg-[#0D110D] border-white/8 opacity-60')
-                      }
-                      style={ach.unlocked ? { borderColor: color + '33', background: `linear-gradient(135deg, ${color}08, transparent)` } : {}}>
-                      <div className="relative flex-shrink-0">
-                        <span className="text-xl">{ach.icon}</span>
-                        {ach.unlocked && (
-                          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                            style={{ background: color }}>
-                            <span className="text-[7px] text-black font-bold">✓</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className={'text-sm font-semibold ' + (ach.unlocked ? '' : 'text-white/40')}
-                            style={ach.unlocked ? { color } : {}}>
-                            {ach.title}
-                          </span>
-                          <span className="text-[8px] uppercase tracking-wide px-1.5 py-0.5 rounded border font-medium"
-                            style={ach.unlocked ? { color, borderColor: color + '40', background: color + '15' } : { color: '#ffffff30', borderColor: '#ffffff10' }}>
-                            {ach.tier}
-                          </span>
-                        </div>
-                        <div className="text-[10px] text-white/35">{ach.desc}</div>
-                        {!ach.unlocked && ach.max > 1 && (
-                          <div className="mt-1.5">
-                            <div className="flex justify-between text-[9px] text-white/25 mb-0.5">
-                              <span>{ach.progress} / {ach.max}</span>
-                              <span>{pct}%</span>
-                            </div>
-                            <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                              <div className="h-full rounded-full bg-white/20 transition-all" style={{ width: pct + '%' }} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+            <div className={'w-11 h-6 rounded-full transition-all flex-shrink-0 relative ' + (discoverable ? 'bg-[#7EC87E]' : 'bg-white/15')}>
+              <div className={'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ' + (discoverable ? 'left-[22px]' : 'left-0.5')} />
             </div>
-          </>
-        )}
+          </button>
 
-        {/* CONNECTIONS */}
-        {activeTab === 3 && (
-          <>
-            {connections.length > 0 ? (
-              <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
-                <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">
-                  {connections.length} Connection{connections.length !== 1 ? 's' : ''}
-                </div>
-                {connections.map(conn => (
-                  <div key={conn.id} onClick={() => router.push('/profile/' + conn.id)}
-                    className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer">
-                    <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-                      {conn.name?.charAt(0) || '🧑'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-[#F0EDE6]">{conn.name}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{conn.bio_social || conn.city || ''}</div>
-                    </div>
-                    <button onClick={e => { e.stopPropagation(); router.push('/profile/' + conn.id) }}
-                      className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-[10px] font-semibold px-2.5 py-1 rounded-lg">
-                      View
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="text-4xl">🤝</div>
-                <p className="text-white/40 text-sm text-center">No connections yet</p>
-                <p className="text-white/25 text-xs text-center max-w-[220px]">Find people at events and communities</p>
-                <button onClick={() => router.push('/communities')}
-                  className="mt-2 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">
-                  Find People
-                </button>
-              </div>
-            )}
-          </>
-        )}
+          <button
+            onClick={() => router.push('/profile/edit')}
+            className="w-full flex items-center justify-between px-4 py-3.5 active:bg-white/[0.03] transition-colors"
+          >
+            <div className="text-left">
+              <div className="text-sm text-[#F0EDE6]">Edit Public Profile</div>
+              <div className="text-[10px] text-white/35 mt-0.5">Name, photo, bio, interests, city</div>
+            </div>
+            <span className="text-white/30 text-sm">›</span>
+          </button>
+        </div>
+
+        <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
+          <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium px-4 pt-3.5 pb-2">App</div>
+
+          <button
+            onClick={() => router.push('/tour')}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] active:bg-white/[0.03] transition-colors"
+          >
+            <span className="text-sm text-[#F0EDE6]">Take the App Tour</span>
+            <span className="text-white/30 text-sm">›</span>
+          </button>
+
+          <button
+            onClick={() => router.push('/notifications')}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] active:bg-white/[0.03] transition-colors"
+          >
+            <span className="text-sm text-[#F0EDE6]">Notifications</span>
+            <span className="text-white/30 text-sm">›</span>
+          </button>
+
+          <div className="px-4 py-3.5 border-b border-white/[0.06]">
+            <div className="text-sm text-white/35">Version</div>
+            <div className="text-[10px] text-white/20 mt-0.5">Gathr 1.0</div>
+          </div>
+
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-between px-4 py-3.5 active:bg-white/[0.03] transition-colors"
+          >
+            <span className="text-sm text-[#E85B5B]">Sign Out</span>
+            <span className="text-[#E85B5B]/40 text-sm">›</span>
+          </button>
+        </div>
+
+        <div className="bg-[#1C241C] border border-red-500/10 rounded-2xl overflow-hidden">
+          <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium px-4 pt-3.5 pb-2">Danger Zone</div>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full flex items-center justify-between px-4 py-3.5 active:bg-red-500/5 transition-colors"
+          >
+            <div className="text-left">
+              <div className="text-sm text-red-400/70">Delete Account</div>
+              <div className="text-[10px] text-white/25 mt-0.5">Permanently remove your account and all data</div>
+            </div>
+            <span className="text-red-400/40 text-sm">›</span>
+          </button>
+        </div>
+
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+            <div className="text-center mb-6">
+              <div className="text-3xl mb-3">⚠️</div>
+              <h3 className="text-base font-bold text-[#F0EDE6] mb-2">Delete your account?</h3>
+              <p className="text-xs text-white/40 leading-relaxed">
+                This will permanently delete your profile, events, connections, and messages. This cannot be undone.
+              </p>
+            </div>
+            <p className="text-xs text-white/35 text-center mb-5">
+              To delete your account, email us at{' '}
+              <span className="text-[#E8B84B]">support@gathr.app</span>
+            </p>
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

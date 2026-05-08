@@ -91,7 +91,7 @@ export default function SetupPage() {
     )
   }
 
-  const handleFinish = async () => {
+  const handleFinish = async (destination = '/home') => {
     if (!user || saving) return
     setSaving(true)
     let avatarUrl: string | null = null
@@ -112,7 +112,7 @@ export default function SetupPage() {
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     }).eq('id', user.id)
     setSaving(false)
-    router.push('/home')
+    router.push(destination)
   }
 
   const filteredCities = ALL_CITIES.filter(c =>
@@ -326,11 +326,17 @@ export default function SetupPage() {
             )}
           </>
         ) : (
-          <button onClick={handleFinish} disabled={saving}
+          <button onClick={() => handleFinish()} disabled={saving}
             className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform disabled:opacity-50"
             style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
             {saving ? 'Setting up your profile...' : 'Start Exploring →'}
           </button>
+          {!saving && (
+            <button onClick={() => handleFinish('/tour')}
+              className="w-full py-3 text-sm text-white/35">
+              Take a quick tour first ›
+            </button>
+          )}
         )}
       </div>
     </div>

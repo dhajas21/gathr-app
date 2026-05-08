@@ -39,6 +39,7 @@ interface Comment {
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [event, setEvent] = useState<Event | null>(null)
   const [host, setHost] = useState<any>(null)
+  const [hostEventCount, setHostEventCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [rsvped, setRsvped] = useState(false)
   const [rsvpLoading, setRsvpLoading] = useState(false)
@@ -142,15 +143,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(updated))
     } catch {}
 
-    const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes] = await Promise.all([
+    const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes, hostCountRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', eventData.host_id).single(),
       supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).single(),
       supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', id).limit(12),
       supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('event_id', id),
       supabase.from('event_comments').select('id, user_id, text, created_at, profiles(id, name, avatar_url)').eq('event_id', id).order('created_at', { ascending: true }),
+      supabase.from('events').select('*', { count: 'exact', head: true }).eq('host_id', eventData.host_id),
     ])
 
     if (hostRes.data) setHost(hostRes.data)
+    if (hostCountRes.count !== null) setHostEventCount(hostCountRes.count)
     if (rsvpRes.data) setRsvped(true)
     if (attendeesRes.data) setAttendees(attendeesRes.data as any)
     if (countRes.count !== null) setTotalAttendees(countRes.count)
@@ -420,7 +423,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             )}
             <div>
               <div className="text-sm font-semibold text-[#F0EDE6]">{host.name}</div>
-              <div className="text-xs text-white/45 mt-0.5">{host.hosted_count} events hosted</div>
+              <div className="text-xs text-white/45 mt-0.5">{hostEventCount} event{hostEventCount !== 1 ? 's' : ''} hosted</div>
             </div>
             <div className="ml-auto bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-lg px-2.5 py-1 text-[9px] text-[#E8B84B]">
               Host
