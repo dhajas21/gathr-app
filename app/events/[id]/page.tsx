@@ -326,7 +326,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const handleShare = async () => {
     const url = window.location.href
-    const shareData = { title: event?.title || 'Gathr Event', text: event?.description || 'Check out this event on Gathr!', url }
+    const shareData = { title: event?.title || 'Gathr Event', text: 'Check out this Gathring on Gathr! ' + (event?.title || ''), url }
     if (navigator.share) {
       try { await navigator.share(shareData) } catch {}
     } else {
@@ -428,7 +428,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
-          <button onClick={() => router.back()}
+          <button onClick={() => router.push('/home')}
             className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-[#F0EDE6]">
             ←
           </button>
