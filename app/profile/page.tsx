@@ -422,6 +422,47 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {/* Growth Card */}
+            {(() => {
+              const catCounts: Record<string, number> = {}
+              attendedEvents.forEach((e: any) => { if (e.category) catCounts[e.category] = (catCounts[e.category] || 0) + 1 })
+              const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0]
+              const profileComplete = [profile?.avatar_url, profile?.bio_social, profile?.name, (profile?.interests?.length >= 3), profile?.city].filter(Boolean).length
+              const completePct = Math.round((profileComplete / 5) * 100)
+              const xpToNextLevel = xpToNext - xpInLevel
+              const firstEvent = [...hostedEvents, ...attendedEvents].sort((a: any, b: any) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime())[0]
+              return (
+                <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-4 space-y-3">
+                  <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Growth</div>
+                  <div className="flex items-center justify-between py-2.5 border-b border-white/[0.06]">
+                    <div className="text-xs text-white/50">Profile completion</div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-[#7EC87E] rounded-full" style={{ width: completePct + '%' }} />
+                      </div>
+                      <span className="text-xs font-bold text-[#7EC87E]">{completePct}%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2.5 border-b border-white/[0.06]">
+                    <div className="text-xs text-white/50">XP to next level</div>
+                    <span className="text-xs font-bold text-[#E8B84B]">{xpToNextLevel} XP</span>
+                  </div>
+                  {topCat && (
+                    <div className="flex items-center justify-between py-2.5 border-b border-white/[0.06]">
+                      <div className="text-xs text-white/50">Top category</div>
+                      <span className="text-xs font-bold text-[#F0EDE6]">{topCat[0]} · {topCat[1]}×</span>
+                    </div>
+                  )}
+                  {firstEvent && (
+                    <div className="flex items-center justify-between py-2.5">
+                      <div className="text-xs text-white/50">On Gathr since</div>
+                      <span className="text-xs font-bold text-[#F0EDE6]">{new Date(firstEvent.start_datetime).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Achievements</div>
