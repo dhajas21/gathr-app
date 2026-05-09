@@ -26,7 +26,7 @@ export default function PrivacyPage() {
           },
           {
             title: '2. Information We Collect',
-            body: 'We collect information you provide directly: your name, email address, city, profile photo, interests, and bio. When you use Gathr, we also collect activity data such as events you create or RSVP to, messages you send, connections you make, community posts you write, and content you upload. If you subscribe to Gathr+, we record your subscription status and billing period.',
+            body: 'We collect information you provide directly: your name, email address, city, profile photo, interests, and bio. When you use Gathr, we also collect activity data such as events you create or RSVP to, messages you send, connections you make, community posts you write, and content you upload. We also store XP and level milestones derived from your activity, and which achievements you have earned. If you subscribe to Gathr+, we record your subscription status and billing period. If you receive a level-milestone Gathr+ preview reward, we record the expiry timestamp of that preview on your profile.',
           },
           {
             title: '3. How We Use Your Information',
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
           },
           {
             title: '6. Post-Event Safety Reviews',
-            body: 'After an event ends, you may be invited to submit a short review for people you attended alongside. Reviews consist of three yes/no questions and an optional safety flag. Review responses are stored securely and are never shown to the person being reviewed in individual form. Only aggregated scores and a derived safety tier (New, Verified, Trusted, or Flagged) are displayed publicly on a user\'s profile.\n\nSafety flags (uncomfortable, inappropriate, or threatening) are reviewed by our team. Two or more safety flags from different reviewers may result in account restrictions while under review. Reviewers are not identified to the person being flagged.',
+            body: 'After an event ends, you may be invited to submit a short review for people you attended alongside. The survey is only available to users who RSVPed to the event, and only once the event has ended. Reviews consist of three yes/no questions and an optional safety flag. Review responses are stored securely and are never shown to the person being reviewed in individual form. Only aggregated scores and a derived safety tier (New, Verified, Trusted, or Flagged) are displayed publicly on a user\'s profile.\n\nAccounts with a Flagged safety tier are excluded from appearing in other users\' pre-event match lists.\n\nSafety flags (uncomfortable, inappropriate, or threatening) are reviewed by our team. Two or more safety flags from different reviewers may result in account restrictions while under review. Reviewers are not identified to the person being flagged.',
           },
           {
             title: '7. Safety Tiers & Trust Scores',
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
           },
           {
             title: '10. Gathr+ Subscription',
-            body: 'Gathr+ is a paid subscription tier. If you subscribe, we record your subscription status and plan type on your profile. Billing is handled through your device\'s app store or payment provider. We do not store full payment card details on our servers. You can cancel your subscription at any time; your Gathr+ features remain active until the end of your current billing period.',
+            body: 'Gathr+ is a paid subscription tier. If you subscribe, we record your subscription status and plan type on your profile. Billing is handled through your device\'s app store or payment provider. We do not store full payment card details on our servers. You can cancel your subscription at any time; your Gathr+ features remain active until the end of your current billing period.\n\nLevel-Milestone Previews: Reaching level 5 or level 10 automatically grants a time-limited Gathr+ preview (48 hours and 7 days respectively). These are one-time rewards per milestone — not a free trial linked to payment. We store the preview expiry timestamp (`gathr_plus_expires_at`) on your profile record. Once the preview expires, Gathr+ features are no longer accessible unless you subscribe.',
           },
           {
             title: '11. Data Storage & Security',

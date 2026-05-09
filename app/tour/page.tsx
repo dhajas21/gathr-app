@@ -40,8 +40,8 @@ const tourSlides = [
     icon: '🛡️',
     title: 'Safety & Trust',
     highlight: 'A community you can count on',
-    body: 'After every event, you\'re invited to rate the people you crossed paths with — three quick questions. Ratings are anonymous and build a public trust score: New, Verified, or Trusted.',
-    tip: 'You\'ll get a notification after each event with people to review. Find the survey in the event page. Safety flags go directly to our team for review. Repeated flags can restrict an account.',
+    body: 'After every event, you\'re invited to rate the people you crossed paths with — three quick questions. Ratings are anonymous and build a public safety tier: New, Verified, or Trusted. Flagged accounts are restricted and removed from match lists.',
+    tip: 'You\'ll get a notification after each event with people to review. The survey is accessible from the event page — you must have RSVPed and the event must have ended. Safety flags go directly to our team. Repeated flags can restrict an account.',
     bg: 'linear-gradient(135deg,#1A1E2A,#0E1014)',
   },
   {
@@ -55,9 +55,9 @@ const tourSlides = [
   {
     icon: '⭐',
     title: 'Your Profile',
-    highlight: 'Level up, earn badges, stay safe',
-    body: 'Every event you host, attend, and connection you make earns XP. Your safety badge — earned through community reviews — shows alongside your tier on your public profile.',
-    tip: 'Find your level, badges, and safety score in Profile → Stats tab. Pin your favourite badges. Toggle light/dark mode via the sun icon on your profile or in Settings.',
+    highlight: 'Level up, earn badges, unlock perks',
+    body: 'Hosting, attending, connecting, and adding interests all earn XP. Level up through four tiers — Newcomer, Regular, Veteran, and Legend. Earn 20 achievements across bronze, silver, and gold. Reach level 5 to unlock a 48-hour Gathr+ preview. Hit level 10 for a 7-day preview.',
+    tip: 'Find your level, tier, XP, badges, and safety score in Profile → Stats tab. Pin your favourite badges to your public profile. Level-up rewards appear automatically when you cross a milestone.',
     bg: 'linear-gradient(135deg,#2A2010,#1A1A08)',
   },
 ]
