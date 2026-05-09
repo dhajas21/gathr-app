@@ -560,7 +560,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       </div>
 
       {/* CTA bar */}
-      <div className="fixed bottom-16 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] via-[#0D110D]/95 to-transparent">
+      <div className="fixed bottom-24 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] via-[#0D110D]/95 to-transparent">
         {isMember ? (
           <div className="flex gap-3">
             <button onClick={handleLeave} disabled={memberRole === 'owner' || actionLoading}

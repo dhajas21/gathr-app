@@ -50,6 +50,7 @@ export default function ProfilePage() {
   const [xpBarWidth, setXpBarWidth] = useState(0)
   const [newAchievements, setNewAchievements] = useState<any[]>([])
   const [showAchievementUnlock, setShowAchievementUnlock] = useState(false)
+  const [pinnedBadges, setPinnedBadges] = useState<string[]>([])
   const router = useRouter()
 
   useEffect(() => {
@@ -141,7 +142,10 @@ export default function ProfilePage() {
         .eq('status', 'accepted'),
     ])
 
-    if (profileRes.data) setProfile(profileRes.data)
+    if (profileRes.data) {
+      setProfile(profileRes.data)
+      setPinnedBadges(profileRes.data.pinned_badges || [])
+    }
     if (hostedRes.data) setHostedEvents(hostedRes.data)
 
     if (rsvpRes.data && rsvpRes.data.length > 0) {
@@ -175,6 +179,19 @@ export default function ProfilePage() {
     const next = nextSocial && nextPro ? 'both' : nextPro ? 'professional' : 'social'
     setProfile((p: any) => ({ ...p, profile_mode: next }))
     await supabase.from('profiles').update({ profile_mode: next }).eq('id', user.id)
+  }
+
+  const handleTogglePin = async (title: string) => {
+    if (!user) return
+    let next: string[]
+    if (pinnedBadges.includes(title)) {
+      next = pinnedBadges.filter(t => t !== title)
+    } else {
+      if (pinnedBadges.length >= 3) return
+      next = [...pinnedBadges, title]
+    }
+    setPinnedBadges(next)
+    await supabase.from('profiles').update({ pinned_badges: next }).eq('id', user.id)
   }
 
   const handleSignOut = async () => {
@@ -275,6 +292,19 @@ export default function ProfilePage() {
               <span className="text-[9px] text-white/30">{xp} XP</span>
             </div>
           </div>
+          {pinnedBadges.length > 0 && (
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              {pinnedBadges.map(title => {
+                const ach = ACHIEVEMENTS.find(a => a.title === title)
+                if (!ach) return null
+                return (
+                  <span key={title} className={'text-[10px] px-2 py-1 rounded-lg border ' + tierBg(ach.tier, true) + ' ' + tierBorder(ach.tier, true) + ' ' + tierColor(ach.tier, true)}>
+                    {ach.icon} {ach.title}
+                  </span>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -491,9 +521,15 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex-shrink-0 text-right">
                         {unlocked ? (
-                          <span className={'text-[9px] px-2 py-0.5 rounded border font-medium ' + tierColor(ach.tier, true) + ' ' + tierBorder(ach.tier, true)}>
-                            {ach.tier === 'gold' ? '🥇' : ach.tier === 'silver' ? '🥈' : '🥉'}
-                          </span>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={'text-[9px] px-2 py-0.5 rounded border font-medium ' + tierColor(ach.tier, true) + ' ' + tierBorder(ach.tier, true)}>
+                              {ach.tier === 'gold' ? '🥇' : ach.tier === 'silver' ? '🥈' : '🥉'}
+                            </span>
+                            <button onClick={() => handleTogglePin(ach.title)}
+                              className={'text-[8px] px-1.5 py-0.5 rounded border transition-all ' + (pinnedBadges.includes(ach.title) ? 'border-[#E8B84B]/40 text-[#E8B84B] bg-[#E8B84B]/10' : 'border-white/10 text-white/25')}>
+                              {pinnedBadges.includes(ach.title) ? '📌 Pinned' : pinnedBadges.length >= 3 ? '—' : 'Pin'}
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-[9px] text-white/20">{ach.val}/{ach.req}</span>
                         )}

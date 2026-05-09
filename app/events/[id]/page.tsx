@@ -769,7 +769,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* RSVP CTA */}
       {!isHost && (
-        <div className="fixed bottom-16 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
+        <div className="fixed bottom-24 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
           {(() => {
             const isFull = event.capacity > 0 && event.spots_left === 0 && !rsvped
             return (
@@ -785,7 +785,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Host manage bar */}
       {isHost && (
-        <div className="fixed bottom-16 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
+        <div className="fixed bottom-24 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
           <button onClick={() => router.push('/events/' + event.id + '/edit')}
             className="w-full py-4 rounded-2xl font-bold text-base bg-[#E8B84B] text-[#0D110D] active:scale-95 transition-all"
             style={{boxShadow: '0 5px 22px rgba(232,184,75,0.3)'}}>

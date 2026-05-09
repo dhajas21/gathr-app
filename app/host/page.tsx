@@ -238,8 +238,8 @@ export default function HostDashboardPage() {
                           className="flex-1 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/60 font-medium">View</button>
                         <button onClick={() => router.push('/events/' + event.id + '/edit')}
                           className="flex-1 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/60 font-medium">Edit</button>
-                        <button onClick={() => router.push('/messages')}
-                          className="flex-1 py-2 rounded-xl bg-[#1E3A1E] border border-[#E8B84B]/15 text-xs text-[#E8B84B] font-medium">Message</button>
+                        <button onClick={() => router.push('/events/' + event.id + '/attendees')}
+                          className="flex-1 py-2 rounded-xl bg-[#1E3A1E] border border-[#E8B84B]/15 text-xs text-[#E8B84B] font-medium">Attendees</button>
                       </div>
                     </div>
                   )

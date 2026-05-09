@@ -125,7 +125,7 @@ export default function MapPage() {
       </div>
 
       {selected && (
-        <div className="fixed bottom-20 left-4 right-4 z-[1000]">
+        <div className="fixed bottom-24 left-4 right-4 z-[1000]">
           <div className="bg-[#1C241C] border border-white/15 rounded-2xl p-3.5 shadow-2xl cursor-pointer"
             onClick={() => router.push('/events/' + selected.id)}>
             <div className="flex items-center gap-3">

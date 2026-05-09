@@ -283,7 +283,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
 
       <BottomNav />
 
-      <div className="fixed bottom-16 left-0 right-0 px-4 pb-2 pt-4 bg-gradient-to-t from-[#0D110D] via-[#0D110D]/95 to-transparent">
+      <div className="fixed bottom-24 left-0 right-0 px-4 pb-2 pt-4 bg-gradient-to-t from-[#0D110D] via-[#0D110D]/95 to-transparent">
         <div className="flex gap-3">
           <button onClick={handleMessage}
             className="flex-1 py-3.5 rounded-2xl bg-[#1C241C] border border-white/10 text-[#F0EDE6] text-sm font-medium text-center active:scale-95 transition-transform">
