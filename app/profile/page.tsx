@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { ProfilePageSkeleton } from '@/components/Skeleton'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const CATEGORY_EMOJI: Record<string, string> = {
   Music: '🎸', Fitness: '🏃', 'Food & Drink': '🍺', Tech: '💻',
@@ -240,17 +241,20 @@ export default function ProfilePage() {
 
       <div style={{ background: 'linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%)' }}>
         <div className="flex items-start justify-between px-4 pt-14 mb-3">
-          <button onClick={() => router.push('/settings')}
-            className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/50 active:scale-95 transition-transform">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
-              <line x1="4" y1="6" x2="20" y2="6"/>
-              <circle cx="9" cy="6" r="2.25" fill="#0D110D" stroke="currentColor" strokeWidth="1.75"/>
-              <line x1="4" y1="12" x2="20" y2="12"/>
-              <circle cx="16" cy="12" r="2.25" fill="#0D110D" stroke="currentColor" strokeWidth="1.75"/>
-              <line x1="4" y1="18" x2="20" y2="18"/>
-              <circle cx="11" cy="18" r="2.25" fill="#0D110D" stroke="currentColor" strokeWidth="1.75"/>
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.push('/settings')}
+              className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/50 active:scale-95 transition-transform">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
+                <line x1="4" y1="6" x2="20" y2="6"/>
+                <circle cx="9" cy="6" r="2.25" fill="#0D110D" stroke="currentColor" strokeWidth="1.75"/>
+                <line x1="4" y1="12" x2="20" y2="12"/>
+                <circle cx="16" cy="12" r="2.25" fill="#0D110D" stroke="currentColor" strokeWidth="1.75"/>
+                <line x1="4" y1="18" x2="20" y2="18"/>
+                <circle cx="11" cy="18" r="2.25" fill="#0D110D" stroke="currentColor" strokeWidth="1.75"/>
+              </svg>
+            </button>
+            <ThemeToggle className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/50 active:scale-95 transition-transform" />
+          </div>
           <div className="flex items-center gap-2">
             <button onClick={() => router.push('/bookmarks')}
               className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/45 active:scale-95 transition-transform">

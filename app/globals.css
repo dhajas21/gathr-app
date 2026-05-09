@@ -33,3 +33,71 @@ input, select, textarea, button {
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 16px);
 }
+
+/* ─── Light mode overrides ─────────────────────────── */
+[data-theme="light"] body {
+  background: #F4F0E8;
+  color: #18180E;
+}
+
+/* Page backgrounds */
+[data-theme="light"] .bg-\[\#0D110D\] { background-color: #F4F0E8 !important; }
+[data-theme="light"] .bg-\[\#0A0E0A\]\/92 { background-color: rgba(244,240,232,0.96) !important; }
+
+/* Card backgrounds */
+[data-theme="light"] .bg-\[\#1C241C\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#1E3A1E\] { background-color: #EDF6ED !important; }
+[data-theme="light"] .bg-\[\#2A4A2A\] { background-color: #D8EDD8 !important; }
+[data-theme="light"] .bg-\[\#2A4A2A\]\/35 { background-color: rgba(216,237,216,0.5) !important; }
+[data-theme="light"] .bg-\[\#2A4A2A\]\/15 { background-color: rgba(216,237,216,0.3) !important; }
+[data-theme="light"] .bg-\[\#1A2A1A\] { background-color: #F2F7F2 !important; }
+[data-theme="light"] .bg-\[\#2A4A2A\]\/60 { background-color: rgba(216,237,216,0.6) !important; }
+
+/* Gold gradient backgrounds */
+[data-theme="light"] .bg-\[\#2A2010\]\/60 { background-color: rgba(255,246,220,0.7) !important; }
+[data-theme="light"] .bg-\[\#E8B84B\]\/10 { background-color: rgba(232,184,75,0.12) !important; }
+[data-theme="light"] .bg-\[\#E8B84B\]\/15 { background-color: rgba(232,184,75,0.15) !important; }
+[data-theme="light"] .bg-\[\#1E3A1E\]\/40 { background-color: rgba(237,246,237,0.6) !important; }
+
+/* White opacity backgrounds */
+[data-theme="light"] .bg-white\/5 { background-color: rgba(0,0,0,0.04) !important; }
+[data-theme="light"] .bg-white\/10 { background-color: rgba(0,0,0,0.07) !important; }
+[data-theme="light"] .bg-white\/\[0\.04\] { background-color: rgba(0,0,0,0.03) !important; }
+[data-theme="light"] .bg-white\/\[0\.05\] { background-color: rgba(0,0,0,0.04) !important; }
+[data-theme="light"] .bg-white\/\[0\.07\] { background-color: rgba(0,0,0,0.05) !important; }
+
+/* Primary text */
+[data-theme="light"] .text-\[\#F0EDE6\] { color: #18180E !important; }
+[data-theme="light"] .text-\[\#F0EDE6\]\/70 { color: rgba(24,24,14,0.7) !important; }
+
+/* White opacity text */
+[data-theme="light"] .text-white\/20 { color: rgba(0,0,0,0.28) !important; }
+[data-theme="light"] .text-white\/25 { color: rgba(0,0,0,0.33) !important; }
+[data-theme="light"] .text-white\/30 { color: rgba(0,0,0,0.38) !important; }
+[data-theme="light"] .text-white\/35 { color: rgba(0,0,0,0.44) !important; }
+[data-theme="light"] .text-white\/40 { color: rgba(0,0,0,0.50) !important; }
+[data-theme="light"] .text-white\/45 { color: rgba(0,0,0,0.55) !important; }
+[data-theme="light"] .text-white\/50 { color: rgba(0,0,0,0.60) !important; }
+[data-theme="light"] .text-white\/55 { color: rgba(0,0,0,0.65) !important; }
+[data-theme="light"] .text-white\/60 { color: rgba(0,0,0,0.68) !important; }
+
+/* Borders */
+[data-theme="light"] .border-white\/\[0\.06\] { border-color: rgba(0,0,0,0.06) !important; }
+[data-theme="light"] .border-white\/\[0\.07\] { border-color: rgba(0,0,0,0.07) !important; }
+[data-theme="light"] .border-white\/10 { border-color: rgba(0,0,0,0.09) !important; }
+[data-theme="light"] .border-white\/15 { border-color: rgba(0,0,0,0.12) !important; }
+[data-theme="light"] .border-white\/20 { border-color: rgba(0,0,0,0.15) !important; }
+
+/* Gradient stops */
+[data-theme="light"] .from-\[\#0D110D\] { --tw-gradient-from: #F4F0E8 !important; }
+[data-theme="light"] .to-\[\#0D110D\] { --tw-gradient-to: #F4F0E8 !important; }
+[data-theme="light"] .via-\[\#0D110D\]\/95 { --tw-gradient-via: rgba(244,240,232,0.95) !important; }
+[data-theme="light"] .from-\[\#1C241C\] { --tw-gradient-from: #FFFFFF !important; }
+[data-theme="light"] .to-\[\#1C241C\] { --tw-gradient-to: #FFFFFF !important; }
+[data-theme="light"] .from-\[\#1A2A1A\] { --tw-gradient-from: #F2F7F2 !important; }
+[data-theme="light"] .to-\[\#1A2A1A\] { --tw-gradient-to: #F2F7F2 !important; }
+[data-theme="light"] .from-\[\#1E3A1E\] { --tw-gradient-from: #EDF6ED !important; }
+[data-theme="light"] .to-\[\#1E3A1E\] { --tw-gradient-to: #EDF6ED !important; }
+
+/* Bottom nav blur tint */
+[data-theme="light"] .backdrop-blur-2xl { background-color: rgba(244,240,232,0.94) !important; }

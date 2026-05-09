@@ -25,7 +25,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${syne.variable} h-full`}>
+    <html lang="en" className={`${geist.variable} ${syne.variable} h-full`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('gathr_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();` }} />
+      </head>
       <body className="min-h-full antialiased bg-[#0D110D] text-[#F0EDE6]">
         <ServiceWorkerRegistrar />
         {children}

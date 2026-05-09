@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import ThemeToggle from '@/components/ThemeToggle'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function SettingsPage() {
   const [user, setUser] = useState<any>(null)
@@ -99,6 +101,8 @@ export default function SettingsPage() {
     router.push('/auth')
   }
 
+  const { theme, toggleTheme } = useTheme()
+
   const isSocial = profileMode === 'social' || profileMode === 'both'
   const isProfessional = profileMode === 'professional' || profileMode === 'both'
 
@@ -147,6 +151,22 @@ export default function SettingsPage() {
           <div className="text-xs text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1 rounded-lg flex-shrink-0">
             Edit ›
           </div>
+        </div>
+
+        <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
+          <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium px-4 pt-3.5 pb-2">Appearance</div>
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center justify-between px-4 py-3.5 active:bg-white/[0.03] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <ThemeToggle className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/50 pointer-events-none" />
+              <span className="text-sm text-[#F0EDE6]">{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+            </div>
+            <div className={`w-10 h-6 rounded-full transition-colors ${theme === 'light' ? 'bg-[#E8B84B]' : 'bg-white/10'}`}>
+              <div className={`w-5 h-5 bg-white rounded-full shadow-sm mt-0.5 transition-transform ${theme === 'light' ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+            </div>
+          </button>
         </div>
 
         <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
