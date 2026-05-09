@@ -51,7 +51,7 @@ export default function BookmarksPage() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
       <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
-        <button onClick={() => router.back()}
+        <button onClick={() => router.push('/profile')}>
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">←</button>
         <h1 className="text-lg font-bold text-[#F0EDE6]">Saved Events</h1>
         <span className="ml-auto text-xs text-white/30">{events.length} saved</span>

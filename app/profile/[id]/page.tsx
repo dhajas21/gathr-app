@@ -104,40 +104,13 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     setActionLoading(false)
   }
 
-  const handleMessage = async () => {
+  const handleMessage = () => {
     if (!user) return
-    const ids = [user.id, profileId].sort()
-    const threadId = ids.join('-')
-    const { data: existing } = await supabase.from('messages').select('thread_id').eq('thread_id', threadId).limit(1)
-    if (existing && existing.length > 0) {
-      router.push('/messages/' + threadId)
-    } else {
-      await supabase.from('messages').insert({ thread_id: threadId, sender_id: user.id, recipient_id: profileId, text: '👋 Hey!' })
-      router.push('/messages/' + threadId)
-    }
+    const threadId = [user.id, profileId].sort().join('_')
+    router.push('/messages/' + threadId)
   }
 
   const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-
-  const pubXp = (hostedEvents.length * 10) + (attendedEvents.length * 5) + ((profile?.interests?.length || 0) * 2)
-  const pubLevel = Math.floor(pubXp / 50) + 1
-  const pubTier = pubLevel >= 20 ? { label: 'Legend', icon: '👑', color: 'text-[#E8B84B]', border: 'border-[#E8B84B]/30', bg: 'bg-[#2A2010]/60' }
-    : pubLevel >= 10 ? { label: 'Veteran', icon: '🔥', color: 'text-[#E85B5B]', border: 'border-[#E85B5B]/30', bg: 'bg-[#2A1010]/60' }
-    : pubLevel >= 5 ? { label: 'Regular', icon: '⭐', color: 'text-[#A0AEC0]', border: 'border-[#A0AEC0]/30', bg: 'bg-[#1A1E24]/60' }
-    : { label: 'Newcomer', icon: '🌱', color: 'text-[#7EC87E]', border: 'border-[#7EC87E]/30', bg: 'bg-[#1A2A1A]/60' }
-
-  const pubBadges = [
-    hostedEvents.length >= 1 && { icon: '🎉', title: 'Host' },
-    hostedEvents.length >= 3 && { icon: '🎙', title: 'Rising Host' },
-    hostedEvents.length >= 10 && { icon: '🏆', title: 'Host with the Most' },
-    attendedEvents.length >= 1 && { icon: '👟', title: 'Attendee' },
-    attendedEvents.length >= 5 && { icon: '📅', title: 'Scene Regular' },
-    (profile?.interests?.length || 0) >= 5 && { icon: '🗺', title: 'Explorer' },
-    profile?.avatar_url && { icon: '📸', title: 'Avatar' },
-    profile?.bio_social && { icon: '✍️', title: 'Storyteller' },
-    (profile?.profile_mode === 'professional' || profile?.profile_mode === 'both') && { icon: '🔀', title: 'Dual Mode' },
-  ].filter(Boolean) as { icon: string; title: string }[]
-
   const categoryEmoji = (cat: string) =>
     cat === 'Music' ? '🎸' : cat === 'Fitness' ? '🏃' : cat === 'Food & Drink' ? '🍺' : cat === 'Tech' ? '💻' : cat === 'Outdoors' ? '🥾' : '🎉'
 
@@ -159,15 +132,15 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             ←
           </button>
           <button
-  onClick={() => {
-    const url = window.location.href
-    if (navigator.share) {
-      navigator.share({ title: profile?.name, url })
-    } else {
-      navigator.clipboard.writeText(url)
-    }
-  }}
-  className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm active:scale-95 transition-transform">↑</button>
+            onClick={() => {
+              const url = window.location.href
+              if (navigator.share) {
+                navigator.share({ title: profile?.name, url })
+              } else {
+                navigator.clipboard.writeText(url)
+              }
+            }}
+            className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm active:scale-95 transition-transform">↑</button>
         </div>
         <div className="px-4 pb-4">
           {profile.avatar_url ? (
@@ -180,14 +153,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
           {profile.bio_social && (
             <div className="text-sm text-white/60 mt-2 leading-relaxed font-light">{profile.bio_social}</div>
           )}
-          <div className="flex flex-wrap gap-2 mt-3">
-            <div className={'flex items-center gap-1.5 border rounded-lg px-2.5 py-1 ' + pubTier.bg + ' ' + pubTier.border}>
-              <span className="text-sm">{pubTier.icon}</span>
-              <div>
-                <div className={'text-[10px] font-bold ' + pubTier.color}>{pubTier.label}</div>
-                <div className="text-[9px] text-white/30">Lv.{pubLevel}</div>
-              </div>
-            </div>
+          <div className="flex gap-2 mt-3">
             {(profile.profile_mode === 'social' || profile.profile_mode === 'both' || !profile.profile_mode) && (
               <span className="text-[10px] px-2.5 py-1 rounded-lg bg-[#2A4A2A]/40 border border-[#7EC87E]/20 text-[#7EC87E]">👋 Social</span>
             )}
@@ -195,15 +161,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
               <span className="text-[10px] px-2.5 py-1 rounded-lg bg-[#2A4A2A]/40 border border-[#7EC87E]/20 text-[#7EC87E]">💼 Professional</span>
             )}
           </div>
-          {pubBadges.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {pubBadges.slice(0, 6).map(b => (
-                <span key={b.title} className="text-[10px] px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/50">
-                  {b.icon} {b.title}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 

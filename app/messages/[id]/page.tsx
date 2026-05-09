@@ -62,7 +62,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       .eq('thread_id', tId)
       .order('sent_at', { ascending: true })
 
-    if (error) { console.error('Fetch error:', error); return }
+    if (error) { console.error('Fetch error:', error); setLoading(false); return }
 
     if (data && data.length > 0) {
       setMessages(data)
@@ -73,6 +73,15 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       await supabase.from('messages')
         .update({ read_at: new Date().toISOString() })
         .eq('thread_id', tId).eq('recipient_id', userId).is('read_at', null)
+    } else {
+      // New thread — parse other user from thread_id (format: "id1_id2" sorted)
+      const parts = tId.split('_')
+      const otherId = parts.find(p => p !== userId) || null
+      if (otherId) {
+        const { data: otherProfile } = await supabase
+          .from('profiles').select('id, name, avatar_url').eq('id', otherId).single()
+        if (otherProfile) setOther(otherProfile)
+      }
     }
     setLoading(false)
     scrollToBottom()
@@ -85,8 +94,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   }
 
   const getRecipientId = () => {
-    if (!messages.length || !user) return null
-    return messages[0].sender_id === user.id ? messages[0].recipient_id : messages[0].sender_id
+    if (!user) return null
+    if (messages.length > 0) {
+      return messages[0].sender_id === user.id ? messages[0].recipient_id : messages[0].sender_id
+    }
+    // New thread — parse from thread_id format "id1_id2" (sorted)
+    const parts = threadId.split('_')
+    return parts.find(p => p !== user.id) || null
   }
 
   const handleSend = async () => {
@@ -104,7 +118,19 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       recipient_id: recipientId,
       text: trimmed,
     })
-    if (error) console.error('Send error:', error)
+    if (!error) {
+      await supabase.from('notifications').insert({
+        user_id: recipientId,
+        actor_id: user.id,
+        type: 'message',
+        title: 'sent you a message',
+        body: trimmed.length > 80 ? trimmed.slice(0, 80) + '…' : trimmed,
+        link: '/messages/' + threadId,
+        read: false,
+      })
+    } else {
+      console.error('Send error:', error)
+    }
     setSending(false)
     scrollToBottom()
   }
