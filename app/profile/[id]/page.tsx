@@ -100,6 +100,10 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
           read: false,
         })
       }
+    } else if (connectionStatus === 'pending' && connectionId) {
+      await supabase.from('connections').delete().eq('id', connectionId)
+      setConnectionStatus(null)
+      setConnectionId(null)
     }
     setActionLoading(false)
   }
@@ -262,7 +266,9 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-gradient-to-t from-[#0D110D] via-[#0D110D]/95 to-transparent">
+      <BottomNav />
+
+      <div className="fixed bottom-16 left-0 right-0 px-4 pb-2 pt-4 bg-gradient-to-t from-[#0D110D] via-[#0D110D]/95 to-transparent">
         <div className="flex gap-3">
           <button onClick={handleMessage}
             className="flex-1 py-3.5 rounded-2xl bg-[#1C241C] border border-white/10 text-[#F0EDE6] text-sm font-medium text-center active:scale-95 transition-transform">
@@ -275,7 +281,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
               : 'bg-[#E8B84B] text-[#0D110D]'
             )}
             style={{ boxShadow: !connectionStatus ? '0 4px 18px rgba(232,184,75,0.28)' : 'none' }}>
-            {connectionStatus === 'accepted' ? '✓ Connected' : connectionStatus === 'pending' ? 'Request Sent' : actionLoading ? 'Sending...' : 'Connect'}
+            {actionLoading ? '...' : connectionStatus === 'accepted' ? '✓ Connected' : connectionStatus === 'pending' ? 'Withdraw Request' : 'Connect'}
           </button>
         </div>
       </div>
