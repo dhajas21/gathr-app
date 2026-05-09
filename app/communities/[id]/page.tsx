@@ -46,6 +46,9 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [chatSending, setChatSending] = useState(false)
+  const [postCount, setPostCount] = useState(0)
+  const [acceptingIds, setAcceptingIds] = useState<Set<string>>(new Set())
+  const [decliningIds, setDecliningIds] = useState<Set<string>>(new Set())
   const postInputRef = useRef<HTMLTextAreaElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -131,7 +134,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     if (!commData) { router.push('/communities'); return }
     setCommunity(commData)
 
-    const [memberCheck, membersData, eventsData, postsData, likesData] = await Promise.all([
+    const [memberCheck, membersData, eventsData, postsData, likesData, postCountData] = await Promise.all([
       supabase.from('community_members').select('role').eq('community_id', id).eq('user_id', userId).single(),
       supabase.from('community_members')
         .select('*, profile:profiles!community_members_user_id_fkey(id, name, bio_social, avatar_url)')
@@ -140,6 +143,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       supabase.from('events').select('*').eq('community_id', id).order('start_datetime', { ascending: true }).limit(10),
       supabase.from('community_posts').select('id, user_id, text, like_count, created_at, profiles(id, name, avatar_url)').eq('community_id', id).order('created_at', { ascending: false }).limit(30),
       supabase.from('community_post_likes').select('post_id').eq('user_id', userId),
+      supabase.from('community_posts').select('*', { count: 'exact', head: true }).eq('community_id', id),
     ])
 
     const role = memberCheck.data?.role
@@ -162,6 +166,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       }
     }
 
+    if (postCountData.count !== null) setPostCount(postCountData.count)
     if (membersData.data) setMembers(membersData.data)
     if (eventsData.data) setEvents(eventsData.data)
 
@@ -215,6 +220,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   }
 
   const handleAcceptMember = async (userId: string) => {
+    if (acceptingIds.has(userId)) return
+    setAcceptingIds(prev => new Set([...prev, userId]))
     await supabase.from('community_members').update({ role: 'member' })
       .eq('community_id', communityId).eq('user_id', userId)
     setPendingRequests(prev => prev.filter(r => r.user_id !== userId))
@@ -225,12 +232,16 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     if (newMember) setMembers(prev => [...prev, newMember])
     await supabase.from('communities').update({ member_count: (community?.member_count || 0) + 1 }).eq('id', communityId)
     setCommunity((prev: any) => prev ? { ...prev, member_count: (prev.member_count || 0) + 1 } : prev)
+    setAcceptingIds(prev => { const n = new Set(prev); n.delete(userId); return n })
   }
 
   const handleDeclineMember = async (userId: string) => {
+    if (decliningIds.has(userId)) return
+    setDecliningIds(prev => new Set([...prev, userId]))
     await supabase.from('community_members').delete()
       .eq('community_id', communityId).eq('user_id', userId)
     setPendingRequests(prev => prev.filter(r => r.user_id !== userId))
+    setDecliningIds(prev => { const n = new Set(prev); n.delete(userId); return n })
   }
 
   const handlePost = async () => {
@@ -249,6 +260,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       liked: false,
     }
     setPosts(prev => [optimistic, ...prev])
+    setPostCount(prev => prev + 1)
     const { data, error } = await supabase
       .from('community_posts')
       .insert({ community_id: communityId, user_id: user.id, text: trimmed })
@@ -258,6 +270,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       setPosts(prev => prev.map(p => p.id === optimisticId ? { ...(data as any), liked: false } : p))
     } else if (error) {
       setPosts(prev => prev.filter(p => p.id !== optimisticId))
+      setPostCount(prev => Math.max(0, prev - 1))
       setPostText(trimmed)
     }
     setPosting(false)
@@ -268,17 +281,22 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     const nowLiked = !post.liked
     setPosts(prev => prev.map(p => p.id === post.id ? { ...p, liked: nowLiked, like_count: Math.max(0, p.like_count + (nowLiked ? 1 : -1)) } : p))
     if (nowLiked) {
-      await supabase.from('community_post_likes').insert({ post_id: post.id, user_id: user.id })
-      await supabase.from('community_posts').update({ like_count: post.like_count + 1 }).eq('id', post.id)
+      await Promise.all([
+        supabase.from('community_post_likes').insert({ post_id: post.id, user_id: user.id }),
+        supabase.from('community_posts').update({ like_count: post.like_count + 1 }).eq('id', post.id),
+      ])
     } else {
-      await supabase.from('community_post_likes').delete().eq('post_id', post.id).eq('user_id', user.id)
-      await supabase.from('community_posts').update({ like_count: Math.max(0, post.like_count - 1) }).eq('id', post.id)
+      await Promise.all([
+        supabase.from('community_post_likes').delete().eq('post_id', post.id).eq('user_id', user.id),
+        supabase.from('community_posts').update({ like_count: Math.max(0, post.like_count - 1) }).eq('id', post.id),
+      ])
     }
   }
 
   const handleDeletePost = async (postId: string) => {
     await supabase.from('community_posts').delete().eq('id', postId)
     setPosts(prev => prev.filter(p => p.id !== postId))
+    setPostCount(prev => Math.max(0, prev - 1))
   }
 
   const handleSendChat = async () => {
@@ -415,7 +433,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           <div className="text-[9px] text-white/40 mt-0.5 uppercase tracking-wide">Members</div>
         </div>
         <div className="flex-1 text-center py-3 border-r border-white/10">
-          <div className="font-bold text-[#E8B84B] text-base">{posts.length}</div>
+          <div className="font-bold text-[#E8B84B] text-base">{postCount}</div>
           <div className="text-[9px] text-white/40 mt-0.5 uppercase tracking-wide">Posts</div>
         </div>
         <div className="flex-1 text-center py-3">
@@ -512,7 +530,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   <p className="text-sm text-white/70 leading-relaxed mb-3">{post.text}</p>
                   <div className="flex items-center gap-4 pt-2 border-t border-white/10">
                     <button onClick={() => handleLike(post)}
-                      className={'flex items-center gap-1.5 text-xs font-medium transition-colors ' + (post.liked ? 'text-[#E8B84B]' : 'text-white/30')}>
+                      className={'flex items-center gap-1.5 text-xs font-medium transition-all active:scale-95 ' + (post.liked ? 'text-[#E8B84B]' : 'text-white/30')}>
                       <span>{post.liked ? '♥' : '♡'}</span>
                       <span>{post.like_count > 0 ? post.like_count : ''}</span>
                     </button>
@@ -596,11 +614,13 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       </div>
                       <div className="flex gap-1.5 flex-shrink-0">
                         <button onClick={() => handleAcceptMember(req.user_id)}
-                          className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-3 py-1.5 rounded-xl active:scale-95 transition-transform">
-                          Accept
+                          disabled={acceptingIds.has(req.user_id)}
+                          className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-3 py-1.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50">
+                          {acceptingIds.has(req.user_id) ? '...' : 'Accept'}
                         </button>
                         <button onClick={() => handleDeclineMember(req.user_id)}
-                          className="bg-[#1C241C] border border-white/10 text-white/40 text-xs px-3 py-1.5 rounded-xl">
+                          disabled={decliningIds.has(req.user_id)}
+                          className="bg-[#1C241C] border border-white/10 text-white/40 text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-transform disabled:opacity-40">
                           Decline
                         </button>
                       </div>

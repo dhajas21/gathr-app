@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { EventDetailSkeleton } from '@/components/Skeleton'
 import MysteryMatchCard from '@/components/MysteryMatchCard'
+import { CAT_EMOJI } from '@/lib/categoryEmoji'
 
 interface Event {
   id: string
@@ -209,12 +210,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       setRsvped(false)
       setTotalAttendees(prev => Math.max(0, prev - 1))
       setAttendees(prev => prev.filter(a => a.user_id !== user.id))
+      setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
     } else {
       await supabase.from('rsvps').insert({
         event_id: event.id, user_id: user.id, status: 'joined'
       })
       setRsvped(true)
       setTotalAttendees(prev => prev + 1)
+      setEvent(prev => prev ? { ...prev, spots_left: Math.max(0, prev.spots_left - 1) } : prev)
       const { data } = await supabase
         .from('rsvps')
         .select('user_id, profiles(id, name, avatar_url)')
@@ -427,8 +430,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       'BEGIN:VEVENT',
       'DTSTART:' + fmt(event.start_datetime),
       'DTEND:' + fmt(event.end_datetime),
-      'SUMMARY:' + event.title,
-      'DESCRIPTION:' + (event.description || '').replace(/\n/g, '\\n'),
+      'SUMMARY:' + event.title.replace(/[;\r\n]/g, ' '),
+      'DESCRIPTION:' + (event.description || '').replace(/\r\n|\r|\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,'),
       'LOCATION:' + [event.location_name, event.location_address].filter(Boolean).join(', '),
       'END:VEVENT',
       'END:VCALENDAR',
@@ -506,7 +509,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
         <span className="relative z-5">
-          {event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : event.category === 'Outdoors' ? '🥾' : event.category === 'Arts & Culture' ? '🎨' : '🎉'}
+          {CAT_EMOJI[event.category] || '🎉'}
         </span>
         <div className="absolute bottom-3 left-4 flex gap-2 z-10">
           {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2 py-0.5 rounded-full">Featured</span>}

@@ -19,6 +19,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const fileRef = useRef<HTMLInputElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const presenceChannelRef = useRef<any>(null)
+  const lastNotifSentRef = useRef<number>(0)
   const router = useRouter()
 
   const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
@@ -52,7 +53,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         if (status === 'SUBSCRIBED') await presence.track({ typing: false })
       })
     presenceChannelRef.current = presence
-    return () => { supabase.removeChannel(presence) }
+    return () => {
+      supabase.removeChannel(presence)
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    }
   }, [threadId, user])
 
   useEffect(() => {
@@ -87,6 +91,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       .select('*')
       .eq('thread_id', tId)
       .order('sent_at', { ascending: true })
+      .limit(150)
 
     if (error) { console.error('Fetch error:', error); setLoading(false); return }
 
@@ -147,15 +152,19 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     if (!error && sent) {
       setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
       scrollToBottom()
-      await supabase.from('notifications').insert({
-        user_id: recipientId,
-        actor_id: user.id,
-        type: 'message',
-        title: 'sent you a message',
-        body: trimmed.length > 80 ? trimmed.slice(0, 80) + '…' : trimmed,
-        link: '/messages/' + threadId,
-        read: false,
-      })
+      const now = Date.now()
+      if (now - lastNotifSentRef.current > 5 * 60 * 1000) {
+        lastNotifSentRef.current = now
+        await supabase.from('notifications').insert({
+          user_id: recipientId,
+          actor_id: user.id,
+          type: 'message',
+          title: 'sent you a message',
+          body: trimmed.length > 80 ? trimmed.slice(0, 80) + '…' : trimmed,
+          link: '/messages/' + threadId,
+          read: false,
+        })
+      }
     } else if (error) {
       console.error('Send error:', error)
       setText(trimmed)

@@ -185,7 +185,19 @@ export default function HomePage() {
       fetchAll(session.user.id)
       channel = supabase
         .channel('home-events')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, () => fetchAll(session.user.id))
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, (payload) => {
+          const newEvent = payload.new as Event
+          if (newEvent.visibility !== 'public') return
+          if (new Date(newEvent.start_datetime) < new Date()) return
+          setEvents(prev => {
+            if (prev.some(e => e.id === newEvent.id)) return prev
+            const updated = [...prev, newEvent].sort(
+              (a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
+            )
+            setSoonEvents(updated.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
+            return updated
+          })
+        })
         .subscribe()
     })
     return () => { if (channel) supabase.removeChannel(channel) }
@@ -304,10 +316,12 @@ export default function HomePage() {
     if (!user) return
     if (bookmarkedEventIds.includes(eventId)) {
       setBookmarkedEventIds(prev => prev.filter(id => id !== eventId))
-      await supabase.from('event_bookmarks').delete().eq('event_id', eventId).eq('user_id', user.id)
+      const { error } = await supabase.from('event_bookmarks').delete().eq('event_id', eventId).eq('user_id', user.id)
+      if (error) setBookmarkedEventIds(prev => [...prev, eventId])
     } else {
       setBookmarkedEventIds(prev => [...prev, eventId])
-      await supabase.from('event_bookmarks').insert({ event_id: eventId, user_id: user.id })
+      const { error } = await supabase.from('event_bookmarks').insert({ event_id: eventId, user_id: user.id })
+      if (error) setBookmarkedEventIds(prev => prev.filter(id => id !== eventId))
     }
   }
 

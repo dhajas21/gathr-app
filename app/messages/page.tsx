@@ -26,26 +26,29 @@ export default function MessagesPage() {
       .neq('role', 'pending')
     if (!memberships || memberships.length === 0) { setCommunityChats([]); return }
 
-    const communityIds = memberships.map((m: any) => m.community_id)
-    const { data: lastMsgs } = await supabase
-      .from('community_chat_messages')
-      .select('community_id, user_id, text, created_at, profiles(name)')
-      .in('community_id', communityIds)
-      .order('created_at', { ascending: false })
-      .limit(communityIds.length * 3 + 10)
-
-    const lastMsgMap: Record<string, any> = {}
-    if (lastMsgs) {
-      lastMsgs.forEach((msg: any) => {
-        if (!lastMsgMap[msg.community_id]) lastMsgMap[msg.community_id] = msg
-      })
-    }
-
-    setCommunityChats(
-      memberships
-        .map((m: any) => ({ communityId: m.community_id, community: m.community, lastMessage: lastMsgMap[m.community_id] || null }))
-        .filter((m: any) => m.community)
+    // Fetch last message per community in parallel (capped at 20 to bound request count)
+    const capped = memberships.slice(0, 20)
+    const lastMsgResults = await Promise.all(
+      capped.map((m: any) =>
+        supabase
+          .from('community_chat_messages')
+          .select('community_id, user_id, text, created_at, profiles(name)')
+          .eq('community_id', m.community_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      )
     )
+
+    const chats = capped
+      .map((m: any, i: number) => ({
+        communityId: m.community_id,
+        community: m.community,
+        lastMessage: lastMsgResults[i].data || null,
+      }))
+      .filter((m: any) => m.community && m.lastMessage) // only show communities with chat activity
+
+    setCommunityChats(chats)
   }
 
   useEffect(() => {
