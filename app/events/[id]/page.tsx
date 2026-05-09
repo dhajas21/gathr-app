@@ -274,7 +274,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     setMatchConnStatuses(connMap)
 
     const scored = (profilesRes.data || [])
-      .filter((p: any) => !connMap[p.id])
+      .filter((p: any) => !connMap[p.id] && p.safety_tier !== 'flagged')
       .map((p: any) => {
         const their = (p.interests || []).map((i: string) => i.toLowerCase())
         const shared = myInterests.filter(i => their.includes(i))
@@ -338,7 +338,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const handleDelete = async () => {
     if (!event) return
     setDeleting(true)
-    await supabase.from('rsvps').delete().eq('event_id', event.id)
+    await Promise.all([
+      supabase.from('rsvps').delete().eq('event_id', event.id),
+      supabase.from('event_bookmarks').delete().eq('event_id', event.id),
+      supabase.from('event_comments').delete().eq('event_id', event.id),
+      supabase.from('waves').delete().eq('event_id', event.id),
+    ])
     await supabase.from('events').delete().eq('id', event.id)
     router.push('/home')
   }

@@ -21,6 +21,7 @@ export default function SetupPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -64,7 +65,7 @@ export default function SetupPage() {
         if (urlData?.publicUrl) avatarUrl = urlData.publicUrl + '?t=' + Date.now()
       }
     }
-    await supabase.from('profiles').update({
+    const { error: updateError } = await supabase.from('profiles').update({
       name: name.trim() || undefined,
       bio_social: bio.trim() || undefined,
       profile_mode: mode,
@@ -74,6 +75,10 @@ export default function SetupPage() {
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     }).eq('id', user.id)
     setSaving(false)
+    if (updateError) {
+      setSaveError('Something went wrong — please try again.')
+      return
+    }
     router.push(destination)
   }
 
@@ -317,6 +322,11 @@ export default function SetupPage() {
           </>
         ) : (
           <>
+            {saveError && (
+              <div className="mb-2 bg-red-500/10 border border-red-500/25 rounded-2xl px-4 py-2.5 text-xs text-red-400 text-center">
+                {saveError}
+              </div>
+            )}
             <button onClick={() => handleFinish()} disabled={saving}
               className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform disabled:opacity-50"
               style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>

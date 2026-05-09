@@ -144,6 +144,14 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
     setUploadError('')
 
+    const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'pdf', 'doc', 'docx', 'txt', 'zip']
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || ''
+    if (!ALLOWED_EXTS.includes(fileExt)) {
+      setUploadError('File type not supported')
+      setTimeout(() => setUploadError(''), 3000)
+      return
+    }
+
     if (file.size > 10 * 1024 * 1024) {
       setUploadError('File too large — max 10 MB')
       setTimeout(() => setUploadError(''), 3000)

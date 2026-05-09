@@ -31,6 +31,7 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [skippedAll, setSkippedAll] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   // Per-person form state
   const [showedUp, setShowedUp] = useState<boolean | null>(null)
@@ -111,35 +112,42 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
     if (!reviewee || reviewee.alreadyReviewed) { handleSkip(); return }
 
     setSubmitting(true)
-    await supabase.from('user_reviews').insert({
-      reviewer_id: user.id,
-      reviewed_id: reviewee.id,
-      event_id: eventId,
-      showed_up: showedUp,
-      was_respectful: wasRespectful,
-      would_attend_again: wouldAttendAgain,
-      safety_flag: safetyFlag,
-    })
-
-    // Send safety alert notification if flagged
-    if (safetyFlag === 'threatening' || safetyFlag === 'inappropriate') {
-      await supabase.from('notifications').insert({
-        user_id: user.id,
-        actor_id: reviewee.id,
-        type: 'survey_prompt',
-        title: 'Safety report submitted',
-        body: 'Our team will review your report. Thank you for keeping Gathr safe.',
-        link: '/events/' + eventId,
-        read: false,
+    setSubmitError('')
+    try {
+      const { error: reviewError } = await supabase.from('user_reviews').insert({
+        reviewer_id: user.id,
+        reviewed_id: reviewee.id,
+        event_id: eventId,
+        showed_up: showedUp,
+        was_respectful: wasRespectful,
+        would_attend_again: wouldAttendAgain,
+        safety_flag: safetyFlag,
       })
-    }
 
-    setSubmitting(false)
-    if (current >= reviewees.length - 1) {
-      setDone(true)
-    } else {
-      resetForm()
-      setCurrent(prev => prev + 1)
+      if (reviewError) throw reviewError
+
+      if (safetyFlag === 'threatening' || safetyFlag === 'inappropriate') {
+        await supabase.from('notifications').insert({
+          user_id: user.id,
+          actor_id: reviewee.id,
+          type: 'survey_prompt',
+          title: 'Safety report submitted',
+          body: 'Our team will review your report. Thank you for keeping Gathr safe.',
+          link: '/events/' + eventId,
+          read: false,
+        })
+      }
+
+      if (current >= reviewees.length - 1) {
+        setDone(true)
+      } else {
+        resetForm()
+        setCurrent(prev => prev + 1)
+      }
+    } catch {
+      setSubmitError('Something went wrong — tap Submit to try again.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -285,6 +293,11 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
 
       {/* Footer */}
       <div className="px-5 pb-10 pt-5">
+        {submitError && (
+          <div className="mb-3 bg-red-500/10 border border-red-500/25 rounded-2xl px-4 py-2.5 text-xs text-red-400 text-center">
+            {submitError}
+          </div>
+        )}
         <button
           onClick={reviewee?.alreadyReviewed ? handleSkip : handleSubmit}
           disabled={submitting || (!reviewee?.alreadyReviewed && !isAnswered)}

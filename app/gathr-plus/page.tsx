@@ -41,6 +41,7 @@ export default function GathrPlusPage() {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [trialError, setTrialError] = useState('')
   const router = useRouter()
 
   const handleSubscribe = async () => {
@@ -48,7 +49,22 @@ export default function GathrPlusPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/auth'); return }
 
-    await supabase.from('profiles').update({ gathr_plus: true }).eq('id', session.user.id)
+    const accountAgeMs = Date.now() - new Date(session.user.created_at).getTime()
+    const minAgeMs = 60 * 60 * 1000 // 1 hour — prevents throwaway account abuse
+    if (accountAgeMs < minAgeMs) {
+      setLoading(false)
+      setTrialError('Your account is too new to start a free trial. Try again in a little while.')
+      return
+    }
+
+    const { data: profile } = await supabase.from('profiles').select('gathr_plus_trial_used').eq('id', session.user.id).single()
+    if (profile?.gathr_plus_trial_used) {
+      setLoading(false)
+      setTrialError('You\'ve already used your free trial. Subscribe directly to keep access.')
+      return
+    }
+
+    await supabase.from('profiles').update({ gathr_plus: true, gathr_plus_trial_used: true }).eq('id', session.user.id)
     setLoading(false)
     setSuccess(true)
     setTimeout(() => router.back(), 2200)
@@ -132,6 +148,11 @@ export default function GathrPlusPage() {
 
       {/* CTA */}
       <div className="px-5 pb-10">
+        {trialError && (
+          <div className="mb-3 bg-red-500/10 border border-red-500/25 rounded-2xl px-4 py-3 text-xs text-red-400 text-center leading-relaxed">
+            {trialError}
+          </div>
+        )}
         <button
           onClick={handleSubscribe}
           disabled={loading}

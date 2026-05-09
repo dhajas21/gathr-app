@@ -21,7 +21,7 @@ export default function ResetPasswordPage() {
 
   const handleReset = async () => {
     if (!password) { setError('Enter a new password'); return }
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
+    if (password.length < 12) { setError('Password must be at least 12 characters'); return }
     if (password !== confirm) { setError('Passwords do not match'); return }
 
     setLoading(true)
@@ -30,7 +30,12 @@ export default function ResetPasswordPage() {
     const { error: updateError } = await supabase.auth.updateUser({ password })
 
     if (updateError) {
-      setError(updateError.message)
+      const msg = updateError.message.toLowerCase()
+      if (msg.includes('expired') || msg.includes('invalid') || msg.includes('token')) {
+        setError('This reset link has expired. Request a new one from the sign-in screen.')
+      } else {
+        setError(updateError.message)
+      }
       setLoading(false)
       return
     }
