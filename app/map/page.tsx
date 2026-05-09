@@ -13,23 +13,30 @@ export default function MapPage() {
   const [selected, setSelected] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [geocoding, setGeocoding] = useState(false)
+  const [userCity, setUserCity] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
-      fetchEvents()
+      fetchEvents(session.user.id)
     })
   }, [])
 
-  const fetchEvents = async () => {
-    const { data } = await supabase
+  const fetchEvents = async (userId: string) => {
+    const { data: profileData } = await supabase.from('profiles').select('city').eq('id', userId).single()
+    const city = profileData?.city || null
+    setUserCity(city)
+
+    let query = supabase
       .from('events')
       .select('id, title, category, location_name, city, start_datetime, latitude, longitude, spots_left, capacity, cover_url')
       .eq('visibility', 'public')
       .gte('start_datetime', new Date().toISOString())
       .order('start_datetime', { ascending: true })
       .limit(50)
+    if (city) query = (query as any).eq('city', city)
+    const { data } = await query
 
     if (!data) { setLoading(false); return }
 
@@ -81,10 +88,10 @@ export default function MapPage() {
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
       <div className="flex items-center justify-between px-4 pt-14 pb-3 flex-shrink-0">
         <div>
-          <h1 className="font-bold text-[#F0EDE6] text-xl">Map</h1>
+          <h1 className="font-bold text-[#F0EDE6] text-xl">{userCity || 'Map'}</h1>
           <p className="text-xs text-white/40 mt-0.5">
-            {events.length} event{events.length !== 1 ? 's' : ''} on map
-            {geocoding && <span className="text-[#E8B84B]/60"> · finding more...</span>}
+            {events.length} event{events.length !== 1 ? 's' : ''} near you
+            {geocoding && <span className="text-[#E8B84B]/60"> · locating...</span>}
           </p>
         </div>
         <button onClick={() => router.push('/home')}
