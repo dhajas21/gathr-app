@@ -117,6 +117,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         filter: 'event_id=eq.' + eventId,
       }, async (payload) => {
         setTotalAttendees(prev => prev + 1)
+        setEvent(prev => prev ? { ...prev, spots_left: Math.max(0, prev.spots_left - 1) } : prev)
         const { data } = await supabase
           .from('rsvps')
           .select('user_id, profiles(id, name, avatar_url)')
@@ -131,6 +132,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         filter: 'event_id=eq.' + eventId,
       }, async (payload) => {
         setTotalAttendees(prev => Math.max(0, prev - 1))
+        setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
         const { data } = await supabase
           .from('rsvps')
           .select('user_id, profiles(id, name, avatar_url)')
@@ -488,9 +490,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <button onClick={handleBookmark} className={'w-9 h-9 border rounded-xl flex items-center justify-center text-base transition-all active:scale-95 ' + (bookmarked ? 'bg-[#E8B84B]/20 border-[#E8B84B]/40' : 'bg-[#0D110D]/70 border-white/15')}>🔖</button>
           </div>
         </div>
-        <span className="relative z-5">
-          {CAT_EMOJI[event.category] || '🎉'}
-        </span>
+        {!(event as any).cover_url && (
+          <span className="relative z-5">
+            {CAT_EMOJI[event.category] || '🎉'}
+          </span>
+        )}
         <div className="absolute bottom-3 left-4 flex gap-2 z-10">
           {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2 py-0.5 rounded-full">Featured</span>}
           <span className="bg-[#0E1E0E]/90 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded-full border border-[#7EC87E]/20">◉ {event.visibility}</span>

@@ -118,15 +118,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
       if (data) {
         setConnectionStatus('pending')
         setConnectionId(data.id)
-        await supabase.from('notifications').insert({
-          user_id: profileId,
-          actor_id: user.id,
-          type: 'connection_request',
-          title: 'wants to connect with you',
-          body: 'Tap to view their profile and accept or decline.',
-          link: '/profile/' + user.id,
-          read: false,
-        })
       }
     } else if (connectionStatus === 'pending' && connectionId) {
       await supabase.from('connections').delete().eq('id', connectionId)

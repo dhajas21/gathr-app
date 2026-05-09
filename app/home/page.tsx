@@ -198,6 +198,11 @@ export default function HomePage() {
             return updated
           })
         })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events' }, (payload) => {
+          const updated = payload.new as Event
+          setEvents(prev => prev.map(e => e.id === updated.id ? { ...e, spots_left: updated.spots_left } : e))
+          setSoonEvents(prev => prev.map(e => e.id === updated.id ? { ...e, spots_left: updated.spots_left } : e))
+        })
         .subscribe()
     })
     return () => { if (channel) supabase.removeChannel(channel) }

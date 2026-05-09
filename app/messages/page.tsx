@@ -281,6 +281,42 @@ export default function MessagesPage() {
         </div>
       )}
 
+      {/* Connections quick-access bar */}
+      {acceptedConnections.length > 0 && (
+        <div className="px-4 pt-3 pb-1">
+          <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-2.5">
+            Connections · {acceptedConnections.length}
+          </div>
+          <div className="flex gap-3.5 overflow-x-auto scrollbar-hide pb-1">
+            {acceptedConnections.map(conn => {
+              const threadId = [conn.requester_id, conn.addressee_id].sort().join('_')
+              const hasUnread = (unreadCounts[threadId] || 0) > 0
+              return (
+                <button key={conn.id}
+                  onClick={() => router.push('/messages/' + threadId)}
+                  className="flex flex-col items-center gap-1 flex-shrink-0 active:scale-95 transition-transform">
+                  <div className="relative">
+                    {conn.otherProfile?.avatar_url ? (
+                      <img src={conn.otherProfile.avatar_url} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10" />
+                    ) : (
+                      <div className="w-12 h-12 bg-[#1E3A1E] border border-white/10 rounded-xl flex items-center justify-center text-lg">
+                        {conn.otherProfile?.name?.charAt(0) || '🧑'}
+                      </div>
+                    )}
+                    {hasUnread && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#E8B84B] rounded-full border-2 border-[#0D110D]" />
+                    )}
+                  </div>
+                  <div className="text-[9px] text-white/40 max-w-[48px] truncate text-center">
+                    {conn.otherProfile?.name?.split(' ')[0] || '—'}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Community chats */}
       {communityChats.length > 0 && (
         <div className="mt-2">

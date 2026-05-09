@@ -250,11 +250,6 @@ export default function SearchPage() {
     }).select().single()
     if (data) {
       setConnectionStatuses(prev => ({ ...prev, [personId]: 'pending' }))
-      await supabase.from('notifications').insert({
-        user_id: personId, actor_id: user.id, type: 'connection_request',
-        title: 'wants to connect with you', body: 'Tap to view their profile.',
-        link: '/profile/' + user.id, read: false,
-      })
     }
   }
 
