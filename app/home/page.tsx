@@ -167,7 +167,6 @@ export default function HomePage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [geoGranted, setGeoGranted] = useState(false)
   const [bookmarkedEventIds, setBookmarkedEventIds] = useState<string[]>([])
-
   const router = useRouter()
 
   useEffect(() => {
@@ -289,13 +288,19 @@ export default function HomePage() {
   useEffect(() => {
     if (!events.length) { setFilteredEvents([]); return }
     switch (activeTab) {
-      case 0:
-        setFilteredEvents([...events].sort((a, b) => {
+      case 0: {
+        const userCity = profile?.city
+        let pool = userCity
+          ? events.filter(e => e.city?.toLowerCase() === userCity.toLowerCase())
+          : events
+        if (pool.length < 4) pool = events
+        setFilteredEvents([...pool].sort((a, b) => {
           const filledA = a.capacity > 0 ? (a.capacity - a.spots_left) : 0
           const filledB = b.capacity > 0 ? (b.capacity - b.spots_left) : 0
           return filledB - filledA
         }))
         break
+      }
       case 1:
         if (profile?.interests?.length > 0) {
           const matched = events.filter(e => {
@@ -361,7 +366,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
-      <div className="sticky top-0 z-40 px-4 pt-14 pb-0 bg-[#0D110D]/95 backdrop-blur-xl">
+      <div className="px-4 pt-14 pb-0 bg-[#0D110D]">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="font-extrabold text-[#F0EDE6] text-2xl tracking-tight leading-none font-display">Gathr<span className="text-[#E8B84B]">.</span></h1>
@@ -384,13 +389,6 @@ export default function HomePage() {
               <div className="w-1.5 h-1.5 rounded-sm bg-[#5BCC7A]"></div>
               <span className="text-[#F0EDE6] text-xs">{profile?.city || 'Bellingham'} ↓</span>
             </button>
-            <button onClick={() => router.push('/map')}
-              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0EDE6" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 21s-8-6-8-11a8 8 0 0116 0c0 5-8 11-8 11z"/>
-                <circle cx="12" cy="10" r="2.5" fill="currentColor" stroke="none"/>
-              </svg>
-            </button>
           </div>
         </div>
 
@@ -401,6 +399,13 @@ export default function HomePage() {
           <span className="bg-[#1E3A1E] border border-[#E8B84B]/15 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">✨ AI</span>
         </div>
 
+        <div className="flex gap-2 mb-4">
+          <button onClick={() => router.push('/communities')}
+            className="flex items-center gap-1.5 bg-[#1C241C] border border-[#E8B84B]/20 rounded-full px-3 py-1.5 active:opacity-70 transition-opacity">
+            <span className="text-xs">👥</span>
+            <span className="text-xs text-[#F0EDE6]/65 font-medium">Communities</span>
+          </button>
+        </div>
 
         {soonEvents.length > 0 && (
           <div className="mb-4">
