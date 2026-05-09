@@ -128,7 +128,12 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!showAchievementUnlock) return
     import('canvas-confetti').then(({ default: confetti }) => {
-      confetti({ particleCount: 100, spread: 55, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] })
+      const count = Math.min(newAchievements.length, 4)
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+          confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] })
+        }, i * 450)
+      }
     })
   }, [showAchievementUnlock])
 

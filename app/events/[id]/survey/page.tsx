@@ -32,6 +32,8 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
   const [done, setDone] = useState(false)
   const [skippedAll, setSkippedAll] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [submittedCount, setSubmittedCount] = useState(0)
+  const [showSkipAllConfirm, setShowSkipAllConfirm] = useState(false)
 
   // Per-person form state
   const [showedUp, setShowedUp] = useState<boolean | null>(null)
@@ -98,7 +100,12 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
   }
 
   const handleSkip = () => {
-    if (current >= reviewees.length - 1) {
+    const isLast = current >= reviewees.length - 1
+    if (isLast && submittedCount === 0) {
+      setShowSkipAllConfirm(true)
+      return
+    }
+    if (isLast) {
       setDone(true)
     } else {
       resetForm()
@@ -138,6 +145,7 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
         })
       }
 
+      setSubmittedCount(prev => prev + 1)
       if (current >= reviewees.length - 1) {
         setDone(true)
       } else {
@@ -311,6 +319,29 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
           </p>
         )}
       </div>
+
+      {showSkipAllConfirm && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-end justify-center" onClick={() => setShowSkipAllConfirm(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-6 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+            <div className="text-center mb-5">
+              <div className="text-3xl mb-3">🤔</div>
+              <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Skip all reviews?</h3>
+              <p className="text-xs text-white/40 leading-relaxed">Your feedback keeps the community safe and helps people build trust. It only takes a moment.</p>
+            </div>
+            <button
+              onClick={() => { setShowSkipAllConfirm(false); setDone(true) }}
+              className="w-full py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white/50 text-sm font-medium mb-2">
+              Skip anyway
+            </button>
+            <button
+              onClick={() => setShowSkipAllConfirm(false)}
+              className="w-full py-3.5 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform">
+              Leave a quick review →
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -21,6 +21,7 @@ export default function SetupPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [saveStep, setSaveStep] = useState<'photo' | 'profile' | null>(null)
   const [saveError, setSaveError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -56,6 +57,7 @@ export default function SetupPage() {
   const handleFinish = async (destination = '/home') => {
     if (!user || saving) return
     setSaving(true)
+    setSaveStep(avatarFile ? 'photo' : 'profile')
     let avatarUrl: string | null = null
     if (avatarFile) {
       const ext = avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg'
@@ -65,6 +67,7 @@ export default function SetupPage() {
         if (urlData?.publicUrl) avatarUrl = urlData.publicUrl + '?t=' + Date.now()
       }
     }
+    setSaveStep('profile')
     const { error: updateError } = await supabase.from('profiles').update({
       name: name.trim() || undefined,
       bio_social: bio.trim() || undefined,
@@ -75,6 +78,7 @@ export default function SetupPage() {
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     }).eq('id', user.id)
     setSaving(false)
+    setSaveStep(null)
     if (updateError) {
       setSaveError('Something went wrong — please try again.')
       return
@@ -330,7 +334,7 @@ export default function SetupPage() {
             <button onClick={() => handleFinish()} disabled={saving}
               className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform disabled:opacity-50"
               style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
-              {saving ? 'Setting up your profile...' : 'Start Exploring →'}
+              {saveStep === 'photo' ? 'Uploading photo...' : saveStep === 'profile' ? 'Saving profile...' : 'Start Exploring →'}
             </button>
             {!saving && (
               <button onClick={() => handleFinish('/tour')}

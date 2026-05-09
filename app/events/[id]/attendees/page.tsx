@@ -115,6 +115,12 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         </div>
       ) : (
         <div className="px-4 py-3 divide-y divide-white/[0.06]">
+          {isHost && attendees.some(r => r.profiles?.rsvp_visibility !== 'public') && (
+            <div className="flex items-center gap-2 bg-[#1C241C] border border-white/[0.06] rounded-xl px-3 py-2 mb-3 text-[10px] text-white/30">
+              <span className="flex-shrink-0">ℹ️</span>
+              <span>🔒 Hidden from others &nbsp;·&nbsp; 🤝 Connections only &nbsp;·&nbsp; Visible to you as host</span>
+            </div>
+          )}
           {attendees.map((r: any) => {
             const profile = r.profiles
             const isSelf = r.user_id === user?.id

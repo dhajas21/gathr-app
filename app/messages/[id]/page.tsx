@@ -14,8 +14,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [loading, setLoading] = useState(true)
   const [threadId, setThreadId] = useState('')
   const [uploadError, setUploadError] = useState('')
+  const [isOtherTyping, setIsOtherTyping] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const presenceChannelRef = useRef<any>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -28,6 +31,25 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       })
     })
   }, [])
+
+  useEffect(() => {
+    if (!threadId || !user) return
+    const userId = user.id
+    const presence = supabase.channel('typing-' + threadId)
+    presence
+      .on('presence', { event: 'sync' }, () => {
+        const state = presence.presenceState<{ typing: boolean }>()
+        const others = Object.entries(state)
+          .filter(([key]) => key !== userId)
+          .flatMap(([, v]) => v)
+        setIsOtherTyping(others.some(p => p.typing))
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') await presence.track({ typing: false })
+      })
+    presenceChannelRef.current = presence
+    return () => { supabase.removeChannel(presence) }
+  }, [threadId, user])
 
   useEffect(() => {
     if (!threadId) return
@@ -329,6 +351,16 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         )}
       </div>
 
+      {isOtherTyping && (
+        <div className="px-4 pb-1 flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-[#1C241C] border border-white/[0.07] rounded-2xl rounded-bl-sm px-3 py-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        </div>
+      )}
+
       {uploadError && (
         <div className="mx-4 mb-2 bg-[#E85B5B]/10 border border-[#E85B5B]/25 rounded-xl px-3 py-2 text-xs text-[#E85B5B] text-center">
           {uploadError}
@@ -354,7 +386,14 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           <input
             type="text"
             value={text}
-            onChange={e => setText(e.target.value)}
+            onChange={e => {
+              setText(e.target.value)
+              presenceChannelRef.current?.track({ typing: true })
+              if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+              typingTimeoutRef.current = setTimeout(() => {
+                presenceChannelRef.current?.track({ typing: false })
+              }, 2000)
+            }}
             onKeyDown={handleKeyDown}
             placeholder={'Message ' + (other?.name || '') + '...'}
             maxLength={2000}

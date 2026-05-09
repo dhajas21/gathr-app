@@ -635,8 +635,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   <div className="flex-1">
                     <div className="text-[10px] font-semibold text-[#E8B84B]">
                       {incomingWaveCount === 1 ? 'Someone is curious about meeting you' : `${incomingWaveCount} people are curious about meeting you`}
+                      {mutualWaveIds.size > 0 && (
+                        <span className="ml-1.5 text-[#7EC87E]">· {mutualWaveIds.size} mutual 🔁</span>
+                      )}
                     </div>
-                    <div className="text-[9px] text-white/30 mt-0.5">Attend the event to find out who</div>
+                    <div className="text-[9px] text-white/30 mt-0.5">
+                      {mutualWaveIds.size > 0 ? 'You both waved — show up to connect' : 'Attend the event to find out who'}
+                    </div>
                   </div>
                 </div>
               )}

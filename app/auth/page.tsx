@@ -27,7 +27,7 @@ export default function AuthPage() {
 
   const handleSignUp = async () => {
     if (!name || !email || !password) { setError('Please fill in all fields'); return }
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
+    if (password.length < 12) { setError('Password must be at least 12 characters'); return }
     setLoading(true); setError('')
     const { data, error: authError } = await supabase.auth.signUp({ email: email.trim(), password })
     if (authError) { setError(authError.message); setLoading(false); return }
@@ -88,28 +88,34 @@ export default function AuthPage() {
       <div className="relative z-10 w-full max-w-sm mx-auto flex-1 flex flex-col">
 
         {isForgot ? (
-          <div>
+          <div className="flex flex-col min-h-[60vh] justify-center">
             <button onClick={() => { setIsForgot(false); setError(''); setResetSent(false) }}
-              className="flex items-center gap-1.5 text-xs text-white/35 mb-6">
+              className="flex items-center gap-1.5 text-xs text-white/35 mb-8 self-start">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
               Back to sign in
             </button>
-            <h2 className="text-xl font-bold text-[#F0EDE6] mb-1 font-display">Reset password</h2>
-            <p className="text-xs text-white/35 mb-5">We'll send a reset link to your email.</p>
 
             {resetSent ? (
-              <div className="bg-[#1E3A1E]/50 border border-[#7EC87E]/20 rounded-2xl p-5 text-center">
-                <div className="text-3xl mb-3">📬</div>
-                <p className="text-sm font-semibold text-[#7EC87E] mb-1">Check your inbox</p>
-                <p className="text-xs text-white/35">Reset link sent to <span className="text-white/55">{email}</span></p>
+              <div className="text-center">
+                <div className="text-5xl mb-5">📬</div>
+                <h2 className="text-xl font-bold text-[#F0EDE6] mb-2">Check your inbox</h2>
+                <p className="text-sm text-white/40 mb-1">Reset link sent to</p>
+                <p className="text-sm font-medium text-white/60 mb-6">{email}</p>
+                <p className="text-xs text-white/25 leading-relaxed">Didn't get it? Check your spam folder or{' '}
+                  <button onClick={() => setResetSent(false)} className="text-[#E8B84B]/70 underline">try again</button>.
+                </p>
               </div>
             ) : (
-              <div className="space-y-3">
-                <input className={inputClass} placeholder="Email" type="email" value={email}
-                  onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} maxLength={100}/>
-                {error && <ErrorBox message={error} />}
-                <CTA onClick={handleSubmit} loading={loading} label="Send Reset Link" />
-              </div>
+              <>
+                <h2 className="text-2xl font-bold text-[#F0EDE6] mb-1">Reset password</h2>
+                <p className="text-sm text-white/35 mb-7">We'll send a link to your email. Check your spam if it doesn't arrive in a minute.</p>
+                <div className="space-y-3">
+                  <input className={inputClass} placeholder="Email address" type="email" value={email}
+                    onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} maxLength={100} autoFocus />
+                  {error && <ErrorBox message={error} />}
+                  <CTA onClick={handleSubmit} loading={loading} label="Send Reset Link" />
+                </div>
+              </>
             )}
           </div>
         ) : (
