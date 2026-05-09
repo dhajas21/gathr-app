@@ -7,6 +7,11 @@ import BottomNav from '@/components/BottomNav'
 import { ProfilePageSkeleton } from '@/components/Skeleton'
 import ThemeToggle from '@/components/ThemeToggle'
 
+const LEVEL_MILESTONES = [
+  { level: 5, hours: 48, label: '48-hour' },
+  { level: 10, hours: 168, label: '7-day' },
+]
+
 const CATEGORY_EMOJI: Record<string, string> = {
   Music: '🎸', Fitness: '🏃', 'Food & Drink': '🍺', Tech: '💻',
   Outdoors: '🥾', Art: '🎨', Gaming: '🎮', Film: '🎬',
@@ -48,6 +53,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [celebrateLevel, setCelebrateLevel] = useState(0)
+  const [trialGranted, setTrialGranted] = useState<typeof LEVEL_MILESTONES[number] | null>(null)
   const [xpBarWidth, setXpBarWidth] = useState(0)
   const [newAchievements, setNewAchievements] = useState<any[]>([])
   const [showAchievementUnlock, setShowAchievementUnlock] = useState(false)
@@ -89,6 +95,22 @@ export default function ProfilePage() {
 
       const storedLevel = parseInt(localStorage.getItem('gathr_user_level') || '0')
       if (storedLevel > 0 && levelVal > storedLevel) {
+        // Check if crossing a Gathr+ trial milestone for the first time
+        const grantedRaw = localStorage.getItem('gathr_level_trials')
+        const grantedLevels: number[] = grantedRaw ? JSON.parse(grantedRaw) : []
+        const milestone = LEVEL_MILESTONES.find(
+          m => storedLevel < m.level && levelVal >= m.level && !grantedLevels.includes(m.level)
+        )
+        if (milestone) {
+          const expiresAt = new Date(Date.now() + milestone.hours * 3600000).toISOString()
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+              supabase.from('profiles').update({ gathr_plus_expires_at: expiresAt }).eq('id', session.user.id)
+            }
+          })
+          localStorage.setItem('gathr_level_trials', JSON.stringify([...grantedLevels, milestone.level]))
+          setTrialGranted(milestone)
+        }
         setCelebrateLevel(levelVal)
         setShowLevelUp(true)
       }
@@ -655,13 +677,24 @@ export default function ProfilePage() {
           : celebrateLevel >= 3 ? { name: 'Regular', icon: '⭐', tagline: 'You\'re showing up. Keep the momentum.' }
           : { name: 'Newcomer', icon: '🌱', tagline: 'Your journey on Gathr is just getting started.' }
         return (
-          <div className="fixed inset-0 bg-black/85 z-[60] flex items-center justify-center p-6" onClick={() => setShowLevelUp(false)}>
+          <div className="fixed inset-0 bg-black/85 z-[60] flex items-center justify-center p-6" onClick={() => { setShowLevelUp(false); setTrialGranted(null) }}>
             <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/35 rounded-3xl p-7 w-full max-w-sm text-center shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="text-7xl mb-4" style={{ filter: 'drop-shadow(0 0 20px rgba(232,184,75,0.5))' }}>{tier.icon}</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-[#E8B84B]/50 mb-1">Level Up</div>
               <div className="text-4xl font-bold text-[#E8B84B] mb-1">Level {celebrateLevel}</div>
               <div className="inline-block bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-full px-3 py-0.5 text-xs font-semibold text-[#E8B84B] mb-3">{tier.name}</div>
-              <div className="text-sm text-white/45 mb-7 leading-relaxed">{tier.tagline}</div>
+              <div className="text-sm text-white/45 mb-4 leading-relaxed">{tier.tagline}</div>
+              {trialGranted && (
+                <div className="bg-[#E8B84B]/10 border border-[#E8B84B]/25 rounded-2xl p-3.5 mb-5 text-left">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base">✦</span>
+                    <span className="text-xs font-bold text-[#E8B84B]">Gathr+ Preview Unlocked</span>
+                  </div>
+                  <p className="text-[11px] text-white/45 leading-relaxed">
+                    You've earned a {trialGranted.label} Gathr+ preview — mystery matches, waves, and full match lists are now on.
+                  </p>
+                </div>
+              )}
               <div className="flex gap-3">
                 <button
                   onClick={() => {
@@ -672,7 +705,7 @@ export default function ProfilePage() {
                   className="flex-1 py-3 rounded-2xl bg-[#1C241C] border border-white/10 text-white/60 text-sm font-medium active:scale-95 transition-transform">
                   Share 🔗
                 </button>
-                <button onClick={() => setShowLevelUp(false)}
+                <button onClick={() => { setShowLevelUp(false); setTrialGranted(null) }}
                   className="flex-1 py-3 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform">
                   Let's Go!
                 </button>

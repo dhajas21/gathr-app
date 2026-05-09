@@ -42,7 +42,20 @@ export default function GathrPlusPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [trialError, setTrialError] = useState('')
+  const [activeTrial, setActiveTrial] = useState<string | null>(null)
   const router = useRouter()
+
+  useState(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return
+      supabase.from('profiles').select('gathr_plus, gathr_plus_expires_at').eq('id', session.user.id).single()
+        .then(({ data }) => {
+          if (!data) return
+          const trialActive = data.gathr_plus_expires_at && new Date(data.gathr_plus_expires_at) > new Date()
+          if (trialActive && !data.gathr_plus) setActiveTrial(data.gathr_plus_expires_at)
+        })
+    })
+  })
 
   const handleSubscribe = async () => {
     setLoading(true)
@@ -148,6 +161,19 @@ export default function GathrPlusPage() {
 
       {/* CTA */}
       <div className="px-5 pb-10">
+        {activeTrial && (
+          <div className="mb-4 bg-[#7EC87E]/10 border border-[#7EC87E]/25 rounded-2xl px-4 py-3 text-center">
+            <div className="text-xs font-semibold text-[#7EC87E] mb-0.5">✦ Preview active</div>
+            <div className="text-[10px] text-white/40">
+              {(() => {
+                const ms = new Date(activeTrial).getTime() - Date.now()
+                const hrs = Math.floor(ms / 3600000)
+                return hrs >= 24 ? `${Math.floor(hrs / 24)}d ${hrs % 24}h remaining` : `${hrs}h remaining`
+              })()}
+              {' '}— subscribe to keep access after it ends
+            </div>
+          </div>
+        )}
         {trialError && (
           <div className="mb-3 bg-red-500/10 border border-red-500/25 rounded-2xl px-4 py-3 text-xs text-red-400 text-center leading-relaxed">
             {trialError}
@@ -158,7 +184,7 @@ export default function GathrPlusPage() {
           disabled={loading}
           className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-base font-bold active:scale-95 transition-transform disabled:opacity-60"
           style={{ boxShadow: '0 4px 24px rgba(232,184,75,0.35)' }}>
-          {loading ? 'Activating…' : 'Start 7-Day Free Trial'}
+          {loading ? 'Activating…' : activeTrial ? 'Subscribe to Keep Access' : 'Start 7-Day Free Trial'}
         </button>
         <p className="text-[10px] text-white/20 text-center mt-3">
           Cancel anytime. No commitment. Billed {selectedPlan === 'yearly' ? 'annually' : 'monthly'} after trial.

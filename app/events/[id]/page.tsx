@@ -257,7 +257,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
     const [profilesRes, myProfileRes, connectionsRes, myWavesRes, incomingWavesRes] = await Promise.all([
       supabase.from('profiles').select('id, name, avatar_url, interests, bio_social, attended_count, safety_tier, review_count').in('id', attendeeIds).eq('matching_enabled', true),
-      supabase.from('profiles').select('interests, gathr_plus').eq('id', userId).single(),
+      supabase.from('profiles').select('interests, gathr_plus, gathr_plus_expires_at').eq('id', userId).single(),
       supabase.from('connections').select('requester_id, addressee_id, status').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
       supabase.from('waves').select('receiver_id').eq('sender_id', userId).eq('event_id', evtId),
       supabase.from('waves').select('sender_id, is_mutual').eq('receiver_id', userId).eq('event_id', evtId),
@@ -284,7 +284,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       .sort((a: any, b: any) => b.shared.length - a.shared.length || b.trust - a.trust)
 
     setMatches(scored)
-    setIsGathrPlus(myProfileRes.data?.gathr_plus || false)
+    const expiresAt = myProfileRes.data?.gathr_plus_expires_at
+    const trialActive = expiresAt ? new Date(expiresAt) > new Date() : false
+    setIsGathrPlus(myProfileRes.data?.gathr_plus === true || trialActive)
     setWavedIds(new Set((myWavesRes.data || []).map((w: any) => w.receiver_id)))
     const mutualIds = new Set((incomingWavesRes.data || []).filter((w: any) => w.is_mutual).map((w: any) => w.sender_id))
     setMutualWaveIds(mutualIds)

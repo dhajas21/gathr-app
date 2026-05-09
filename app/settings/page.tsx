@@ -25,20 +25,23 @@ export default function SettingsPage() {
   const [savingPassword, setSavingPassword] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [gathrPlus, setGathrPlus] = useState(false)
+  const [gathrPlusExpiresAt, setGathrPlusExpiresAt] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
-      supabase.from('profiles').select('name, avatar_url, profile_mode, discoverable, matching_enabled, city, gathr_plus').eq('id', session.user.id).single()
+      supabase.from('profiles').select('name, avatar_url, profile_mode, discoverable, matching_enabled, city, gathr_plus, gathr_plus_expires_at').eq('id', session.user.id).single()
         .then(({ data }) => {
           if (data) {
             setProfile(data)
             setProfileMode(data.profile_mode || 'both')
             setDiscoverable(data.discoverable !== false)
             setMatchingEnabled(data.matching_enabled !== false)
-            setGathrPlus(data.gathr_plus || false)
+            const trialActive = data.gathr_plus_expires_at ? new Date(data.gathr_plus_expires_at) > new Date() : false
+            setGathrPlus(data.gathr_plus === true || trialActive)
+            setGathrPlusExpiresAt(trialActive && !data.gathr_plus ? data.gathr_plus_expires_at : null)
           }
           setLoading(false)
         })
@@ -162,9 +165,27 @@ export default function SettingsPage() {
               <span className="text-lg">✦</span>
             </div>
             <div className="flex-1">
-              <div className="text-sm font-bold text-[#E8B84B]">Gathr+ Active</div>
-              <div className="text-[10px] text-white/35 mt-0.5">Mystery matches, waves, and priority ranking are on</div>
+              <div className="text-sm font-bold text-[#E8B84B]">
+                {gathrPlusExpiresAt ? 'Gathr+ Preview' : 'Gathr+ Active'}
+              </div>
+              <div className="text-[10px] text-white/35 mt-0.5">
+                {gathrPlusExpiresAt
+                  ? (() => {
+                      const ms = new Date(gathrPlusExpiresAt).getTime() - Date.now()
+                      const hrs = Math.floor(ms / 3600000)
+                      return hrs >= 24
+                        ? `${Math.floor(hrs / 24)}d ${hrs % 24}h remaining · Earned from level up`
+                        : `${hrs}h remaining · Earned from level up`
+                    })()
+                  : 'Mystery matches, waves, and priority ranking are on'}
+              </div>
             </div>
+            {gathrPlusExpiresAt && (
+              <button onClick={() => router.push('/gathr-plus')}
+                className="text-[9px] text-[#E8B84B]/60 border border-[#E8B84B]/20 rounded-lg px-2 py-1 flex-shrink-0">
+                Subscribe →
+              </button>
+            )}
           </div>
         ) : (
           <button
