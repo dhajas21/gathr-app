@@ -61,6 +61,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [matches, setMatches] = useState<any[]>([])
   const [matchConnStatuses, setMatchConnStatuses] = useState<Record<string, string>>({})
   const [matchConnLoading, setMatchConnLoading] = useState<string | null>(null)
+  const [showAllMatches, setShowAllMatches] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
   const [inviteCopied, setInviteCopied] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -186,7 +187,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
     const endTime = new Date(eventData.end_datetime).getTime()
     const nowMs = Date.now()
-    if (rsvpRes.data && (endTime > nowMs || nowMs - endTime < 48 * 3600000)) {
+    if (rsvpRes.data && endTime > nowMs - 48 * 3600000) {
       fetchMatches(id, userId)
     }
   }
@@ -244,14 +245,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       .select('user_id')
       .eq('event_id', evtId)
       .neq('user_id', userId)
-      .limit(50)
 
     if (!rsvpData || rsvpData.length === 0) return
 
     const attendeeIds = rsvpData.map((r: any) => r.user_id)
 
     const [profilesRes, myProfileRes, connectionsRes] = await Promise.all([
-      supabase.from('profiles').select('id, name, avatar_url, interests, bio').in('id', attendeeIds).eq('matching_enabled', true),
+      supabase.from('profiles').select('id, name, avatar_url, interests, bio_social, attended_count, safety_tier, review_count').in('id', attendeeIds).eq('matching_enabled', true),
       supabase.from('profiles').select('interests').eq('id', userId).single(),
       supabase.from('connections').select('requester_id, addressee_id, status').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
     ])
@@ -271,11 +271,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       .map((p: any) => {
         const their = (p.interests || []).map((i: string) => i.toLowerCase())
         const shared = myInterests.filter(i => their.includes(i))
-        const trust = (p.avatar_url ? 1 : 0) + (p.bio ? 1 : 0) + (their.length >= 3 ? 1 : 0)
+        const trust = (p.avatar_url ? 1 : 0) + (p.bio_social ? 1 : 0) + (their.length >= 3 ? 1 : 0) + ((p.attended_count || 0) >= 3 ? 1 : 0)
         return { ...p, shared, trust }
       })
       .sort((a: any, b: any) => b.shared.length - a.shared.length || b.trust - a.trust)
-      .slice(0, 5)
 
     setMatches(scored)
   }
@@ -287,8 +286,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     const { data } = await supabase.from('connections').insert({
       requester_id: user.id,
       addressee_id: personId,
-      user_id: user.id,
-      friend_id: personId,
     }).select().single()
     if (data) {
       setMatchConnStatuses(prev => ({ ...prev, [personId]: 'pending' }))
@@ -563,9 +560,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <span className="text-[9px] text-[#E8B84B]/50">✦ Also going</span>
             </div>
             <div className="space-y-3">
-              {matches.map((match: any) => {
+              {(showAllMatches ? matches : matches.slice(0, 5)).map((match: any) => {
                 const status = matchConnStatuses[match.id]
-                const trustIcon = match.trust === 3 ? '⭐' : match.trust === 2 ? '✦' : '🌱'
+                const isPostEvent = event && new Date(event.end_datetime).getTime() < Date.now()
+                const tierIcon = match.safety_tier === 'trusted' ? '⭐' : match.safety_tier === 'verified' ? '✓' : match.safety_tier === 'flagged' ? '⚠' : null
                 return (
                   <div key={match.id} className="flex items-center gap-3">
                     <button onClick={() => router.push('/profile/' + match.id)} className="flex-shrink-0">
@@ -580,7 +578,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-semibold text-[#F0EDE6] truncate">{match.name}</span>
-                        <span className="text-[10px]" title="Trust level">{trustIcon}</span>
+                        {tierIcon && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${match.safety_tier === 'trusted' ? 'bg-[#E8B84B]/15 text-[#E8B84B]' : match.safety_tier === 'verified' ? 'bg-[#4A90D9]/15 text-[#4A90D9]' : 'bg-red-500/15 text-red-400'}`}>
+                            {tierIcon} {match.safety_tier === 'trusted' ? 'Trusted' : match.safety_tier === 'verified' ? 'Verified' : 'Flagged'}
+                          </span>
+                        )}
                       </div>
                       {match.shared.length > 0 ? (
                         <div className="text-[10px] text-white/35 mt-0.5 truncate">
@@ -590,27 +592,45 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                         <div className="text-[10px] text-white/25 mt-0.5">Also going to this event</div>
                       )}
                     </div>
-                    {!status ? (
-                      <button
-                        onClick={e => handleMatchConnect(e, match.id)}
-                        disabled={matchConnLoading === match.id}
-                        className="flex-shrink-0 bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-[10px] font-semibold px-3 py-1.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50">
-                        {matchConnLoading === match.id ? '...' : '+ Hi'}
-                      </button>
-                    ) : status === 'accepted' ? (
-                      <span className="flex-shrink-0 text-[10px] text-[#7EC87E] px-2">✓ Connected</span>
-                    ) : (
-                      <span className="flex-shrink-0 text-[10px] text-white/30 px-2">Sent</span>
-                    )}
+                    <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                      {!status ? (
+                        <button
+                          onClick={e => handleMatchConnect(e, match.id)}
+                          disabled={matchConnLoading === match.id}
+                          className="bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-[10px] font-semibold px-3 py-1.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50">
+                          {matchConnLoading === match.id ? '...' : '+ Hi'}
+                        </button>
+                      ) : status === 'accepted' ? (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="text-[10px] text-[#7EC87E]">✓ Connected</span>
+                          {isPostEvent && (
+                            <button onClick={() => router.push('/events/' + eventId + '/survey')} className="text-[9px] text-[#E8B84B]/60">
+                              Rate →
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-white/30">Sent</span>
+                      )}
+                    </div>
                   </div>
                 )
               })}
             </div>
-            <div className="mt-3 pt-2.5 border-t border-white/[0.06] text-center">
-              <button onClick={() => router.push('/settings')} className="text-[9px] text-white/20">
-                Manage matching preferences →
+            {matches.length > 5 && (
+              <button
+                onClick={() => setShowAllMatches(prev => !prev)}
+                className="mt-3 w-full text-[10px] text-[#E8B84B]/60 text-center py-1.5 border-t border-white/[0.06]">
+                {showAllMatches ? 'Show less ↑' : `See ${matches.length - 5} more →`}
               </button>
-            </div>
+            )}
+            {matches.length <= 5 && (
+              <div className="mt-3 pt-2.5 border-t border-white/[0.06] text-center">
+                <button onClick={() => router.push('/settings')} className="text-[9px] text-white/20">
+                  Manage matching preferences →
+                </button>
+              </div>
+            )}
           </div>
         )}
 

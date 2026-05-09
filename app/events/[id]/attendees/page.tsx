@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import SafetyBadge from '@/components/SafetyBadge'
 
 export default function AttendeesPage({ params }: { params: Promise<{ id: string }> }) {
   const [user, setUser] = useState<any>(null)
@@ -39,7 +40,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
 
     const [rsvpRes, connRes] = await Promise.all([
       supabase.from('rsvps')
-        .select('user_id, profiles(id, name, avatar_url, rsvp_visibility)')
+        .select('user_id, profiles(id, name, avatar_url, rsvp_visibility, safety_tier, review_count)')
         .eq('event_id', eventId),
       supabase.from('connections')
         .select('requester_id, addressee_id')
@@ -130,9 +131,12 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-[#F0EDE6] truncate">
-                    {profile?.name || 'Unknown'}
-                    {isSelf && <span className="text-[10px] text-white/30 ml-1.5">· You</span>}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-medium text-[#F0EDE6] truncate">
+                      {profile?.name || 'Unknown'}
+                      {isSelf && <span className="text-[10px] text-white/30 ml-1.5">· You</span>}
+                    </span>
+                    <SafetyBadge tier={profile?.safety_tier || 'new'} reviewCount={profile?.review_count} size="sm" />
                   </div>
                   {isHost && profile?.rsvp_visibility === 'private' && (
                     <div className="text-[10px] text-white/30 mt-0.5">🔒 Hidden from other attendees</div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { PublicProfileSkeleton } from '@/components/Skeleton'
+import SafetyBadge from '@/components/SafetyBadge'
 
 export default function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const [user, setUser] = useState<any>(null)
@@ -92,7 +93,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     setActionLoading(true)
     if (connectionStatus === null) {
       const { data } = await supabase.from('connections').insert({
-        requester_id: user.id, addressee_id: profileId, user_id: user.id, friend_id: profileId,
+        requester_id: user.id, addressee_id: profileId,
       }).select().single()
       if (data) {
         setConnectionStatus('pending')
@@ -167,6 +168,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#E8B84B]/10 border border-[#E8B84B]/20 text-[#E8B84B] font-medium">
               {profileTier.icon} {profileTier.name}
             </span>
+            <SafetyBadge tier={profile.safety_tier || 'new'} reviewCount={profile.review_count} size="sm" />
           </div>
           <div className="text-xs text-white/45 mt-1">@{profile.name?.toLowerCase().replace(/\s/g, '')} · {profile.city || 'Bellingham, WA'}</div>
           {profile.bio_social && (

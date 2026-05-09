@@ -236,7 +236,10 @@ export default function HomePage() {
     setSoonEvents(allEvents.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
     setFeaturedEvent(allEvents.find(e => e.is_featured) || null)
     setLoading(false)
-    checkAfterEventMatches(userId)
+    if (!sessionStorage.getItem('gathr_match_check')) {
+      sessionStorage.setItem('gathr_match_check', '1')
+      checkAfterEventMatches(userId)
+    }
   }
 
   const checkAfterEventMatches = async (userId: string) => {
@@ -267,7 +270,7 @@ export default function HomePage() {
 
       const otherIds = otherAttendees.map((a: any) => a.user_id)
       const [matchingRes, connectionsRes] = await Promise.all([
-        supabase.from('profiles').select('id').in('id', otherIds).eq('matching_enabled', true),
+        supabase.from('profiles').select('id, name').in('id', otherIds).eq('matching_enabled', true),
         supabase.from('connections').select('requester_id, addressee_id').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
       ])
 
@@ -277,13 +280,20 @@ export default function HomePage() {
       const unconnected = (matchingRes.data || []).filter((p: any) => !connectedIds.has(p.id))
       if (!unconnected.length) continue
 
+      const names = unconnected.slice(0, 2).map((p: any) => p.name?.split(' ')[0]).filter(Boolean)
+      const nameStr = names.length === 0
+        ? `${unconnected.length} ${unconnected.length === 1 ? 'person' : 'people'}`
+        : unconnected.length > 2
+          ? `${names.join(', ')} + ${unconnected.length - 2} more`
+          : names.join(' & ')
+
       await supabase.from('notifications').insert({
         user_id: userId,
         actor_id: null,
         type: 'after_event_match',
         title: `You were at ${evt.title}`,
-        body: `${unconnected.length} ${unconnected.length === 1 ? 'person' : 'people'} you crossed paths with ${unconnected.length === 1 ? 'is' : 'are'} open to connecting`,
-        link,
+        body: `${nameStr} ${unconnected.length === 1 ? 'is' : 'are'} open to connecting — rate your experience`,
+        link: '/events/' + evt.id + '/survey',
         read: false,
       })
     }
