@@ -34,7 +34,8 @@ export default function CreateEventPage() {
 
   const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || file.size > 5 * 1024 * 1024) return
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { setError('Cover photo must be under 5 MB'); return }
     setCoverFile(file)
     const reader = new FileReader()
     reader.onload = (ev) => setCoverPreview(ev.target?.result as string)
@@ -90,7 +91,7 @@ export default function CreateEventPage() {
       }
     }
 
-    const { error: insertError } = await supabase.from('events').insert({
+    const { data: insertedEvent, error: insertError } = await supabase.from('events').insert({
       title: title.trim(),
       category,
       description: description.trim(),
@@ -108,7 +109,7 @@ export default function CreateEventPage() {
       longitude: lng ?? getCityCoords(city).lng,
       cover_url: coverUrl,
       invite_code: Math.random().toString(36).substring(2, 10).toUpperCase(),
-    })
+    }).select('id').single()
 
     if (insertError) {
       setError(insertError.message)
@@ -116,7 +117,7 @@ export default function CreateEventPage() {
       return
     }
 
-    router.push('/home')
+    router.push('/events/' + insertedEvent!.id)
   }
 
   const inputClass = 'w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm'
@@ -134,7 +135,6 @@ export default function CreateEventPage() {
         <h1 className="text-lg font-bold text-[#F0EDE6]">
           {step === 1 ? 'The Basics' : 'The Details'}
         </h1>
-        <span className="ml-auto text-xs text-white/30">Save draft</span>
       </div>
 
       <div className="px-5 pt-4">
@@ -279,7 +279,7 @@ export default function CreateEventPage() {
         {step === 1 ? (
           <button
             onClick={() => setStep(2)}
-            disabled={!title || !category || !date || !startTime || !venueName}
+            disabled={!title || !category || !date || !startTime || !venueName || geocoding}
             className="w-full bg-[#E8B84B] text-[#0D110D] rounded-2xl py-4 font-bold text-sm disabled:opacity-40 active:scale-95 transition-transform"
           >
             {geocoding ? 'Looking up location...' : 'Next — The Details →'}

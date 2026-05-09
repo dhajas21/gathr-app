@@ -172,11 +172,17 @@ export default function HomePage() {
   const router = useRouter()
 
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel>
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
       fetchAll(session.user.id)
+      channel = supabase
+        .channel('home-events')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, () => fetchAll(session.user.id))
+        .subscribe()
     })
+    return () => { if (channel) supabase.removeChannel(channel) }
   }, [])
 
   const requestGeolocation = () => {

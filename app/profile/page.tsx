@@ -28,6 +28,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [celebrateLevel, setCelebrateLevel] = useState(0)
+  const [xpBarWidth, setXpBarWidth] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -69,6 +70,23 @@ export default function ProfilePage() {
       localStorage.setItem('gathr_user_level', String(levelVal))
     } catch {}
   }, [loading, hostedEvents.length, attendedEvents.length, connections.length, profile])
+
+  useEffect(() => {
+    if (activeTab !== 2) return
+    setXpBarWidth(0)
+    const t = setTimeout(() => {
+      const xpVal = (hostedEvents.length * 10) + (attendedEvents.length * 5) + (connections.length * 3) + ((profile?.interests || []).length * 2)
+      setXpBarWidth(Math.round(((xpVal % 50) / 50) * 100))
+    }, 120)
+    return () => clearTimeout(t)
+  }, [activeTab, hostedEvents.length, attendedEvents.length, connections.length, profile])
+
+  useEffect(() => {
+    if (!showLevelUp) return
+    import('canvas-confetti').then(({ default: confetti }) => {
+      confetti({ particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] })
+    })
+  }, [showLevelUp])
 
   const fetchAll = async (userId: string) => {
     const [profileRes, hostedRes, rsvpRes, connRes] = await Promise.all([
@@ -413,8 +431,8 @@ export default function ProfilePage() {
                 <span className="text-[10px] text-[#E8B84B]">{xp} total XP</span>
               </div>
               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-[#E8B84B] rounded-full transition-all"
-                  style={{ width: Math.round((xpInLevel / xpToNext) * 100) + '%' }} />
+                <div className="h-full bg-[#E8B84B] rounded-full transition-all duration-700 ease-out"
+                  style={{ width: xpBarWidth + '%' }} />
               </div>
             </div>
 
@@ -527,31 +545,38 @@ export default function ProfilePage() {
 
       </div>
 
-      {showLevelUp && (
-        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-6" onClick={() => setShowLevelUp(false)}>
-          <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/30 rounded-3xl p-6 w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
-            <div className="text-6xl mb-3">{celebrateLevel >= 10 ? '👑' : celebrateLevel >= 5 ? '🔥' : '⭐'}</div>
-            <div className="text-xs uppercase tracking-widest text-[#E8B84B]/50 mb-1">Level Up!</div>
-            <div className="text-3xl font-bold text-[#E8B84B] mb-2">Level {celebrateLevel}</div>
-            <div className="text-sm text-white/40 mb-6">You're crushing it on Gathr — keep showing up!</div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  const msg = `🎉 Just hit Level ${celebrateLevel} on Gathr! Finding my people one event at a time. 🌱`
-                  if (navigator.share) navigator.share({ title: 'Gathr Level Up!', text: msg })
-                  else navigator.clipboard.writeText(msg)
-                }}
-                className="flex-1 py-3 rounded-2xl bg-[#1C241C] border border-white/10 text-white/60 text-sm font-medium active:scale-95 transition-transform">
-                Share 🔗
-              </button>
-              <button onClick={() => setShowLevelUp(false)}
-                className="flex-1 py-3 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform">
-                Let's Go! 🚀
-              </button>
+      {showLevelUp && (() => {
+        const tier = celebrateLevel >= 10 ? { name: 'Legend', icon: '👑', tagline: 'You\'ve reached the top. Gathr royalty.' }
+          : celebrateLevel >= 6 ? { name: 'Veteran', icon: '🔥', tagline: 'A fixture in the scene. People notice.' }
+          : celebrateLevel >= 3 ? { name: 'Regular', icon: '⭐', tagline: 'You\'re showing up. Keep the momentum.' }
+          : { name: 'Newcomer', icon: '🌱', tagline: 'Your journey on Gathr is just getting started.' }
+        return (
+          <div className="fixed inset-0 bg-black/85 z-[60] flex items-center justify-center p-6" onClick={() => setShowLevelUp(false)}>
+            <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/35 rounded-3xl p-7 w-full max-w-sm text-center shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="text-7xl mb-4" style={{ filter: 'drop-shadow(0 0 20px rgba(232,184,75,0.5))' }}>{tier.icon}</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-[#E8B84B]/50 mb-1">Level Up</div>
+              <div className="text-4xl font-bold text-[#E8B84B] mb-1">Level {celebrateLevel}</div>
+              <div className="inline-block bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-full px-3 py-0.5 text-xs font-semibold text-[#E8B84B] mb-3">{tier.name}</div>
+              <div className="text-sm text-white/45 mb-7 leading-relaxed">{tier.tagline}</div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    const msg = `🎉 Just hit Level ${celebrateLevel} (${tier.name}) on Gathr! ${tier.icon}`
+                    if (navigator.share) navigator.share({ title: 'Gathr Level Up!', text: msg })
+                    else navigator.clipboard.writeText(msg)
+                  }}
+                  className="flex-1 py-3 rounded-2xl bg-[#1C241C] border border-white/10 text-white/60 text-sm font-medium active:scale-95 transition-transform">
+                  Share 🔗
+                </button>
+                <button onClick={() => setShowLevelUp(false)}
+                  className="flex-1 py-3 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform">
+                  Let's Go!
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       <BottomNav />
     </div>

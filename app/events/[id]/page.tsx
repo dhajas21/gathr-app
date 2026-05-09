@@ -317,11 +317,16 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (!trimmed || !user || !eventId || postingComment) return
     setPostingComment(true)
     setCommentText('')
-    await supabase.from('event_comments').insert({
-      event_id: eventId,
-      user_id: user.id,
-      text: trimmed,
-    })
+    const { data: newComment, error } = await supabase
+      .from('event_comments')
+      .insert({ event_id: eventId, user_id: user.id, text: trimmed })
+      .select('id, user_id, text, created_at, profiles(id, name, avatar_url)')
+      .single()
+    if (!error && newComment) {
+      setComments(prev => prev.some(c => c.id === (newComment as any).id) ? prev : [...prev, newComment as any])
+    } else if (error) {
+      setCommentText(trimmed)
+    }
     setPostingComment(false)
   }
 

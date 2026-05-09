@@ -15,25 +15,24 @@ export default function MessagesPage() {
   const router = useRouter()
 
   useEffect(() => {
-    let userId: string
+    let channel: ReturnType<typeof supabase.channel>
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
-      userId = session.user.id
+      const uid = session.user.id
       setUser(session.user)
-      fetchData(session.user.id)
+      fetchData(uid)
+
+      channel = supabase
+        .channel('messages-list-realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+          const msg = payload.new as any
+          if (msg.sender_id === uid || msg.recipient_id === uid) fetchData(uid)
+        })
+        .subscribe()
     })
 
-    const channel = supabase
-      .channel('messages-list-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        const msg = payload.new as any
-        if (userId && (msg.sender_id === userId || msg.recipient_id === userId)) {
-          fetchData(userId)
-        }
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
+    return () => { if (channel) supabase.removeChannel(channel) }
   }, [])
 
   const fetchData = async (userId: string) => {

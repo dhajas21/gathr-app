@@ -40,26 +40,33 @@ export default function BottomNav() {
   const [unreadNotifs, setUnreadNotifs] = useState(0)
 
   useEffect(() => {
-    fetchCounts()
-    const channel = supabase
-      .channel('nav-badge')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, fetchCounts)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, fetchCounts)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, fetchCounts)
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [])
+    let channel: ReturnType<typeof supabase.channel>
 
-  const fetchCounts = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const [msgRes, notifRes] = await Promise.all([
-      supabase.from('messages').select('*', { count: 'exact', head: true }).eq('recipient_id', session.user.id).is('read_at', null),
-      supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('read', false),
-    ])
-    if (msgRes.count !== null) setUnreadMessages(msgRes.count)
-    if (notifRes.count !== null) setUnreadNotifs(notifRes.count)
-  }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return
+      const uid = session.user.id
+
+      const fetchCounts = async () => {
+        const [msgRes, notifRes] = await Promise.all([
+          supabase.from('messages').select('*', { count: 'exact', head: true }).eq('recipient_id', uid).is('read_at', null),
+          supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', uid).eq('read', false),
+        ])
+        if (msgRes.count !== null) setUnreadMessages(msgRes.count)
+        if (notifRes.count !== null) setUnreadNotifs(notifRes.count)
+      }
+
+      fetchCounts()
+
+      channel = supabase
+        .channel('nav-badge')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'recipient_id=eq.' + uid }, fetchCounts)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + uid }, fetchCounts)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + uid }, fetchCounts)
+        .subscribe()
+    })
+
+    return () => { if (channel) supabase.removeChannel(channel) }
+  }, [])
 
   const active = (href: string) =>
     href === '/home' ? path === '/home'
