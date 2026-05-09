@@ -24,10 +24,10 @@ export default function ProfilePage() {
   const [attendedEvents, setAttendedEvents] = useState<any[]>([])
   const [connections, setConnections] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState(0)
-  const [celebrationAch, setCelebrationAch] = useState<any>(null)
-  const [pinnedBadges, setPinnedBadges] = useState<string[]>([])
   const [editingInterests, setEditingInterests] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showLevelUp, setShowLevelUp] = useState(false)
+  const [celebrateLevel, setCelebrateLevel] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -56,32 +56,19 @@ export default function ProfilePage() {
     }
   }, [])
 
-  const computedAchievements = (hosted: any[], attended: any[], conns: any[], ints: string[], prof: any) => {
-    const xp_ = (hosted.length * 10) + (attended.length * 5) + (conns.length * 3) + (ints.length * 2)
-    const level_ = Math.floor(xp_ / 50) + 1
-    return [
-      { icon: '🎉', title: 'First Event', tier: 'bronze', val: hosted.length, req: 1 },
-      { icon: '🎙', title: 'Rising Host', tier: 'silver', val: hosted.length, req: 3 },
-      { icon: '🏆', title: 'Host with the Most', tier: 'gold', val: hosted.length, req: 10 },
-      { icon: '🌆', title: 'Community Builder', tier: 'gold', val: hosted.length, req: 25 },
-      { icon: '👟', title: 'First Steps', tier: 'bronze', val: attended.length, req: 1 },
-      { icon: '📅', title: 'Scene Regular', tier: 'silver', val: attended.length, req: 5 },
-      { icon: '⭐', title: 'Event Veteran', tier: 'gold', val: attended.length, req: 20 },
-      { icon: '🌟', title: 'Gathr Legend', tier: 'gold', val: attended.length, req: 50 },
-      { icon: '🤝', title: 'First Connection', tier: 'bronze', val: conns.length, req: 1 },
-      { icon: '📡', title: 'Networker', tier: 'silver', val: conns.length, req: 10 },
-      { icon: '🦋', title: 'Social Butterfly', tier: 'gold', val: conns.length, req: 25 },
-      { icon: '👑', title: 'Connector', tier: 'gold', val: conns.length, req: 50 },
-      { icon: '🗺', title: 'Explorer', tier: 'bronze', val: ints.length, req: 5 },
-      { icon: '🎯', title: 'Passionate', tier: 'silver', val: ints.length, req: 10 },
-      { icon: '🔀', title: 'Dual Mode', tier: 'silver', val: (prof?.profile_mode === 'both' || prof?.profile_mode === 'professional') ? 1 : 0, req: 1 },
-      { icon: '💎', title: 'All-Rounder', tier: 'gold', val: Math.min(hosted.length, attended.length, conns.length), req: 5 },
-      { icon: '🔥', title: 'On Fire', tier: 'gold', val: level_, req: 5 },
-      { icon: '🚀', title: 'Power User', tier: 'gold', val: level_, req: 10 },
-      { icon: '📸', title: 'Avatar', tier: 'bronze', val: prof?.avatar_url ? 1 : 0, req: 1 },
-      { icon: '✍️', title: 'Storyteller', tier: 'bronze', val: prof?.bio_social ? 1 : 0, req: 1 },
-    ].filter(a => a.val >= a.req)
-  }
+  useEffect(() => {
+    if (loading) return
+    try {
+      const xpVal = (hostedEvents.length * 10) + (attendedEvents.length * 5) + (connections.length * 3) + ((profile?.interests || []).length * 2)
+      const levelVal = Math.floor(xpVal / 50) + 1
+      const storedLevel = parseInt(localStorage.getItem('gathr_user_level') || '0')
+      if (storedLevel > 0 && levelVal > storedLevel) {
+        setCelebrateLevel(levelVal)
+        setShowLevelUp(true)
+      }
+      localStorage.setItem('gathr_user_level', String(levelVal))
+    } catch {}
+  }, [loading, hostedEvents.length, attendedEvents.length, connections.length, profile])
 
   const fetchAll = async (userId: string) => {
     const [profileRes, hostedRes, rsvpRes, connRes] = await Promise.all([
@@ -94,10 +81,7 @@ export default function ProfilePage() {
         .eq('status', 'accepted'),
     ])
 
-    if (profileRes.data) {
-      setProfile(profileRes.data)
-      setPinnedBadges(profileRes.data.pinned_badges || [])
-    }
+    if (profileRes.data) setProfile(profileRes.data)
     if (hostedRes.data) setHostedEvents(hostedRes.data)
 
     if (rsvpRes.data && rsvpRes.data.length > 0) {
@@ -114,23 +98,21 @@ export default function ProfilePage() {
       if (connProfiles) setConnections(connProfiles)
     }
 
-    const attendedData = rsvpRes.data?.length ? await supabase.from('events').select('*').in('event_id', rsvpRes.data.map((r:any) => r.event_id)).then(r => r.data) : []
-    const earned = computedAchievements(hostedRes.data || [], attendedData || [], [], profileRes.data?.interests || [], profileRes.data)
-    checkNewAchievements(earned)
     setLoading(false)
   }
 
   const handleToggleMode = async (mode: 'social' | 'professional') => {
     if (!user || !profile) return
     const current = profile.profile_mode || 'social'
-    let next: string
-    if (current === 'both') {
-      next = mode === 'social' ? 'professional' : 'social'
-    } else if (current === mode) {
-      next = mode === 'social' ? 'professional' : 'social'
-    } else {
-      next = 'both'
-    }
+    const hasSocial = current === 'social' || current === 'both'
+    const hasProfessional = current === 'professional' || current === 'both'
+    let nextSocial = hasSocial
+    let nextPro = hasProfessional
+    if (mode === 'social') nextSocial = !hasSocial
+    else nextPro = !hasProfessional
+    // Keep at least one active
+    if (!nextSocial && !nextPro) nextSocial = true
+    const next = nextSocial && nextPro ? 'both' : nextPro ? 'professional' : 'social'
     setProfile((p: any) => ({ ...p, profile_mode: next }))
     await supabase.from('profiles').update({ profile_mode: next }).eq('id', user.id)
   }
@@ -148,32 +130,6 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/auth')
-  }
-
-  const checkNewAchievements = (achieved: any[]) => {
-    if (!user) return
-    const key = 'gathr_badges_' + user.id
-    const prev: string[] = JSON.parse(localStorage.getItem(key) || '[]')
-    const current = achieved.map((a: any) => a.title)
-    const newOnes = current.filter((t: string) => !prev.includes(t))
-    if (newOnes.length > 0) {
-      const first = achieved.find((a: any) => a.title === newOnes[0])
-      if (first) setCelebrationAch(first)
-    }
-    localStorage.setItem(key, JSON.stringify(current))
-  }
-
-  const handleTogglePin = async (title: string) => {
-    if (!user) return
-    let next: string[]
-    if (pinnedBadges.includes(title)) {
-      next = pinnedBadges.filter(t => t !== title)
-    } else {
-      if (pinnedBadges.length >= 3) return
-      next = [...pinnedBadges, title]
-    }
-    setPinnedBadges(next)
-    await supabase.from('profiles').update({ pinned_badges: next }).eq('id', user.id)
   }
 
   const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -280,35 +236,11 @@ export default function ProfilePage() {
                 (isProfessional ? 'bg-[#2A4A2A]/60 border-[#7EC87E]/40 text-[#7EC87E]' : 'bg-white/5 border-white/10 text-white/30')}>
               💼 Professional
             </button>
-            {(() => {
-              const tier = level >= 20 ? { label: 'Legend', icon: '👑', color: 'text-[#E8B84B]', border: 'border-[#E8B84B]/30', bg: 'bg-[#2A2010]/60' }
-                : level >= 10 ? { label: 'Veteran', icon: '🔥', color: 'text-[#E85B5B]', border: 'border-[#E85B5B]/30', bg: 'bg-[#2A1010]/60' }
-                : level >= 5 ? { label: 'Regular', icon: '⭐', color: 'text-[#A0AEC0]', border: 'border-[#A0AEC0]/30', bg: 'bg-[#1A1E24]/60' }
-                : { label: 'Newcomer', icon: '🌱', color: 'text-[#7EC87E]', border: 'border-[#7EC87E]/30', bg: 'bg-[#1A2A1A]/60' }
-              return (
-                <div className={'ml-auto flex items-center gap-1.5 border rounded-lg px-2.5 py-1 ' + tier.bg + ' ' + tier.border}>
-                  <span className="text-sm">{tier.icon}</span>
-                  <div>
-                    <div className={'text-[10px] font-bold ' + tier.color}>{tier.label}</div>
-                    <div className="text-[9px] text-white/30">Lv.{level} · {xp} XP</div>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
-          {pinnedBadges.length > 0 && (
-            <div className="flex gap-1.5 mt-2">
-              {pinnedBadges.map(title => {
-                const ach = ACHIEVEMENTS.find(a => a.title === title)
-                if (!ach) return null
-                return (
-                  <span key={title} className={'text-[10px] px-2 py-1 rounded-lg border ' + tierBg(ach.tier, true) + ' ' + tierBorder(ach.tier, true) + ' ' + tierColor(ach.tier, true)}>
-                    {ach.icon} {ach.title}
-                  </span>
-                )
-              })}
+            <div className="ml-auto flex items-center gap-1.5 bg-[#2A2010]/60 border border-[#E8B84B]/20 rounded-lg px-2.5 py-1">
+              <span className="text-[10px] text-[#E8B84B] font-bold">Lv.{level}</span>
+              <span className="text-[9px] text-white/30">{xp} XP</span>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -466,27 +398,6 @@ export default function ProfilePage() {
 
         {activeTab === 2 && (
           <>
-            {(() => {
-              const earned = ACHIEVEMENTS.filter(a => a.val >= a.req)
-              if (earned.length === 0) return null
-              return (
-                <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Earned Badges</div>
-                    <span className="text-[10px] text-[#E8B84B]">{earned.length} unlocked</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {earned.map(ach => (
-                      <div key={ach.title}
-                        className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border ' + tierBg(ach.tier, true) + ' ' + tierBorder(ach.tier, true)}>
-                        <span className="text-sm">{ach.icon}</span>
-                        <span className={'text-[10px] font-semibold ' + tierColor(ach.tier, true)}>{ach.title}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })()}
             <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/20 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -528,47 +439,6 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Growth Card */}
-            {(() => {
-              const catCounts: Record<string, number> = {}
-              attendedEvents.forEach((e: any) => { if (e.category) catCounts[e.category] = (catCounts[e.category] || 0) + 1 })
-              const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0]
-              const profileComplete = [profile?.avatar_url, profile?.bio_social, profile?.name, (profile?.interests?.length >= 3), profile?.city].filter(Boolean).length
-              const completePct = Math.round((profileComplete / 5) * 100)
-              const xpToNextLevel = xpToNext - xpInLevel
-              const firstEvent = [...hostedEvents, ...attendedEvents].sort((a: any, b: any) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime())[0]
-              return (
-                <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-4 space-y-3">
-                  <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Growth</div>
-                  <div className="flex items-center justify-between py-2.5 border-b border-white/[0.06]">
-                    <div className="text-xs text-white/50">Profile completion</div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#7EC87E] rounded-full" style={{ width: completePct + '%' }} />
-                      </div>
-                      <span className="text-xs font-bold text-[#7EC87E]">{completePct}%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between py-2.5 border-b border-white/[0.06]">
-                    <div className="text-xs text-white/50">XP to next level</div>
-                    <span className="text-xs font-bold text-[#E8B84B]">{xpToNextLevel} XP</span>
-                  </div>
-                  {topCat && (
-                    <div className="flex items-center justify-between py-2.5 border-b border-white/[0.06]">
-                      <div className="text-xs text-white/50">Top category</div>
-                      <span className="text-xs font-bold text-[#F0EDE6]">{topCat[0]} · {topCat[1]}×</span>
-                    </div>
-                  )}
-                  {firstEvent && (
-                    <div className="flex items-center justify-between py-2.5">
-                      <div className="text-xs text-white/50">On Gathr since</div>
-                      <span className="text-xs font-bold text-[#F0EDE6]">{new Date(firstEvent.start_datetime).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
-                    </div>
-                  )}
-                </div>
-              )
-            })()}
-
             <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Achievements</div>
@@ -593,15 +463,9 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex-shrink-0 text-right">
                         {unlocked ? (
-                        <div className="flex flex-col items-end gap-1">
                           <span className={'text-[9px] px-2 py-0.5 rounded border font-medium ' + tierColor(ach.tier, true) + ' ' + tierBorder(ach.tier, true)}>
                             {ach.tier === 'gold' ? '🥇' : ach.tier === 'silver' ? '🥈' : '🥉'}
                           </span>
-                          <button onClick={() => handleTogglePin(ach.title)}
-                            className={'text-[8px] px-1.5 py-0.5 rounded border transition-all ' + (pinnedBadges.includes(ach.title) ? 'border-[#E8B84B]/40 text-[#E8B84B] bg-[#E8B84B]/10' : 'border-white/10 text-white/25')}>
-                            {pinnedBadges.includes(ach.title) ? '📌 Pinned' : pinnedBadges.length >= 3 ? '—' : 'Pin'}
-                          </button>
-                        </div>
                         ) : (
                           <span className="text-[9px] text-white/20">{ach.val}/{ach.req}</span>
                         )}
@@ -622,20 +486,28 @@ export default function ProfilePage() {
                   {connections.length} Connection{connections.length !== 1 ? 's' : ''}
                 </div>
                 {connections.map(conn => (
-                  <div key={conn.id} onClick={() => router.push('/profile/' + conn.id)}
-                    className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
-                    {conn.avatar_url ? (
-                      <img src={conn.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
-                    ) : (
-                      <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-                        {conn.name?.charAt(0) || '🧑'}
+                  <div key={conn.id} className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0">
+                    <div onClick={() => router.push('/profile/' + conn.id)} className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer active:opacity-70">
+                      {conn.avatar_url ? (
+                        <img src={conn.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
+                          {conn.name?.charAt(0) || '🧑'}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-[#F0EDE6]">{conn.name}</div>
+                        <div className="text-xs text-white/40 mt-0.5 truncate">{conn.bio_social || conn.city || ''}</div>
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-[#F0EDE6]">{conn.name}</div>
-                      <div className="text-xs text-white/40 mt-0.5 truncate">{conn.bio_social || conn.city || ''}</div>
                     </div>
-                    <span className="text-white/20 text-sm flex-shrink-0">›</span>
+                    <button
+                      onClick={() => {
+                        const threadId = [user?.id, conn.id].sort().join('_')
+                        router.push('/messages/' + threadId)
+                      }}
+                      className="w-8 h-8 bg-[#1E3A1E] border border-[#7EC87E]/20 rounded-xl flex items-center justify-center text-sm flex-shrink-0 active:scale-95 transition-transform">
+                      💬
+                    </button>
                   </div>
                 ))}
               </div>
@@ -655,32 +527,32 @@ export default function ProfilePage() {
 
       </div>
 
-      {celebrationAch && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center px-6"
-          style={{ background: 'rgba(13,17,13,0.92)', backdropFilter: 'blur(12px)' }}>
-          <div className="w-full max-w-sm text-center">
-            <div className="text-8xl mb-4 animate-bounce">{celebrationAch.icon}</div>
-            <div className="text-[10px] uppercase tracking-widest text-[#E8B84B] font-bold mb-2">Achievement Unlocked</div>
-            <div className={'text-2xl font-bold mb-2 ' + tierColor(celebrationAch.tier, true)}>{celebrationAch.title}</div>
-            <div className="text-sm text-white/50 mb-8">{celebrationAch.desc}</div>
+      {showLevelUp && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-6" onClick={() => setShowLevelUp(false)}>
+          <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/30 rounded-3xl p-6 w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
+            <div className="text-6xl mb-3">{celebrateLevel >= 10 ? '👑' : celebrateLevel >= 5 ? '🔥' : '⭐'}</div>
+            <div className="text-xs uppercase tracking-widest text-[#E8B84B]/50 mb-1">Level Up!</div>
+            <div className="text-3xl font-bold text-[#E8B84B] mb-2">Level {celebrateLevel}</div>
+            <div className="text-sm text-white/40 mb-6">You're crushing it on Gathr — keep showing up!</div>
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  if (navigator.share) navigator.share({ title: 'Achievement Unlocked on Gathr!', text: `Just earned the "${celebrationAch.title}" badge on Gathr ${celebrationAch.icon}` })
-                  else navigator.clipboard.writeText(`Just earned the "${celebrationAch.title}" badge on Gathr ${celebrationAch.icon}`)
+                  const msg = `🎉 Just hit Level ${celebrateLevel} on Gathr! Finding my people one event at a time. 🌱`
+                  if (navigator.share) navigator.share({ title: 'Gathr Level Up!', text: msg })
+                  else navigator.clipboard.writeText(msg)
                 }}
-                className="flex-1 py-3.5 rounded-2xl bg-[#1C241C] border border-white/10 text-sm text-white/60 font-medium">
+                className="flex-1 py-3 rounded-2xl bg-[#1C241C] border border-white/10 text-white/60 text-sm font-medium active:scale-95 transition-transform">
                 Share 🔗
               </button>
-              <button onClick={() => setCelebrationAch(null)}
-                className="flex-[2] py-3.5 rounded-2xl bg-[#E8B84B] text-[#0D110D] font-bold text-sm active:scale-95 transition-transform"
-                style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.3)' }}>
-                Nice! 🎉
+              <button onClick={() => setShowLevelUp(false)}
+                className="flex-1 py-3 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform">
+                Let's Go! 🚀
               </button>
             </div>
           </div>
         </div>
       )}
+
       <BottomNav />
     </div>
   )
