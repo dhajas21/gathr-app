@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CITY_NAMES, getCityCoords, EVENT_CATEGORIES } from '@/lib/constants'
@@ -11,6 +11,7 @@ export default function CreateEventPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Form fields
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
@@ -21,7 +22,6 @@ export default function CreateEventPage() {
   const [address, setAddress] = useState('')
   const [city, setCity] = useState('Bellingham')
   const [capacity, setCapacity] = useState('')
-
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
   const [geocoding, setGeocoding] = useState(false)
@@ -31,6 +31,113 @@ export default function CreateEventPage() {
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const coverRef = useRef<HTMLInputElement>(null)
+
+  // Draft state
+  const [userId, setUserId] = useState<string | null>(null)
+  const [pendingDraft, setPendingDraft] = useState<any>(null)
+  const [showDraftModal, setShowDraftModal] = useState(false)
+  const [draftSaving, setDraftSaving] = useState(false)
+  const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null)
+  const [draftToast, setDraftToast] = useState(false)
+  const [isFromDraft, setIsFromDraft] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) { router.push('/auth'); return }
+      setUserId(session.user.id)
+      checkForDraft(session.user.id)
+    })
+  }, [])
+
+  const checkForDraft = async (uid: string) => {
+    const { data } = await supabase
+      .from('event_drafts')
+      .select('*')
+      .eq('user_id', uid)
+      .single()
+    if (data && (data.title || data.category || data.venue_name)) {
+      setPendingDraft(data)
+      setShowDraftModal(true)
+    }
+  }
+
+  const applyDraft = (draft: any) => {
+    setTitle(draft.title || '')
+    setCategory(draft.category || '')
+    setDescription(draft.description || '')
+    setDate(draft.date || '')
+    setStartTime(draft.start_time || '')
+    setEndTime(draft.end_time || '')
+    setVenueName(draft.venue_name || '')
+    setAddress(draft.address || '')
+    setCity(draft.city || 'Bellingham')
+    setCapacity(draft.capacity || '')
+    setTags(draft.tags || [])
+    setPrivacy(draft.privacy || 'public')
+    if (draft.cover_url) setCoverPreview(draft.cover_url)
+    if (draft.lat) setLat(draft.lat)
+    if (draft.lng) setLng(draft.lng)
+    setDraftSavedAt(new Date(draft.updated_at))
+    setIsFromDraft(true)
+    setShowDraftModal(false)
+    setPendingDraft(null)
+  }
+
+  const discardDraft = async (uid: string) => {
+    await supabase.from('event_drafts').delete().eq('user_id', uid)
+    setPendingDraft(null)
+    setShowDraftModal(false)
+  }
+
+  const saveDraft = useCallback(async (silent = false) => {
+    if (!userId) return
+    if (!silent) setDraftSaving(true)
+
+    // If a new cover file is selected, upload it to draft path
+    let coverUrl: string | null = coverFile ? null : coverPreview
+    if (coverFile) {
+      const ext = coverFile.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const { error: upErr } = await supabase.storage
+        .from('event-covers')
+        .upload(`drafts/${userId}/cover.${ext}`, coverFile, { upsert: true })
+      if (!upErr) {
+        const { data: urlData } = supabase.storage
+          .from('event-covers')
+          .getPublicUrl(`drafts/${userId}/cover.${ext}`)
+        coverUrl = urlData?.publicUrl ?? null
+        if (coverUrl) setCoverPreview(coverUrl)
+      }
+    }
+
+    await supabase.from('event_drafts').upsert({
+      user_id: userId,
+      title, category, description, date,
+      start_time: startTime, end_time: endTime,
+      venue_name: venueName, address, city, capacity,
+      tags, privacy, cover_url: coverUrl, lat, lng,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' })
+
+    setDraftSavedAt(new Date())
+
+    if (!silent) {
+      setDraftSaving(false)
+      setDraftToast(true)
+      setTimeout(() => setDraftToast(false), 2500)
+    }
+  }, [userId, title, category, description, date, startTime, endTime, venueName, address, city, capacity, tags, privacy, coverFile, coverPreview, lat, lng])
+
+  // Auto-save every 30s when there's content
+  useEffect(() => {
+    if (!userId || !title) return
+    const interval = setInterval(() => saveDraft(true), 30000)
+    return () => clearInterval(interval)
+  }, [userId, title, saveDraft])
+
+  const deleteDraft = async () => {
+    if (!userId) return
+    await supabase.from('event_drafts').delete().eq('user_id', userId)
+  }
 
   const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -52,20 +159,14 @@ export default function CreateEventPage() {
         { headers: { 'User-Agent': 'GathrApp/1.0' } }
       )
       const data = await res.json()
-      if (data[0]) {
-        setLat(parseFloat(data[0].lat))
-        setLng(parseFloat(data[0].lon))
-      }
+      if (data[0]) { setLat(parseFloat(data[0].lat)); setLng(parseFloat(data[0].lon)) }
     } catch {}
     setGeocoding(false)
   }
 
   const addTag = () => {
     const t = tagInput.trim().toLowerCase()
-    if (t && !tags.includes(t) && tags.length < 10) {
-      setTags([...tags, t])
-      setTagInput('')
-    }
+    if (t && !tags.includes(t) && tags.length < 10) { setTags([...tags, t]); setTagInput('') }
   }
 
   const removeTag = (tag: string) => setTags(tags.filter(t => t !== tag))
@@ -80,7 +181,8 @@ export default function CreateEventPage() {
     const startDatetime = new Date(date + 'T' + startTime)
     const endDatetime = endTime ? new Date(date + 'T' + endTime) : new Date(date + 'T' + startTime)
 
-    let coverUrl: string | null = null
+    // Upload final cover (might already be a URL from draft)
+    let coverUrl: string | null = coverFile ? null : coverPreview
     if (coverFile) {
       const ext = coverFile.name.split('.').pop()?.toLowerCase() || 'jpg'
       const path = session.user.id + '/' + Date.now() + '.' + ext
@@ -117,7 +219,23 @@ export default function CreateEventPage() {
       return
     }
 
+    // Clean up the draft now that we've published
+    await deleteDraft()
     router.push('/events/' + insertedEvent!.id)
+  }
+
+  const formatDraftAge = (d: Date) => {
+    const diff = Date.now() - d.getTime()
+    if (diff < 60000) return 'just now'
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago'
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago'
+    return Math.floor(diff / 86400000) + 'd ago'
+  }
+
+  const draftProgress = () => {
+    if (!pendingDraft) return 0
+    const fields = [pendingDraft.title, pendingDraft.category, pendingDraft.date, pendingDraft.start_time, pendingDraft.venue_name, pendingDraft.description]
+    return Math.round((fields.filter(Boolean).length / fields.length) * 100)
   }
 
   const inputClass = 'w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm'
@@ -125,6 +243,8 @@ export default function CreateEventPage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
+
+      {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4 border-b border-white/10">
         <button
           onClick={() => (step === 1 ? router.push('/home') : setStep(1))}
@@ -132,11 +252,26 @@ export default function CreateEventPage() {
         >
           ←
         </button>
-        <h1 className="text-lg font-bold text-[#F0EDE6]">
-          {step === 1 ? 'The Basics' : 'The Details'}
-        </h1>
+        <div className="flex items-center gap-2 flex-1">
+          <h1 className="text-lg font-bold text-[#F0EDE6]">
+            {step === 1 ? 'The Basics' : 'The Details'}
+          </h1>
+          {isFromDraft && (
+            <span className="text-[9px] bg-[#E8B84B]/10 border border-[#E8B84B]/20 text-[#E8B84B] px-2 py-0.5 rounded-full font-medium">Draft</span>
+          )}
+        </div>
+        <button
+          onClick={() => saveDraft(false)}
+          disabled={draftSaving || !userId}
+          className={'text-xs font-medium transition-all ' + (
+            draftToast ? 'text-[#7EC87E]' : 'text-white/40 active:text-[#E8B84B]'
+          )}
+        >
+          {draftSaving ? 'Saving…' : draftToast ? 'Saved ✓' : 'Save draft'}
+        </button>
       </div>
 
+      {/* Progress bar */}
       <div className="px-5 pt-4">
         <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-2">
           <div
@@ -150,6 +285,7 @@ export default function CreateEventPage() {
         </div>
       </div>
 
+      {/* Form */}
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4 pb-32">
         {step === 1 ? (
           <>
@@ -229,6 +365,8 @@ export default function CreateEventPage() {
                 <input type="number" className={inputClass} placeholder="50" value={capacity} onChange={e => setCapacity(e.target.value)} min={0} max={10000} />
               </div>
             </div>
+
+            {error && <p className="text-[#E85B5B] text-xs">{error}</p>}
           </>
         ) : (
           <>
@@ -275,7 +413,11 @@ export default function CreateEventPage() {
         )}
       </div>
 
+      {/* Bottom actions */}
       <div className="fixed bottom-0 left-0 right-0 px-5 pb-10 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
+        {draftSavedAt && !draftToast && (
+          <p className="text-center text-[10px] text-white/20 mb-2">Auto-saved {formatDraftAge(draftSavedAt)}</p>
+        )}
         {step === 1 ? (
           <button
             onClick={() => setStep(2)}
@@ -295,6 +437,65 @@ export default function CreateEventPage() {
           </div>
         )}
       </div>
+
+      {/* Resume draft bottom sheet */}
+      {showDraftModal && pendingDraft && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => setShowDraftModal(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-xl flex items-center justify-center text-lg flex-shrink-0">📝</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-[#F0EDE6] truncate">
+                  {pendingDraft.title || 'Untitled event'}
+                </div>
+                <div className="text-xs text-white/40 mt-0.5">
+                  Draft · saved {formatDraftAge(new Date(pendingDraft.updated_at))}
+                </div>
+              </div>
+            </div>
+
+            {/* Completion bar */}
+            <div className="mb-5">
+              <div className="flex justify-between text-[10px] text-white/30 mb-1.5">
+                <span>Draft completion</span>
+                <span>{draftProgress()}%</span>
+              </div>
+              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full bg-[#E8B84B] rounded-full transition-all" style={{ width: draftProgress() + '%' }} />
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {[
+                  { label: 'Title', done: !!pendingDraft.title },
+                  { label: 'Category', done: !!pendingDraft.category },
+                  { label: 'Date', done: !!pendingDraft.date },
+                  { label: 'Time', done: !!pendingDraft.start_time },
+                  { label: 'Venue', done: !!pendingDraft.venue_name },
+                  { label: 'Description', done: !!pendingDraft.description },
+                ].map(f => (
+                  <span key={f.label} className={'text-[9px] px-2 py-0.5 rounded border ' + (f.done ? 'text-[#7EC87E] border-[#7EC87E]/20 bg-[#7EC87E]/5' : 'text-white/20 border-white/10')}>
+                    {f.done ? '✓ ' : ''}{f.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => applyDraft(pendingDraft)}
+              className="w-full py-3.5 rounded-2xl bg-[#E8B84B] text-[#0D110D] font-bold text-sm mb-3 active:scale-[0.98] transition-transform"
+            >
+              Continue Draft
+            </button>
+            <button
+              onClick={() => userId && discardDraft(userId)}
+              className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/40 text-sm active:scale-[0.98] transition-transform"
+            >
+              Discard & Start Fresh
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
