@@ -43,8 +43,11 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
 
   const router = useRouter()
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   useEffect(() => {
     params.then(({ id }) => {
+      if (!UUID_RE.test(id)) { router.push('/home'); return }
       setEventId(id)
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }

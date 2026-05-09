@@ -31,8 +31,11 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const coverRef = useRef<HTMLInputElement>(null)
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   useEffect(() => {
     params.then(({ id }) => {
+      if (!UUID_RE.test(id)) { router.push('/home'); return }
       setEventId(id)
       loadEvent(id)
     })

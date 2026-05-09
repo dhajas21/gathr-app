@@ -21,8 +21,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const presenceChannelRef = useRef<any>(null)
   const router = useRouter()
 
+  const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+  const THREAD_RE = new RegExp('^' + UUID + '_' + UUID + '$', 'i')
+
   useEffect(() => {
     params.then(({ id }) => {
+      if (!THREAD_RE.test(id)) { router.push('/messages'); return }
       setThreadId(id)
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }
@@ -229,10 +233,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const formatTime = (dt: string) =>
     new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
+  const isSafeUrl = (url: string) => /^https?:\/\//i.test(url)
+
   const renderContent = (msg: any) => {
     const t = msg.text || ''
     if (t.startsWith('[image]')) {
       const url = t.slice(7)
+      if (!isSafeUrl(url)) return <span>{t}</span>
       return (
         <a href={url} target="_blank" rel="noopener noreferrer">
           <img
@@ -246,9 +253,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }
     const fileMatch = t.match(/^\[file:(.+?)\](.+)$/)
     if (fileMatch) {
+      const fileUrl = fileMatch[2]
+      if (!isSafeUrl(fileUrl)) return <span>{t}</span>
       return (
         <a
-          href={fileMatch[2]}
+          href={fileUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2"

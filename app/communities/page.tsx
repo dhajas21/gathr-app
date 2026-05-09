@@ -171,7 +171,7 @@ export default function CommunitiesPage() {
                 <div key={comm.id} onClick={() => router.push(`/communities/${comm.id}`)}
                   className="bg-[#1C241C] border border-white/10 rounded-2xl p-3 flex items-center gap-3 cursor-pointer active:scale-[0.98] transition-transform">
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                    style={{ background: comm.banner_gradient || '#1E2E1E' }}>
+                    style={{ background: comm.banner_gradient || 'var(--gradient-community-banner)' }}>
                     {comm.icon || '👥'}
                   </div>
                   <div className="flex-1 min-w-0">

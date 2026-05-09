@@ -50,8 +50,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const chatEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   useEffect(() => {
     params.then(({ id }) => {
+      if (!UUID_RE.test(id)) { router.push('/communities'); return }
       setCommunityId(id)
       const tab = new URLSearchParams(window.location.search).get('tab')
       if (tab === 'chat' || tab === 'feed' || tab === 'events' || tab === 'members') setActiveTab(tab)
