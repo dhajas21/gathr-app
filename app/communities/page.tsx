@@ -78,19 +78,22 @@ export default function CommunitiesPage() {
     setLoading(false)
   }
 
-  const handleJoin = async (communityId: string) => {
+  const handleJoin = async (communityId: string, isPrivate: boolean) => {
     if (!user || joiningId) return
     setJoiningId(communityId)
+    const role = isPrivate ? 'pending' : 'member'
     const { error } = await supabase.from('community_members').insert({
       community_id: communityId,
       user_id: user.id,
-      role: 'member',
+      role,
     })
     if (!error) {
-      const comm = discover.find(c => c.id === communityId)
-      await supabase.from('communities').update({
-        member_count: (comm?.member_count || 0) + 1
-      }).eq('id', communityId)
+      if (!isPrivate) {
+        const comm = discover.find(c => c.id === communityId)
+        await supabase.from('communities').update({
+          member_count: (comm?.member_count || 0) + 1
+        }).eq('id', communityId)
+      }
       await fetchCommunities(user.id)
     }
     setJoiningId(null)
@@ -230,7 +233,7 @@ export default function CommunitiesPage() {
                           </span>
                         )}
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id) }}
+                      <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id, comm.is_private) }}
                         disabled={joiningId === comm.id}
                         className="bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform disabled:opacity-50">
                         {joiningId === comm.id ? '...' : '+ Join'}
@@ -275,7 +278,7 @@ export default function CommunitiesPage() {
                         </span>
                       )}
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id) }}
+                    <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id, comm.is_private) }}
                       disabled={joiningId === comm.id}
                       className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform disabled:opacity-50">
                       {joiningId === comm.id ? '...' : '+ Join'}

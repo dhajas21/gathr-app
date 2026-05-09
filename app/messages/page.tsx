@@ -327,7 +327,7 @@ export default function MessagesPage() {
             <>
               <p className="text-white/25 text-xs text-center mb-5">Say hi to one of your connections</p>
               <div className="w-full space-y-2">
-                {acceptedConnections.map(conn => (
+                {acceptedConnections.slice(0, 5).map(conn => (
                   <button
                     key={conn.id}
                     onClick={() => router.push('/messages/' + [conn.requester_id, conn.addressee_id].sort().join('_'))}
@@ -345,6 +345,12 @@ export default function MessagesPage() {
                     <span className="text-white/20 text-lg">→</span>
                   </button>
                 ))}
+                {acceptedConnections.length > 5 && (
+                  <button onClick={() => setShowCompose(true)}
+                    className="w-full py-2.5 rounded-2xl bg-[#1C241C] border border-white/10 text-white/35 text-xs active:scale-[0.98] transition-transform">
+                    +{acceptedConnections.length - 5} more — tap ✏️ to search
+                  </button>
+                )}
               </div>
             </>
           )}

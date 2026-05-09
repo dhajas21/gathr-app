@@ -238,6 +238,7 @@ export default function ProfilePage() {
 
   const handleTogglePin = async (title: string) => {
     if (!user) return
+    const prev = pinnedBadges
     let next: string[]
     if (pinnedBadges.includes(title)) {
       next = pinnedBadges.filter(t => t !== title)
@@ -246,7 +247,8 @@ export default function ProfilePage() {
       next = [...pinnedBadges, title]
     }
     setPinnedBadges(next)
-    await supabase.from('profiles').update({ pinned_badges: next }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update({ pinned_badges: next }).eq('id', user.id)
+    if (error) setPinnedBadges(prev)
   }
 
   const handleSignOut = async () => {

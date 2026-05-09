@@ -303,11 +303,11 @@ export default function HomePage() {
     e.stopPropagation()
     if (!user) return
     if (bookmarkedEventIds.includes(eventId)) {
-      await supabase.from('event_bookmarks').delete().eq('event_id', eventId).eq('user_id', user.id)
       setBookmarkedEventIds(prev => prev.filter(id => id !== eventId))
+      await supabase.from('event_bookmarks').delete().eq('event_id', eventId).eq('user_id', user.id)
     } else {
-      await supabase.from('event_bookmarks').insert({ event_id: eventId, user_id: user.id })
       setBookmarkedEventIds(prev => [...prev, eventId])
+      await supabase.from('event_bookmarks').insert({ event_id: eventId, user_id: user.id })
     }
   }
 

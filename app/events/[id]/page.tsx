@@ -876,7 +876,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <button onClick={handleRsvp} disabled={rsvpLoading || isFull}
                 className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]' : isFull ? 'bg-[#1C241C] border border-white/10 text-white/40' : 'bg-[#E8B84B] text-[#0D110D]'}`}
                 style={{boxShadow: rsvped || isFull ? 'none' : '0 5px 22px rgba(232,184,75,0.3)'}}>
-                {rsvpLoading ? 'Loading...' : rsvped ? '✓ You\'re going · Cancel RSVP' : isFull ? '🚫 Event Full' : event.ticket_type === 'paid' ? `🎟 Get Ticket${event.ticket_price ? ` · $${event.ticket_price.toFixed(2)}` : ''}` : event.ticket_type === 'donation' ? '🎁 Join · Donation welcome' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
+                {rsvpLoading ? (rsvped ? 'Cancelling...' : 'Joining...') : rsvped ? '✓ You\'re going · Cancel RSVP' : isFull ? '🚫 Event Full' : event.ticket_type === 'paid' ? `🎟 Get Ticket${event.ticket_price ? ` · $${event.ticket_price.toFixed(2)}` : ''}` : event.ticket_type === 'donation' ? '🎁 Join · Donation welcome' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
               </button>
             )
           })()}
