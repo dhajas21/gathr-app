@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { CommunitiesPageSkeleton } from '@/components/Skeleton'
 
 const CATEGORIES = ['All', 'Fitness', 'Wellness', 'Startups', 'Arts', 'Music', 'Tech', 'Food & Drink', 'Outdoors', 'Nightlife', 'Social']
 
@@ -45,6 +47,10 @@ export default function CommunitiesPage() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+
+  const { refreshing, pullProgress, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
+    async () => { if (user) await fetchCommunities(user.id) }
+  )
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -106,14 +112,19 @@ export default function CommunitiesPage() {
     return matchesCategory && matchesSearch && (activeCategory !== 'All' || notSuggested)
   })
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
-    </div>
-  )
+  if (loading) return <CommunitiesPageSkeleton />
 
   return (
-    <div className="min-h-screen bg-[#0D110D] pb-24">
+    <div className="min-h-screen bg-[#0D110D] pb-24"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}>
+      {(refreshing || pullProgress > 0) && (
+        <div className="fixed top-0 left-0 right-0 h-0.5 z-[100]" style={{ background: 'rgba(232,184,75,0.25)' }}>
+          <div className={'h-full bg-[#E8B84B] ' + (refreshing ? 'animate-pulse w-full' : 'transition-none')}
+            style={!refreshing ? { width: pullProgress * 100 + '%' } : undefined} />
+        </div>
+      )}
 
       <div className="px-4 pt-14 pb-2">
         <div className="flex items-center justify-between mb-1">

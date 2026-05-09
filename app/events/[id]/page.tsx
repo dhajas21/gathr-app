@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { EventDetailSkeleton } from '@/components/Skeleton'
 
 interface Event {
   id: string
@@ -266,7 +267,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     setMatchConnStatuses(connMap)
 
     const scored = (profilesRes.data || [])
-      .filter((p: any) => !connMap[p.id] || connMap[p.id] === 'declined')
+      .filter((p: any) => !connMap[p.id])
       .map((p: any) => {
         const their = (p.interests || []).map((i: string) => i.toLowerCase())
         const shared = myInterests.filter(i => their.includes(i))
@@ -412,11 +413,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
-    </div>
-  )
+  if (loading) return <EventDetailSkeleton />
 
   if (blocked) return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col items-center justify-center px-6 gap-4 text-center">
@@ -712,7 +709,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                         <span className="text-xs font-semibold text-[#F0EDE6]">{profile?.name || 'Unknown'}</span>
                         {isCommentHost && <span className="text-[8px] text-[#E8B84B] bg-[#E8B84B]/10 px-1.5 py-0.5 rounded-full">Host</span>}
                         <span className="text-[9px] text-white/25 ml-auto">{formatCommentTime(comment.created_at)}</span>
-                        {isOwn && (
+                        {(isOwn || isHost) && (
                           <button onClick={() => handleDeleteComment(comment.id)} className="text-[9px] text-white/20 hover:text-red-400">✕</button>
                         )}
                       </div>
@@ -773,11 +770,16 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       {/* RSVP CTA */}
       {!isHost && (
         <div className="fixed bottom-16 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
-          <button onClick={handleRsvp} disabled={rsvpLoading}
-            className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]' : 'bg-[#E8B84B] text-[#0D110D]'}`}
-            style={{boxShadow: rsvped ? 'none' : '0 5px 22px rgba(232,184,75,0.3)'}}>
-            {rsvpLoading ? 'Loading...' : rsvped ? '✓ You\'re going · Cancel RSVP' : event.ticket_type === 'paid' ? `🎟 Get Ticket${event.ticket_price ? ` · $${event.ticket_price.toFixed(2)}` : ''}` : event.ticket_type === 'donation' ? '🎁 Join · Donation welcome' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
-          </button>
+          {(() => {
+            const isFull = event.capacity > 0 && event.spots_left === 0 && !rsvped
+            return (
+              <button onClick={handleRsvp} disabled={rsvpLoading || isFull}
+                className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]' : isFull ? 'bg-[#1C241C] border border-white/10 text-white/40' : 'bg-[#E8B84B] text-[#0D110D]'}`}
+                style={{boxShadow: rsvped || isFull ? 'none' : '0 5px 22px rgba(232,184,75,0.3)'}}>
+                {rsvpLoading ? 'Loading...' : rsvped ? '✓ You\'re going · Cancel RSVP' : isFull ? '🚫 Event Full' : event.ticket_type === 'paid' ? `🎟 Get Ticket${event.ticket_price ? ` · $${event.ticket_price.toFixed(2)}` : ''}` : event.ticket_type === 'donation' ? '🎁 Join · Donation welcome' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
+              </button>
+            )
+          })()}
         </div>
       )}
 

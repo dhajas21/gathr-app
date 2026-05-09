@@ -4,18 +4,38 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
-
-const ALL_INTERESTS = [
-  'Music', 'Fitness', 'Food & Drink', 'Tech', 'Outdoors', 'Art', 'Gaming',
-  'Film', 'Books', 'Travel', 'Photography', 'Cooking', 'Sports', 'Yoga',
-  'Dance', 'Comedy', 'Volunteering', 'Networking', 'Entrepreneurship', 'Wellness',
-]
+import { ProfilePageSkeleton } from '@/components/Skeleton'
 
 const CATEGORY_EMOJI: Record<string, string> = {
   Music: '🎸', Fitness: '🏃', 'Food & Drink': '🍺', Tech: '💻',
   Outdoors: '🥾', Art: '🎨', Gaming: '🎮', Film: '🎬',
 }
 const catEmoji = (cat: string) => CATEGORY_EMOJI[cat] || '🎉'
+
+function computeAchievements(hostedCount: number, attendedCount: number, connCount: number, interests: string[], profile: any, level: number) {
+  return [
+    { icon: '🎉', title: 'First Event', desc: 'Host your first event', tier: 'bronze', val: hostedCount, req: 1 },
+    { icon: '🎙', title: 'Rising Host', desc: 'Host 3 events', tier: 'silver', val: hostedCount, req: 3 },
+    { icon: '🏆', title: 'Host with the Most', desc: 'Host 10 events', tier: 'gold', val: hostedCount, req: 10 },
+    { icon: '🌆', title: 'Community Builder', desc: 'Host 25 events', tier: 'gold', val: hostedCount, req: 25 },
+    { icon: '👟', title: 'First Steps', desc: 'Attend your first event', tier: 'bronze', val: attendedCount, req: 1 },
+    { icon: '📅', title: 'Scene Regular', desc: 'Attend 5 events', tier: 'silver', val: attendedCount, req: 5 },
+    { icon: '⭐', title: 'Event Veteran', desc: 'Attend 20 events', tier: 'gold', val: attendedCount, req: 20 },
+    { icon: '🌟', title: 'Gathr Legend', desc: 'Attend 50 events', tier: 'gold', val: attendedCount, req: 50 },
+    { icon: '🤝', title: 'First Connection', desc: 'Make your first connection', tier: 'bronze', val: connCount, req: 1 },
+    { icon: '📡', title: 'Networker', desc: 'Make 10 connections', tier: 'silver', val: connCount, req: 10 },
+    { icon: '🦋', title: 'Social Butterfly', desc: 'Make 25 connections', tier: 'gold', val: connCount, req: 25 },
+    { icon: '👑', title: 'Connector', desc: 'Make 50 connections', tier: 'gold', val: connCount, req: 50 },
+    { icon: '🗺', title: 'Explorer', desc: 'Add 5 interests', tier: 'bronze', val: interests.length, req: 5 },
+    { icon: '🎯', title: 'Passionate', desc: 'Add 10 interests', tier: 'silver', val: interests.length, req: 10 },
+    { icon: '🔀', title: 'Dual Mode', desc: 'Activate Professional mode', tier: 'silver', val: (profile?.profile_mode === 'both' || profile?.profile_mode === 'professional') ? 1 : 0, req: 1 },
+    { icon: '💎', title: 'All-Rounder', desc: 'Host, attend & connect (5 each)', tier: 'gold', val: Math.min(hostedCount, attendedCount, connCount), req: 5 },
+    { icon: '🔥', title: 'On Fire', desc: 'Reach level 5', tier: 'gold', val: level, req: 5 },
+    { icon: '🚀', title: 'Power User', desc: 'Reach level 10', tier: 'gold', val: level, req: 10 },
+    { icon: '📸', title: 'Avatar', desc: 'Add a profile photo', tier: 'bronze', val: profile?.avatar_url ? 1 : 0, req: 1 },
+    { icon: '✍️', title: 'Storyteller', desc: 'Write your bio', tier: 'bronze', val: profile?.bio_social ? 1 : 0, req: 1 },
+  ]
+}
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
@@ -24,11 +44,12 @@ export default function ProfilePage() {
   const [attendedEvents, setAttendedEvents] = useState<any[]>([])
   const [connections, setConnections] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState(0)
-  const [editingInterests, setEditingInterests] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [celebrateLevel, setCelebrateLevel] = useState(0)
   const [xpBarWidth, setXpBarWidth] = useState(0)
+  const [newAchievements, setNewAchievements] = useState<any[]>([])
+  const [showAchievementUnlock, setShowAchievementUnlock] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -60,14 +81,28 @@ export default function ProfilePage() {
   useEffect(() => {
     if (loading) return
     try {
-      const xpVal = (hostedEvents.length * 10) + (attendedEvents.length * 5) + (connections.length * 3) + ((profile?.interests || []).length * 2)
+      const interests = profile?.interests || []
+      const xpVal = (hostedEvents.length * 10) + (attendedEvents.length * 5) + (connections.length * 3) + (interests.length * 2)
       const levelVal = Math.floor(xpVal / 50) + 1
+
       const storedLevel = parseInt(localStorage.getItem('gathr_user_level') || '0')
       if (storedLevel > 0 && levelVal > storedLevel) {
         setCelebrateLevel(levelVal)
         setShowLevelUp(true)
       }
       localStorage.setItem('gathr_user_level', String(levelVal))
+
+      const allAch = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, levelVal)
+      const seenRaw = localStorage.getItem('gathr_seen_achievements')
+      const seen: string[] | null = seenRaw ? JSON.parse(seenRaw) : null
+      if (seen !== null) {
+        const fresh = allAch.filter(a => a.val >= a.req && !seen.includes(a.title))
+        if (fresh.length > 0) {
+          setNewAchievements(fresh)
+          setShowAchievementUnlock(true)
+        }
+      }
+      localStorage.setItem('gathr_seen_achievements', JSON.stringify(allAch.filter(a => a.val >= a.req).map(a => a.title)))
     } catch {}
   }, [loading, hostedEvents.length, attendedEvents.length, connections.length, profile])
 
@@ -87,6 +122,13 @@ export default function ProfilePage() {
       confetti({ particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] })
     })
   }, [showLevelUp])
+
+  useEffect(() => {
+    if (!showAchievementUnlock) return
+    import('canvas-confetti').then(({ default: confetti }) => {
+      confetti({ particleCount: 100, spread: 55, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] })
+    })
+  }, [showAchievementUnlock])
 
   const fetchAll = async (userId: string) => {
     const [profileRes, hostedRes, rsvpRes, connRes] = await Promise.all([
@@ -135,16 +177,6 @@ export default function ProfilePage() {
     await supabase.from('profiles').update({ profile_mode: next }).eq('id', user.id)
   }
 
-  const handleToggleInterest = async (interest: string) => {
-    if (!user || !profile) return
-    const current: string[] = profile.interests || []
-    const next = current.includes(interest)
-      ? current.filter((i: string) => i !== interest)
-      : [...current, interest]
-    setProfile((p: any) => ({ ...p, interests: next }))
-    await supabase.from('profiles').update({ interests: next }).eq('id', user.id)
-  }
-
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/auth')
@@ -152,11 +184,7 @@ export default function ProfilePage() {
 
   const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
-    </div>
-  )
+  if (loading) return <ProfilePageSkeleton />
 
   const interests: string[] = profile?.interests || []
   const isSocial = profile?.profile_mode === 'social' || profile?.profile_mode === 'both' || !profile?.profile_mode
@@ -167,28 +195,7 @@ export default function ProfilePage() {
   const xpInLevel = xp % 50
   const xpToNext = 50
 
-  const ACHIEVEMENTS = [
-    { icon: '🎉', title: 'First Event', desc: 'Host your first event', tier: 'bronze', val: hostedEvents.length, req: 1 },
-    { icon: '🎙', title: 'Rising Host', desc: 'Host 3 events', tier: 'silver', val: hostedEvents.length, req: 3 },
-    { icon: '🏆', title: 'Host with the Most', desc: 'Host 10 events', tier: 'gold', val: hostedEvents.length, req: 10 },
-    { icon: '🌆', title: 'Community Builder', desc: 'Host 25 events', tier: 'gold', val: hostedEvents.length, req: 25 },
-    { icon: '👟', title: 'First Steps', desc: 'Attend your first event', tier: 'bronze', val: attendedEvents.length, req: 1 },
-    { icon: '📅', title: 'Scene Regular', desc: 'Attend 5 events', tier: 'silver', val: attendedEvents.length, req: 5 },
-    { icon: '⭐', title: 'Event Veteran', desc: 'Attend 20 events', tier: 'gold', val: attendedEvents.length, req: 20 },
-    { icon: '🌟', title: 'Gathr Legend', desc: 'Attend 50 events', tier: 'gold', val: attendedEvents.length, req: 50 },
-    { icon: '🤝', title: 'First Connection', desc: 'Make your first connection', tier: 'bronze', val: connections.length, req: 1 },
-    { icon: '📡', title: 'Networker', desc: 'Make 10 connections', tier: 'silver', val: connections.length, req: 10 },
-    { icon: '🦋', title: 'Social Butterfly', desc: 'Make 25 connections', tier: 'gold', val: connections.length, req: 25 },
-    { icon: '👑', title: 'Connector', desc: 'Make 50 connections', tier: 'gold', val: connections.length, req: 50 },
-    { icon: '🗺', title: 'Explorer', desc: 'Add 5 interests', tier: 'bronze', val: interests.length, req: 5 },
-    { icon: '🎯', title: 'Passionate', desc: 'Add 10 interests', tier: 'silver', val: interests.length, req: 10 },
-    { icon: '🔀', title: 'Dual Mode', desc: 'Activate Professional mode', tier: 'silver', val: (profile?.profile_mode === 'both' || profile?.profile_mode === 'professional') ? 1 : 0, req: 1 },
-    { icon: '💎', title: 'All-Rounder', desc: 'Host, attend & connect (5 each)', tier: 'gold', val: Math.min(hostedEvents.length, attendedEvents.length, connections.length), req: 5 },
-    { icon: '🔥', title: 'On Fire', desc: 'Reach level 5', tier: 'gold', val: level, req: 5 },
-    { icon: '🚀', title: 'Power User', desc: 'Reach level 10', tier: 'gold', val: level, req: 10 },
-    { icon: '📸', title: 'Avatar', desc: 'Add a profile photo', tier: 'bronze', val: profile?.avatar_url ? 1 : 0, req: 1 },
-    { icon: '✍️', title: 'Storyteller', desc: 'Write your bio', tier: 'bronze', val: profile?.bio_social ? 1 : 0, req: 1 },
-  ]
+  const ACHIEVEMENTS = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, level)
 
   const tierColor = (tier: string, unlocked: boolean) =>
     !unlocked ? 'text-white/20' :
@@ -216,19 +223,28 @@ export default function ProfilePage() {
 
       <div style={{ background: 'linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%)' }}>
         <div className="flex items-start justify-between px-4 pt-14 mb-3">
-          <div />
-          <div className="flex gap-2">
-            <button onClick={() => router.push('/notifications')}
-              className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">🔔</button>
+          <button onClick={() => router.push('/settings')}
+            className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/50 active:scale-95 transition-transform">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
+              <line x1="4" y1="6" x2="20" y2="6"/>
+              <circle cx="9" cy="6" r="2.25" fill="#0D110D" stroke="currentColor" strokeWidth="1.75"/>
+              <line x1="4" y1="12" x2="20" y2="12"/>
+              <circle cx="16" cy="12" r="2.25" fill="#0D110D" stroke="currentColor" strokeWidth="1.75"/>
+              <line x1="4" y1="18" x2="20" y2="18"/>
+              <circle cx="11" cy="18" r="2.25" fill="#0D110D" stroke="currentColor" strokeWidth="1.75"/>
+            </svg>
+          </button>
+          <div className="flex items-center gap-2">
             <button onClick={() => router.push('/bookmarks')}
-              className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">🔖</button>
-            <button onClick={() => router.push('/settings')}
-              className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">⚙️</button>
-            <button onClick={() => router.push('/host')}
-              className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm">📊</button>
+              className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/45 active:scale-95 transition-transform">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 3h14a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z"/>
+              </svg>
+            </button>
             <button onClick={() => router.push('/profile/edit')}
-              className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-[#F0EDE6]">
-              ✏️ Edit
+              className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-4 py-2.5 rounded-xl active:scale-95 transition-transform"
+              style={{ boxShadow: '0 2px 12px rgba(232,184,75,0.28)' }}>
+              Edit
             </button>
           </div>
         </div>
@@ -265,7 +281,7 @@ export default function ProfilePage() {
       <div className="flex border-t border-b border-white/10">
         {[
           { num: hostedEvents.length, label: 'Hosted' },
-          { num: attendedEvents.length, label: 'Attended' },
+          { num: attendedEvents.length, label: 'RSVPs' },
           { num: connections.length, label: 'Connections' },
           { num: unlockedCount, label: 'Achievements' },
         ].map((stat, i) => (
@@ -293,37 +309,22 @@ export default function ProfilePage() {
             <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
               <div className="flex items-center justify-between mb-2.5">
                 <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Interests</div>
-                <button onClick={() => setEditingInterests(e => !e)}
-                  className={'text-[10px] px-2 py-0.5 rounded-lg border transition-colors ' +
-                    (editingInterests ? 'bg-[#E8B84B]/15 border-[#E8B84B]/30 text-[#E8B84B]' : 'bg-white/5 border-white/10 text-white/40')}>
-                  {editingInterests ? 'Done' : 'Edit'}
+                <button onClick={() => router.push('/profile/edit')}
+                  className="text-[10px] px-2 py-0.5 rounded-lg border bg-white/5 border-white/10 text-white/40">
+                  Manage →
                 </button>
               </div>
-              {editingInterests ? (
+              {interests.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {ALL_INTERESTS.map(interest => {
-                    const selected = interests.includes(interest)
-                    return (
-                      <button key={interest} onClick={() => handleToggleInterest(interest)}
-                        className={'text-xs px-2.5 py-1 rounded-lg border transition-all active:scale-95 ' +
-                          (selected
-                            ? 'bg-[#2A4A2A]/60 border-[#7EC87E]/40 text-[#7EC87E]'
-                            : 'bg-white/5 border-white/10 text-white/40')}>
-                        {interest}
-                      </button>
-                    )
-                  })}
+                  {interests.map((interest: string) => (
+                    <span key={interest} className="bg-[#2A4A2A]/35 text-[#7EC87E] text-xs px-2.5 py-1 rounded-lg border border-[#7EC87E]/10">{interest}</span>
+                  ))}
                 </div>
               ) : (
-                interests.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {interests.map((interest: string) => (
-                      <span key={interest} className="bg-[#2A4A2A]/35 text-[#7EC87E] text-xs px-2.5 py-1 rounded-lg border border-[#7EC87E]/10">{interest}</span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-white/30 py-1">Tap Edit to add your interests</p>
-                )
+                <p className="text-xs text-white/30 py-1">
+                  No interests yet ·{' '}
+                  <button onClick={() => router.push('/profile/edit')} className="text-[#E8B84B]">Add some →</button>
+                </p>
               )}
             </div>
 
@@ -332,6 +333,15 @@ export default function ProfilePage() {
               <div className="text-left">
                 <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-1">Visibility & Privacy</div>
                 <div className="text-sm text-[#F0EDE6]">Manage in Settings</div>
+              </div>
+              <span className="text-white/20 text-lg">›</span>
+            </button>
+
+            <button onClick={() => router.push('/host')}
+              className="w-full bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 flex items-center justify-between active:bg-white/5 transition-colors">
+              <div className="text-left">
+                <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-1">Host Dashboard</div>
+                <div className="text-sm text-[#F0EDE6]">Events · RSVPs · Insights</div>
               </div>
               <span className="text-white/20 text-lg">›</span>
             </button>
@@ -544,6 +554,55 @@ export default function ProfilePage() {
         )}
 
       </div>
+
+      {showAchievementUnlock && (
+        <div className="fixed inset-0 bg-black/85 z-[60] flex items-center justify-center p-6" onClick={() => setShowAchievementUnlock(false)}>
+          <div className="bg-gradient-to-br from-[#1A2A1A] to-[#0D110D] border border-[#7EC87E]/30 rounded-3xl p-7 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-5">
+              <div className="text-5xl mb-3" style={{ filter: 'drop-shadow(0 0 16px rgba(126,200,126,0.5))' }}>
+                {newAchievements.length === 1 ? newAchievements[0].icon : '🏅'}
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-[#7EC87E]/60 mb-1">
+                {newAchievements.length === 1 ? 'Achievement Unlocked' : newAchievements.length + ' Achievements Unlocked'}
+              </div>
+              <div className="text-2xl font-bold text-[#F0EDE6]">
+                {newAchievements.length === 1 ? newAchievements[0].title : 'Keep it up!'}
+              </div>
+              {newAchievements.length === 1 && (
+                <div className="text-sm text-white/40 mt-1">{newAchievements[0].desc}</div>
+              )}
+            </div>
+            {newAchievements.length === 1 && (
+              <div className="flex justify-center mb-5">
+                <span className={'text-xs px-3 py-1 rounded-full border font-medium ' +
+                  (newAchievements[0].tier === 'gold' ? 'text-[#E8B84B] border-[#E8B84B]/30 bg-[#E8B84B]/10' :
+                   newAchievements[0].tier === 'silver' ? 'text-[#A0AEC0] border-[#A0AEC0]/30 bg-[#A0AEC0]/10' :
+                   'text-[#CD7F32] border-[#CD7F32]/30 bg-[#CD7F32]/10')}>
+                  {newAchievements[0].tier === 'gold' ? '🥇 Gold' : newAchievements[0].tier === 'silver' ? '🥈 Silver' : '🥉 Bronze'}
+                </span>
+              </div>
+            )}
+            {newAchievements.length > 1 && (
+              <div className="space-y-2 mb-5">
+                {newAchievements.map(a => (
+                  <div key={a.title} className="flex items-center gap-3 bg-white/5 rounded-xl p-3 border border-white/10">
+                    <span className="text-xl">{a.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-[#F0EDE6]">{a.title}</div>
+                      <div className="text-[10px] text-white/40">{a.desc}</div>
+                    </div>
+                    <span className="text-sm">{a.tier === 'gold' ? '🥇' : a.tier === 'silver' ? '🥈' : '🥉'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setShowAchievementUnlock(false)}
+              className="w-full py-3 rounded-2xl bg-[#7EC87E] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform">
+              Awesome! 🎉
+            </button>
+          </div>
+        </div>
+      )}
 
       {showLevelUp && (() => {
         const tier = celebrateLevel >= 10 ? { name: 'Legend', icon: '👑', tagline: 'You\'ve reached the top. Gathr royalty.' }

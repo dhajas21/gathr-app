@@ -60,6 +60,7 @@ export default function BottomNav() {
       channel = supabase
         .channel('nav-badge')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'recipient_id=eq.' + uid }, fetchCounts)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: 'recipient_id=eq.' + uid }, fetchCounts)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + uid }, fetchCounts)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + uid }, fetchCounts)
         .subscribe()

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { HomePageSkeleton } from '@/components/Skeleton'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 
 interface Event {
@@ -171,6 +173,10 @@ export default function HomePage() {
   const [bookmarkedEventIds, setBookmarkedEventIds] = useState<string[]>([])
   const router = useRouter()
 
+  const { refreshing, pullProgress, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
+    async () => { if (user) await fetchAll(user.id) }
+  )
+
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -214,7 +220,7 @@ export default function HomePage() {
     if (profileRes.data) setProfile(profileRes.data)
     if (rsvpRes.data) setRsvpEventIds(rsvpRes.data.map((r: any) => r.event_id))
     if (connRes.data) setConnectionIds(connRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id))
-    if (notifRes.count) setUnreadCount(notifRes.count)
+    if (notifRes.count !== null) setUnreadCount(notifRes.count)
     if (bookmarkRes.data) setBookmarkedEventIds(bookmarkRes.data.map((b: any) => b.event_id))
     const allEvents: Event[] = eventsRes.data || []
     setEvents(allEvents)
@@ -359,21 +365,19 @@ export default function HomePage() {
 
   const filteredCities = ALL_CITIES.filter(c => !citySearch || c.toLowerCase().includes(citySearch.toLowerCase()))
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <h1 className="text-5xl font-extrabold text-[#F0EDE6] tracking-tight leading-none font-display">Gathr<span className="text-[#E8B84B]">.</span></h1>
-        <div className="flex gap-1.5">
-          {[0, 1, 2].map(i => (
-            <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#E8B84B] animate-pulse" style={{ animationDelay: `${i * 180}ms` }} />
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+  if (loading) return <HomePageSkeleton />
 
   return (
-    <div className="min-h-screen bg-[#0D110D] pb-24">
+    <div className="min-h-screen bg-[#0D110D] pb-24"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}>
+      {(refreshing || pullProgress > 0) && (
+        <div className="fixed top-0 left-0 right-0 h-0.5 z-[100]" style={{ background: 'rgba(232,184,75,0.25)' }}>
+          <div className={'h-full bg-[#E8B84B] ' + (refreshing ? 'animate-pulse w-full' : 'transition-none')}
+            style={!refreshing ? { width: pullProgress * 100 + '%' } : undefined} />
+        </div>
+      )}
       <div className="px-4 pt-14 pb-0 bg-[#0D110D]">
         <div className="flex items-center justify-between mb-3">
           <div>

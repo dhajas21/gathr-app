@@ -69,8 +69,22 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
+    <div className="min-h-screen bg-[#0D110D] pb-10">
+      <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
+        <div className="w-9 h-9 bg-white/[0.07] rounded-xl animate-pulse flex-shrink-0" />
+        <div className="h-5 w-40 bg-white/[0.07] rounded-xl animate-pulse" />
+      </div>
+      <div className="px-4 pt-4 space-y-3">
+        {[1,2,3,4,5,6].map(i => (
+          <div key={i} className="flex items-center gap-3 py-2">
+            <div className="w-10 h-10 bg-white/[0.07] rounded-xl animate-pulse flex-shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3.5 w-32 bg-white/[0.07] rounded-xl animate-pulse" />
+              <div className="h-3 w-20 bg-white/[0.05] rounded-xl animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 

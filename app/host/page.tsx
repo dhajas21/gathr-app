@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { HostDashboardSkeleton } from '@/components/Skeleton'
 
 const CAT_EMOJI: Record<string, string> = {
   'Music': '🎸', 'DJ & Electronic': '🎧', 'Fitness': '🏃', 'Yoga & Pilates': '🧘',
@@ -53,7 +54,7 @@ export default function HostDashboardPage() {
         setRsvpCounts(counts)
       }
 
-      if (ticketRes.data) {
+      if (ticketRes.data && !ticketRes.error) {
         const revenue: Record<string, number> = {}
         ticketRes.data.forEach((t: any) => { revenue[t.event_id] = (revenue[t.event_id] || 0) + (t.total_amount || 0) })
         setTicketRevenue(revenue)
@@ -90,11 +91,7 @@ export default function HostDashboardPage() {
     .filter(e => new Date(e.start_datetime) >= thisMonth)
     .reduce((sum, e) => sum + (rsvpCounts[e.id] || 0), 0)
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
-    </div>
-  )
+  if (loading) return <HostDashboardSkeleton />
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-28">
@@ -249,20 +246,6 @@ export default function HostDashboardPage() {
                 })}
               </div>
             )}
-
-            {/* Host Pro CTA */}
-            <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/25 rounded-2xl p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#E8B84B]/15 border border-[#E8B84B]/25 flex items-center justify-center text-lg flex-shrink-0">👑</div>
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-[#E8B84B] mb-1">Unlock Host Pro</div>
-                  <div className="text-[10px] text-white/50 leading-relaxed">Sell tickets, collect payments, access advanced analytics, and promote your events to more people.</div>
-                  <button className="mt-3 bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-transform">
-                    Join the waitlist →
-                  </button>
-                </div>
-              </div>
-            </div>
 
             {events.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -427,7 +410,7 @@ export default function HostDashboardPage() {
                 <div className="flex-1">
                   <div className="text-xs font-bold text-[#E8B84B] mb-1">Host Pro — Advanced Insights</div>
                   <div className="text-[10px] text-white/50 leading-relaxed">Attendee demographics, repeat visitor tracking, revenue forecasting, and promotional tools.</div>
-                  <button className="mt-3 bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-transform">
+                  <button onClick={() => router.push('/waitlist')} className="mt-3 bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-transform">
                     Join the waitlist →
                   </button>
                 </div>

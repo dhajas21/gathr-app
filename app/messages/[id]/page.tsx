@@ -232,8 +232,19 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
+    <div className="min-h-screen bg-[#0D110D] flex flex-col">
+      <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10 flex-shrink-0">
+        <div className="w-9 h-9 bg-white/[0.07] rounded-xl animate-pulse flex-shrink-0" />
+        <div className="w-10 h-10 bg-white/[0.07] rounded-xl animate-pulse flex-shrink-0" />
+        <div className="h-4 w-28 bg-white/[0.07] rounded-xl animate-pulse" />
+      </div>
+      <div className="flex-1 px-4 py-4 space-y-3">
+        {[1,2,3].map(i => (
+          <div key={i} className={'flex ' + (i % 2 === 0 ? 'justify-end' : 'justify-start')}>
+            <div className={`h-10 rounded-2xl animate-pulse bg-white/[0.07] ${i % 2 === 0 ? 'w-48' : 'w-56'}`} />
+          </div>
+        ))}
+      </div>
     </div>
   )
 

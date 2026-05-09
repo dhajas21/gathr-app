@@ -156,8 +156,17 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const labelClass = 'text-xs text-white/50 mb-1.5 block'
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
+    <div className="min-h-screen bg-[#0D110D] pb-10">
+      <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
+        <div className="w-9 h-9 bg-white/[0.07] rounded-xl animate-pulse flex-shrink-0" />
+        <div className="h-5 w-28 bg-white/[0.07] rounded-xl animate-pulse" />
+        <div className="ml-auto h-8 w-16 bg-white/[0.07] rounded-xl animate-pulse" />
+      </div>
+      <div className="px-4 py-5 space-y-5">
+        {[1,2,3,4,5,6].map(i => (
+          <div key={i} className="h-12 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
+        ))}
+      </div>
     </div>
   )
 

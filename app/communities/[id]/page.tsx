@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { CommunityDetailSkeleton } from '@/components/Skeleton'
 
 interface Post {
   id: string
@@ -60,7 +61,10 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           .from('community_posts')
           .select('id, user_id, text, like_count, created_at, profiles(id, name, avatar_url)')
           .eq('id', payload.new.id).single()
-        if (data) setPosts(prev => [{ ...(data as any), liked: false }, ...prev])
+        if (data) setPosts(prev => {
+          if (prev.some(p => p.id === (data as any).id)) return prev
+          return [{ ...(data as any), liked: false }, ...prev]
+        })
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -154,7 +158,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     setActionLoading(false)
   }
 
-  const handleAcceptMember = async (memberId: string, userId: string) => {
+  const handleAcceptMember = async (userId: string) => {
     await supabase.from('community_members').update({ role: 'member' })
       .eq('community_id', communityId).eq('user_id', userId)
     setPendingRequests(prev => prev.filter(r => r.user_id !== userId))
@@ -178,7 +182,28 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     if (!trimmed || !user || posting) return
     setPosting(true)
     setPostText('')
-    await supabase.from('community_posts').insert({ community_id: communityId, user_id: user.id, text: trimmed })
+    const optimisticId = 'optimistic-' + Date.now()
+    const optimistic: Post = {
+      id: optimisticId,
+      user_id: user.id,
+      text: trimmed,
+      like_count: 0,
+      created_at: new Date().toISOString(),
+      profiles: { id: user.id, name: user.user_metadata?.name || user.email || '', avatar_url: user.user_metadata?.avatar_url || null },
+      liked: false,
+    }
+    setPosts(prev => [optimistic, ...prev])
+    const { data, error } = await supabase
+      .from('community_posts')
+      .insert({ community_id: communityId, user_id: user.id, text: trimmed })
+      .select('id, user_id, text, like_count, created_at, profiles(id, name, avatar_url)')
+      .single()
+    if (!error && data) {
+      setPosts(prev => prev.map(p => p.id === optimisticId ? { ...(data as any), liked: false } : p))
+    } else if (error) {
+      setPosts(prev => prev.filter(p => p.id !== optimisticId))
+      setPostText(trimmed)
+    }
     setPosting(false)
   }
 
@@ -245,11 +270,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
-    </div>
-  )
+  if (loading) return <CommunityDetailSkeleton />
 
   if (!community) return null
 
@@ -487,7 +508,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                         <div className="text-xs text-white/40 truncate">{req.profile?.bio_social || 'Wants to join'}</div>
                       </div>
                       <div className="flex gap-1.5 flex-shrink-0">
-                        <button onClick={() => handleAcceptMember(req.id, req.user_id)}
+                        <button onClick={() => handleAcceptMember(req.user_id)}
                           className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-3 py-1.5 rounded-xl active:scale-95 transition-transform">
                           Accept
                         </button>

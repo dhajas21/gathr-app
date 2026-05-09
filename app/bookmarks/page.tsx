@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { BookmarksPageSkeleton } from '@/components/Skeleton'
 
 export default function BookmarksPage() {
   const [events, setEvents] = useState<any[]>([])
@@ -42,11 +43,7 @@ export default function BookmarksPage() {
     'Networking': 'linear-gradient(135deg,#1E2A3A,#0E1E2A)',
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
-    </div>
-  )
+  if (loading) return <BookmarksPageSkeleton />
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
@@ -76,7 +73,10 @@ export default function BookmarksPage() {
               className="bg-[#1C241C] rounded-2xl overflow-hidden border border-white/10 cursor-pointer active:scale-[0.98] transition-transform">
               <div className="h-28 flex items-center justify-center text-4xl relative"
                 style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
-                {event.cover_url && <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+                {event.cover_url
+                  ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  : <span className="relative z-10">{event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : event.category === 'Outdoors' ? '🥾' : event.category === 'Arts & Culture' ? '🎨' : '🎉'}</span>
+                }
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80" />
               </div>
               <div className="p-3.5">

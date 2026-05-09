@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { PublicProfileSkeleton } from '@/components/Skeleton'
 
 export default function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const [user, setUser] = useState<any>(null)
@@ -13,6 +14,8 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const [connectionId, setConnectionId] = useState<string | null>(null)
   const [mutualCount, setMutualCount] = useState(0)
+  const [profileConnCount, setProfileConnCount] = useState(0)
+  const [totalRsvpCount, setTotalRsvpCount] = useState(0)
   const [mutualProfiles, setMutualProfiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -33,7 +36,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   }, [])
 
   const fetchProfile = async (id: string, userId: string) => {
-    const [profileRes, hostedRes, connectionRes, myConnsRes, theirConnsRes] = await Promise.all([
+    const [profileRes, hostedRes, connectionRes, myConnsRes, theirConnsRes, rsvpCountRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', id).single(),
       supabase.from('events').select('*').eq('host_id', id).eq('visibility', 'public').order('start_datetime', { ascending: false }).limit(10),
       supabase.from('connections').select('*')
@@ -41,6 +44,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
         .limit(1).single(),
       supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),
       supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + id + ',addressee_id.eq.' + id).eq('status', 'accepted'),
+      supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('user_id', id),
     ])
 
     if (!profileRes.data) { router.push('/home'); return }
@@ -51,6 +55,9 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
       setConnectionStatus(connectionRes.data.status)
       setConnectionId(connectionRes.data.id)
     }
+
+    if (theirConnsRes.data) setProfileConnCount(theirConnsRes.data.length)
+    if (rsvpCountRes.count !== null) setTotalRsvpCount(rsvpCountRes.count)
 
     if (myConnsRes.data && theirConnsRes.data) {
       const myIds = new Set(myConnsRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id))
@@ -118,13 +125,16 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   const categoryEmoji = (cat: string) =>
     cat === 'Music' ? '🎸' : cat === 'Fitness' ? '🏃' : cat === 'Food & Drink' ? '🍺' : cat === 'Tech' ? '💻' : cat === 'Outdoors' ? '🥾' : '🎉'
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
-    </div>
-  )
+  if (loading) return <PublicProfileSkeleton />
 
   if (!profile) return null
+
+  const profileXp = (hostedEvents.length * 10) + (totalRsvpCount * 5) + (profileConnCount * 3) + ((profile.interests || []).length * 2)
+  const profileLevel = Math.floor(profileXp / 50) + 1
+  const profileTier = profileLevel >= 10 ? { name: 'Legend', icon: '👑' }
+    : profileLevel >= 6 ? { name: 'Veteran', icon: '🔥' }
+    : profileLevel >= 3 ? { name: 'Regular', icon: '⭐' }
+    : { name: 'Newcomer', icon: '🌱' }
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-32">
@@ -152,7 +162,12 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
           ) : (
             <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-2xl mb-3">🧑</div>
           )}
-          <div className="font-bold text-[#F0EDE6] text-lg">{profile.name}</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="font-bold text-[#F0EDE6] text-lg">{profile.name}</div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#E8B84B]/10 border border-[#E8B84B]/20 text-[#E8B84B] font-medium">
+              {profileTier.icon} {profileTier.name}
+            </span>
+          </div>
           <div className="text-xs text-white/45 mt-1">@{profile.name?.toLowerCase().replace(/\s/g, '')} · {profile.city || 'Bellingham, WA'}</div>
           {profile.bio_social && (
             <div className="text-sm text-white/60 mt-2 leading-relaxed font-light">{profile.bio_social}</div>

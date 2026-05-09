@@ -315,12 +315,15 @@ export default function SearchPage() {
       {/* Result tabs */}
       {searched && (
         <div className="flex border-b border-white/10 px-4 overflow-x-auto">
-          {['All', 'Events', 'People', 'Tags'].map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={'flex-1 py-2.5 text-xs text-center border-b-2 -mb-px whitespace-nowrap ' + (activeTab === tab ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
-              {tab}{tab === 'Tags' && tagResults.length > 0 ? ' · ' + tagResults.length : ''}
-            </button>
-          ))}
+          {(['All', 'Events', 'People', 'Communities', 'Tags'] as const).map(tab => {
+            const count = tab === 'Events' ? events.length : tab === 'People' ? people.length : tab === 'Communities' ? communities.length : tab === 'Tags' ? tagResults.length : 0
+            return (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className={'flex-1 py-2.5 text-xs text-center border-b-2 -mb-px whitespace-nowrap ' + (activeTab === tab ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
+                {tab}{count > 0 ? ' · ' + count : ''}
+              </button>
+            )
+          })}
         </div>
       )}
 

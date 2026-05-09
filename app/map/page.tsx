@@ -79,8 +79,15 @@ export default function MapPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
+    <div className="min-h-screen bg-[#0D110D] flex flex-col">
+      <div className="flex items-center justify-between px-4 pt-14 pb-3 flex-shrink-0">
+        <div className="space-y-1.5">
+          <div className="h-5 w-20 bg-white/[0.07] rounded-xl animate-pulse" />
+          <div className="h-3 w-32 bg-white/[0.05] rounded-xl animate-pulse" />
+        </div>
+        <div className="w-9 h-9 bg-white/[0.07] rounded-xl animate-pulse" />
+      </div>
+      <div className="flex-1 bg-white/[0.04] animate-pulse" />
     </div>
   )
 

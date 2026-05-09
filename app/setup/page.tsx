@@ -199,7 +199,7 @@ export default function SetupPage() {
                 : POPULAR_INTERESTS.filter(i => !interests.includes(i))
               ).map(interest => (
                 <button key={interest} onClick={() => toggleInterest(interest)}
-                  className={'px-3 py-1.5 rounded-xl text-xs border transition-all bg-[#1C241C] border-white/10 text-white/40 ' + (interests.length >= 10 ? 'opacity-40' : 'active:scale-95')}>
+                  className="px-3 py-1.5 rounded-xl text-xs border transition-all bg-[#1C241C] border-white/10 text-white/40 active:scale-95">
                   {interest}
                 </button>
               ))}
@@ -211,7 +211,7 @@ export default function SetupPage() {
               )}
             </div>
             {!interestSearch && <p className="text-[10px] text-white/25 mt-2">Search to find more interests</p>}
-            <div className="text-[10px] text-white/25 mt-1">{interests.length} / 10 selected</div>
+            <div className="text-[10px] text-white/25 mt-1">{interests.length} selected</div>
           </>
         )}
 

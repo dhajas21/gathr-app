@@ -105,8 +105,17 @@ export default function SettingsPage() {
   const inputClass = 'w-full bg-[#0D110D] border border-white/10 rounded-2xl px-4 py-3 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm'
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
+    <div className="min-h-screen bg-[#0D110D] pb-28">
+      <div className="px-4 pt-14 pb-4 border-b border-white/10">
+        <div className="h-6 w-20 bg-white/[0.07] rounded-xl animate-pulse mb-1" />
+        <div className="h-3 w-36 bg-white/[0.05] rounded-xl animate-pulse" />
+      </div>
+      <div className="px-4 pt-4 space-y-3">
+        <div className="h-20 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
+        <div className="h-32 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
+        <div className="h-40 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
+        <div className="h-28 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
+      </div>
     </div>
   )
 

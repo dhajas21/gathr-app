@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { NotificationsPageSkeleton } from '@/components/Skeleton'
 
 export default function NotificationsPage() {
   const [user, setUser] = useState<any>(null)
@@ -14,12 +15,14 @@ export default function NotificationsPage() {
   const router = useRouter()
 
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel>
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
       fetchNotifications(session.user.id)
 
-      const channel = supabase
+      channel = supabase
         .channel('notifications-realtime')
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'notifications',
@@ -29,9 +32,9 @@ export default function NotificationsPage() {
           fetchActorProfile((payload.new as any).actor_id)
         })
         .subscribe()
-
-      return () => { supabase.removeChannel(channel) }
     })
+
+    return () => { if (channel) supabase.removeChannel(channel) }
   }, [])
 
   const fetchNotifications = async (userId: string) => {
@@ -154,11 +157,7 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.read).length
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
-    </div>
-  )
+  if (loading) return <NotificationsPageSkeleton />
 
   const { today, thisWeek, earlier } = groupByTime(notifications)
 

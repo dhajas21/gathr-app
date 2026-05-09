@@ -76,7 +76,7 @@ export default function EditProfilePage() {
 
   const toggleInterest = (interest: string) => {
     setInterests(prev =>
-      prev.includes(interest) ? prev.filter(i => i !== interest) : prev.length < 10 ? [...prev, interest] : prev
+      prev.includes(interest) ? prev.filter(i => i !== interest) : [...prev, interest]
     )
   }
 
@@ -89,14 +89,26 @@ export default function EditProfilePage() {
       name: name.trim(), bio_social: bio.trim(), city, interests, profile_mode: mode, avatar_url: finalAvatarUrl, rsvp_visibility: rsvpVisibility,
     }).eq('id', userId)
     setSaving(false)
-    window.location.href = '/profile'
+    router.push('/profile')
   }
 
   const inputClass = 'w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm'
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
+    <div className="min-h-screen bg-[#0D110D] pb-10">
+      <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
+        <div className="w-9 h-9 bg-white/[0.07] rounded-xl animate-pulse flex-shrink-0" />
+        <div className="h-6 w-28 bg-white/[0.07] rounded-xl animate-pulse" />
+        <div className="ml-auto h-8 w-16 bg-white/[0.07] rounded-xl animate-pulse" />
+      </div>
+      <div className="px-4 py-5 space-y-5">
+        <div className="h-20 w-20 bg-white/[0.07] rounded-2xl animate-pulse" />
+        <div className="h-12 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
+        <div className="h-20 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
+        <div className="h-12 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
+        <div className="h-32 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
+        <div className="h-24 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
+      </div>
     </div>
   )
 
@@ -204,7 +216,7 @@ export default function EditProfilePage() {
         </div>
 
         <div>
-          <label className="text-xs text-white/50 mb-2 block">Interests <span className="text-white/25">({interests.length}/10)</span></label>
+          <label className="text-xs text-white/50 mb-2 block">Interests <span className="text-white/25">({interests.length})</span></label>
           <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-3">
             <span className="text-sm text-white/30">🔍</span>
             <input type="text" value={interestSearch} onChange={e => setInterestSearch(e.target.value)}
@@ -228,7 +240,7 @@ export default function EditProfilePage() {
               : POPULAR_INTERESTS.filter(i => !interests.includes(i))
             ).map(interest => (
               <button key={interest} onClick={() => toggleInterest(interest)}
-                className={'px-3 py-1.5 rounded-xl text-xs border transition-all bg-[#1C241C] border-white/10 text-white/40 ' + (interests.length >= 10 ? 'opacity-40' : 'active:scale-95')}>
+                className="px-3 py-1.5 rounded-xl text-xs border transition-all bg-[#1C241C] border-white/10 text-white/40 active:scale-95">
                 {interest}
               </button>
             ))}
