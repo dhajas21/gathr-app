@@ -18,7 +18,18 @@ const CATEGORY_EMOJI: Record<string, string> = {
 }
 const catEmoji = (cat: string) => CATEGORY_EMOJI[cat] || '🎉'
 
-function computeAchievements(hostedCount: number, attendedCount: number, connCount: number, interests: string[], profile: any, level: number) {
+function computeAchievements(
+  hostedCount: number,
+  attendedCount: number,
+  connCount: number,
+  interests: string[],
+  profile: any,
+  level: number,
+  uniqueAttendedCats: number,
+  uniqueHostedCats: number,
+  communityCount: number,
+) {
+  const safetyTier = profile?.safety_tier || 'new'
   return [
     { icon: '🎉', title: 'First Event', desc: 'Host your first event', tier: 'bronze', val: hostedCount, req: 1 },
     { icon: '🎙', title: 'Rising Host', desc: 'Host 3 events', tier: 'silver', val: hostedCount, req: 3 },
@@ -40,6 +51,17 @@ function computeAchievements(hostedCount: number, attendedCount: number, connCou
     { icon: '🚀', title: 'Power User', desc: 'Reach level 10', tier: 'gold', val: level, req: 10 },
     { icon: '📸', title: 'Avatar', desc: 'Add a profile photo', tier: 'bronze', val: profile?.avatar_url ? 1 : 0, req: 1 },
     { icon: '✍️', title: 'Storyteller', desc: 'Write your bio', tier: 'bronze', val: profile?.bio_social ? 1 : 0, req: 1 },
+    // Category variety
+    { icon: '🎪', title: 'Curious', desc: 'Attend events across 3 different categories', tier: 'bronze', val: uniqueAttendedCats, req: 3 },
+    { icon: '🌈', title: 'Scene Explorer', desc: 'Attend events across 5 different categories', tier: 'silver', val: uniqueAttendedCats, req: 5 },
+    { icon: '🎭', title: 'Renaissance Person', desc: 'Attend events across 8 different categories', tier: 'gold', val: uniqueAttendedCats, req: 8 },
+    { icon: '🎨', title: 'Versatile Host', desc: 'Host events across 3 different categories', tier: 'silver', val: uniqueHostedCats, req: 3 },
+    // Community
+    { icon: '🏘️', title: 'Group Member', desc: 'Join your first community', tier: 'bronze', val: communityCount, req: 1 },
+    { icon: '🌿', title: 'Community Regular', desc: 'Join 3 communities', tier: 'silver', val: communityCount, req: 3 },
+    // Safety tier
+    { icon: '🛡️', title: 'Trusted Member', desc: 'Reach Verified safety tier', tier: 'silver', val: (safetyTier === 'verified' || safetyTier === 'trusted') ? 1 : 0, req: 1 },
+    { icon: '💠', title: 'Community Pillar', desc: 'Reach Trusted safety tier', tier: 'gold', val: safetyTier === 'trusted' ? 1 : 0, req: 1 },
   ]
 }
 
@@ -57,6 +79,7 @@ export default function ProfilePage() {
   const [xpBarWidth, setXpBarWidth] = useState(0)
   const [newAchievements, setNewAchievements] = useState<any[]>([])
   const [showAchievementUnlock, setShowAchievementUnlock] = useState(false)
+  const [communityCount, setCommunityCount] = useState(0)
   const [pinnedBadges, setPinnedBadges] = useState<string[]>([])
   const router = useRouter()
 
@@ -116,7 +139,9 @@ export default function ProfilePage() {
       }
       localStorage.setItem('gathr_user_level', String(levelVal))
 
-      const allAch = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, levelVal)
+      const uniqueAttendedCats = new Set(attendedEvents.map((e: any) => e.category)).size
+      const uniqueHostedCats = new Set(hostedEvents.map((e: any) => e.category)).size
+      const allAch = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, levelVal, uniqueAttendedCats, uniqueHostedCats, communityCount)
       const seenRaw = localStorage.getItem('gathr_seen_achievements')
       const seen: string[] | null = seenRaw ? JSON.parse(seenRaw) : null
       if (seen !== null) {
@@ -128,7 +153,7 @@ export default function ProfilePage() {
       }
       localStorage.setItem('gathr_seen_achievements', JSON.stringify(allAch.filter(a => a.val >= a.req).map(a => a.title)))
     } catch {}
-  }, [loading, hostedEvents.length, attendedEvents.length, connections.length, profile])
+  }, [loading, hostedEvents.length, attendedEvents.length, connections.length, communityCount, profile])
 
   useEffect(() => {
     if (activeTab !== 2) return
@@ -160,7 +185,7 @@ export default function ProfilePage() {
   }, [showAchievementUnlock])
 
   const fetchAll = async (userId: string) => {
-    const [profileRes, hostedRes, rsvpRes, connRes] = await Promise.all([
+    const [profileRes, hostedRes, rsvpRes, connRes, communityRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('events').select('*').eq('host_id', userId).order('start_datetime', { ascending: false }),
       supabase.from('rsvps').select('event_id').eq('user_id', userId),
@@ -168,7 +193,9 @@ export default function ProfilePage() {
         .select('requester_id, addressee_id')
         .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId)
         .eq('status', 'accepted'),
+      supabase.from('community_members').select('id', { count: 'exact', head: true }).eq('user_id', userId),
     ])
+    if (communityRes.count !== null) setCommunityCount(communityRes.count)
 
     if (profileRes.data) {
       setProfile(profileRes.data)
@@ -240,7 +267,9 @@ export default function ProfilePage() {
   const xpInLevel = xp % 50
   const xpToNext = 50
 
-  const ACHIEVEMENTS = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, level)
+  const uniqueAttendedCats = new Set(attendedEvents.map((e: any) => e.category)).size
+  const uniqueHostedCats = new Set(hostedEvents.map((e: any) => e.category)).size
+  const ACHIEVEMENTS = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, level, uniqueAttendedCats, uniqueHostedCats, communityCount)
 
   const tierColor = (tier: string, unlocked: boolean) =>
     !unlocked ? 'text-white/20' :
