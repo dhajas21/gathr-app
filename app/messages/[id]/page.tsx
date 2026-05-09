@@ -112,13 +112,15 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
     setSending(true)
     setText('')
-    const { error } = await supabase.from('messages').insert({
+    const { data: sent, error } = await supabase.from('messages').insert({
       thread_id: threadId,
       sender_id: user.id,
       recipient_id: recipientId,
       text: trimmed,
-    })
-    if (!error) {
+    }).select().single()
+    if (!error && sent) {
+      setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
+      scrollToBottom()
       await supabase.from('notifications').insert({
         user_id: recipientId,
         actor_id: user.id,
@@ -128,11 +130,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         link: '/messages/' + threadId,
         read: false,
       })
-    } else {
+    } else if (error) {
       console.error('Send error:', error)
+      setText(trimmed)
     }
     setSending(false)
-    scrollToBottom()
   }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
