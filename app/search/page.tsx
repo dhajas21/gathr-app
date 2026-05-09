@@ -197,7 +197,9 @@ export default function SearchPage() {
       const { data: peopleData } = await supabase.from('profiles')
         .select('id, name, bio_social, city, avatar_url')
         .or('name.ilike.%' + sq + '%,bio_social.ilike.%' + sq + '%,city.ilike.%' + sq + '%')
-        .neq('id', user?.id).limit(10)
+        .neq('id', user?.id)
+        .eq('discoverable', true)
+        .limit(10)
       if (peopleData) {
         setPeople(peopleData)
         if (peopleData.length > 0 && user) {

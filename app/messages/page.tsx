@@ -53,6 +53,7 @@ export default function MessagesPage() {
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>
+    let connChannel: ReturnType<typeof supabase.channel>
     let commChatChannel: ReturnType<typeof supabase.channel>
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -70,6 +71,20 @@ export default function MessagesPage() {
         })
         .subscribe()
 
+      connChannel = supabase
+        .channel('messages-connections-realtime')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'connections' }, (payload) => {
+          const c = payload.new as any
+          if ((c.requester_id === uid || c.addressee_id === uid) && c.status === 'accepted') {
+            fetchData(uid)
+          }
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'connections' }, (payload) => {
+          const c = payload.new as any
+          if (c.addressee_id === uid) fetchData(uid)
+        })
+        .subscribe()
+
       commChatChannel = supabase
         .channel('messages-community-chats')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_chat_messages' }, () => {
@@ -80,6 +95,7 @@ export default function MessagesPage() {
 
     return () => {
       if (channel) supabase.removeChannel(channel)
+      if (connChannel) supabase.removeChannel(connChannel)
       if (commChatChannel) supabase.removeChannel(commChatChannel)
     }
   }, [])
