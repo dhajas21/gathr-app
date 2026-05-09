@@ -1,13 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_ROUTES = ['/', '/onboarding', '/auth', '/tour', '/privacy', '/terms', '/waitlist']
+const PUBLIC_PREFIXES = ['/onboarding', '/auth', '/tour', '/privacy', '/terms', '/waitlist']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow public routes without auth
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+  if (pathname === '/' || PUBLIC_PREFIXES.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
 

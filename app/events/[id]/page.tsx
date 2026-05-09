@@ -705,6 +705,24 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           )
         })()}
 
+        {/* Post-event survey CTA */}
+        {rsvped && event && Date.now() > new Date(event.end_datetime).getTime() && (
+          <div className="bg-[#1C241C] border border-[#7EC87E]/20 rounded-2xl p-3.5 mb-3 flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#7EC87E]/10 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
+              ✦
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-[#F0EDE6]">How was it?</div>
+              <div className="text-[11px] text-white/40 mt-0.5">Share a quick review to help the community.</div>
+            </div>
+            <button
+              onClick={() => router.push(`/events/${event.id}/survey`)}
+              className="bg-[#7EC87E]/15 border border-[#7EC87E]/25 rounded-xl px-3 py-1.5 text-[11px] font-semibold text-[#7EC87E] flex-shrink-0">
+              Review
+            </button>
+          </div>
+        )}
+
         {/* Spots */}
         {event.capacity > 0 && (
           <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3">
