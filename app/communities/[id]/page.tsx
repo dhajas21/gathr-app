@@ -31,6 +31,9 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const [activeTab, setActiveTab] = useState<'feed' | 'events' | 'members'>('feed')
   const [postText, setPostText] = useState('')
   const [posting, setPosting] = useState(false)
+  const [showAddEventModal, setShowAddEventModal] = useState(false)
+  const [myEvents, setMyEvents] = useState<any[]>([])
+  const [addingEvent, setAddingEvent] = useState(false)
   const postInputRef = useRef<HTMLTextAreaElement>(null)
   const router = useRouter()
 
@@ -195,6 +198,27 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const handleDeletePost = async (postId: string) => {
     await supabase.from('community_posts').delete().eq('id', postId)
     setPosts(prev => prev.filter(p => p.id !== postId))
+  }
+
+  const handleOpenAddEvent = async () => {
+    if (!user) return
+    const { data } = await supabase.from('events')
+      .select('id, title, start_datetime, cover_url, community_id')
+      .eq('host_id', user.id)
+      .order('start_datetime', { ascending: false })
+      .limit(30)
+    const filtered = (data || []).filter((e: any) => e.community_id !== communityId)
+    setMyEvents(filtered)
+    setShowAddEventModal(true)
+  }
+
+  const handleAddEventToCommunity = async (eventId: string) => {
+    setAddingEvent(true)
+    await supabase.from('events').update({ community_id: communityId }).eq('id', eventId)
+    const { data } = await supabase.from('events').select('*').eq('id', eventId).single()
+    if (data) setEvents(prev => [...prev, data])
+    setShowAddEventModal(false)
+    setAddingEvent(false)
   }
 
   const handleShare = async () => {
@@ -396,7 +420,19 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
             <div className="flex items-center justify-between mb-3">
               <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Upcoming Events</div>
-              {isMember && (
+              {isOwnerOrAdmin && (
+                <div className="flex gap-2">
+                  <button onClick={handleOpenAddEvent}
+                    className="bg-[#1C241C] border border-white/15 text-white/50 text-[10px] font-semibold px-2.5 py-1 rounded-lg">
+                    + Add Existing
+                  </button>
+                  <button onClick={() => router.push('/create?community=' + communityId)}
+                    className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-[10px] font-semibold px-2.5 py-1 rounded-lg">
+                    + New
+                  </button>
+                </div>
+              )}
+              {isMember && !isOwnerOrAdmin && (
                 <button onClick={() => router.push('/create?community=' + communityId)}
                   className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-[10px] font-semibold px-2.5 py-1 rounded-lg">
                   + Event
@@ -529,6 +565,44 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           </button>
         )}
       </div>
+
+      {showAddEventModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => setShowAddEventModal(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10 max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4 flex-shrink-0" />
+            <div className="text-sm font-bold text-[#F0EDE6] mb-1 flex-shrink-0">Add an Existing Event</div>
+            <div className="text-xs text-white/40 mb-4 flex-shrink-0">Select one of your events to add to this community.</div>
+            {myEvents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 gap-2 flex-1">
+                <div className="text-3xl">🎉</div>
+                <p className="text-xs text-white/40 text-center">No eligible events found.</p>
+              </div>
+            ) : (
+              <div className="overflow-y-auto flex-1 space-y-2">
+                {myEvents.map(event => (
+                  <div key={event.id}
+                    onClick={() => !addingEvent && handleAddEventToCommunity(event.id)}
+                    className="flex items-center gap-3 bg-[#0D110D] border border-white/10 rounded-2xl p-3 cursor-pointer active:opacity-70">
+                    <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex-shrink-0 overflow-hidden relative">
+                      {event.cover_url
+                        ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center text-lg">🎉</div>
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
+                      <div className="text-xs text-white/40 mt-0.5">
+                        {new Date(event.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
+                    </div>
+                    <span className="text-[#E8B84B] text-lg flex-shrink-0">{addingEvent ? '...' : '+'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>
