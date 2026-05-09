@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 
 interface Event {
   id: string; title: string; category: string; start_datetime: string; end_datetime: string
@@ -152,6 +153,7 @@ function formatDate(dt: string) {
 
 export default function HomePage() {
   const [user, setUser] = useState<any>(null)
+  usePushNotifications(user?.id ?? null)
   const [profile, setProfile] = useState<any>(null)
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
