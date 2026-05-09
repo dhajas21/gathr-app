@@ -190,6 +190,53 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  const handleRsvp = async () => {
+    if (!user || !event) return
+    setRsvpLoading(true)
+    if (rsvped) {
+      await supabase.from('rsvps').delete()
+        .eq('event_id', event.id).eq('user_id', user.id)
+      setRsvped(false)
+      setTotalAttendees(prev => Math.max(0, prev - 1))
+      setAttendees(prev => prev.filter(a => a.user_id !== user.id))
+    } else {
+      await supabase.from('rsvps').insert({
+        event_id: event.id, user_id: user.id, status: 'joined'
+      })
+      setRsvped(true)
+      setTotalAttendees(prev => prev + 1)
+      const { data } = await supabase
+        .from('rsvps')
+        .select('user_id, profiles(id, name, avatar_url)')
+        .eq('event_id', event.id)
+        .limit(12)
+      if (data) setAttendees(data as any)
+      if (event.host_id !== user.id) {
+        await supabase.from('notifications').insert({
+          user_id: event.host_id,
+          actor_id: user.id,
+          type: 'rsvp',
+          title: 'is going to your event',
+          body: event.title,
+          link: '/events/' + event.id,
+          read: false,
+        })
+      }
+    }
+    setRsvpLoading(false)
+  }
+
+  const handleBookmark = async () => {
+    if (!user || !event) return
+    if (bookmarked) {
+      await supabase.from('event_bookmarks').delete().eq('event_id', event.id).eq('user_id', user.id)
+      setBookmarked(false)
+    } else {
+      await supabase.from('event_bookmarks').insert({ event_id: event.id, user_id: user.id })
+      setBookmarked(true)
+    }
+  }
+
   const fetchMatches = async (evtId: string, userId: string) => {
     const { data: rsvpData } = await supabase
       .from('rsvps')
@@ -257,42 +304,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     setMatchConnLoading(null)
   }
 
-  const handleRsvp = async () => {
-    if (!user || !event) return
-    setRsvpLoading(true)
-    if (rsvped) {
-      await supabase.from('rsvps').delete()
-        .eq('event_id', event.id).eq('user_id', user.id)
-      setRsvped(false)
-      setTotalAttendees(prev => Math.max(0, prev - 1))
-      setAttendees(prev => prev.filter(a => a.user_id !== user.id))
-    } else {
-      await supabase.from('rsvps').insert({
-        event_id: event.id, user_id: user.id, status: 'joined'
-      })
-      setRsvped(true)
-      setTotalAttendees(prev => prev + 1)
-      const { data } = await supabase
-        .from('rsvps')
-        .select('user_id, profiles(id, name, avatar_url)')
-        .eq('event_id', event.id)
-        .limit(12)
-      if (data) setAttendees(data as any)
-    }
-    setRsvpLoading(false)
-  }
-
-  const handleBookmark = async () => {
-    if (!user || !event) return
-    if (bookmarked) {
-      await supabase.from('event_bookmarks').delete().eq('event_id', event.id).eq('user_id', user.id)
-      setBookmarked(false)
-    } else {
-      await supabase.from('event_bookmarks').insert({ event_id: event.id, user_id: user.id })
-      setBookmarked(true)
-    }
-  }
-
   const handleDelete = async () => {
     if (!event) return
     setDeleting(true)
@@ -328,7 +339,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const handleShare = async () => {
     const url = window.location.href
-    const shareData = { title: event?.title || 'Gathr Event', text: 'Check out this Gathring on Gathr! ' + (event?.title || ''), url }
+    const shareData = { title: event?.title || 'Gathr Event', text: event?.description || 'Check out this event on Gathr!', url }
     if (navigator.share) {
       try { await navigator.share(shareData) } catch {}
     } else {
@@ -430,7 +441,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
-          <button onClick={() => router.push('/home')}
+          <button onClick={() => router.back()}
             className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-[#F0EDE6]">
             ←
           </button>
