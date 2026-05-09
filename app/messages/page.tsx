@@ -52,11 +52,13 @@ export default function MessagesPage() {
   }
 
   useEffect(() => {
+    let mounted = true
     let channel: ReturnType<typeof supabase.channel>
     let connChannel: ReturnType<typeof supabase.channel>
     let commChatChannel: ReturnType<typeof supabase.channel>
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return
       if (!session) { router.push('/auth'); return }
       const uid = session.user.id
       setUser(session.user)
@@ -66,34 +68,44 @@ export default function MessagesPage() {
       channel = supabase
         .channel('messages-list-realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+          if (!mounted) return
           const msg = payload.new as any
-          if (msg.sender_id === uid || msg.recipient_id === uid) fetchData(uid)
+          if (msg.sender_id === uid || msg.recipient_id === uid) fetchThreads(uid)
         })
         .subscribe()
 
       connChannel = supabase
         .channel('messages-connections-realtime')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'connections' }, (payload) => {
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'connections' }, async (payload) => {
+          if (!mounted) return
           const c = payload.new as any
-          if ((c.requester_id === uid || c.addressee_id === uid) && c.status === 'accepted') {
-            fetchData(uid)
-          }
+          if (!((c.requester_id === uid || c.addressee_id === uid) && c.status === 'accepted')) return
+          const otherId = c.requester_id === uid ? c.addressee_id : c.requester_id
+          const { data: prof } = await supabase.from('profiles').select('id, name, avatar_url').eq('id', otherId).single()
+          if (!mounted) return
+          setConnections(prev => prev.filter(x => x.id !== c.id))
+          setAcceptedConnections(prev => prev.some(x => x.id === c.id) ? prev : [...prev, { ...c, otherProfile: prof || null }])
         })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'connections' }, (payload) => {
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'connections' }, async (payload) => {
+          if (!mounted) return
           const c = payload.new as any
-          if (c.addressee_id === uid) fetchData(uid)
+          if (c.addressee_id !== uid) return
+          const { data: prof } = await supabase.from('profiles').select('id, name, avatar_url').eq('id', c.requester_id).single()
+          if (!mounted) return
+          setConnections(prev => prev.some(x => x.id === c.id) ? prev : [...prev, { ...c, requester: prof || null }])
         })
         .subscribe()
 
       commChatChannel = supabase
         .channel('messages-community-chats')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_chat_messages' }, () => {
-          fetchCommunityChats(uid)
+          if (mounted) fetchCommunityChats(uid)
         })
         .subscribe()
     })
 
     return () => {
+      mounted = false
       if (channel) supabase.removeChannel(channel)
       if (connChannel) supabase.removeChannel(connChannel)
       if (commChatChannel) supabase.removeChannel(commChatChannel)
@@ -177,6 +189,42 @@ export default function MessagesPage() {
     }
 
     setLoading(false)
+  }
+
+  const fetchThreads = async (userId: string) => {
+    const [msgRes, unreadRes] = await Promise.all([
+      supabase.from('messages').select('*')
+        .or('sender_id.eq.' + userId + ',recipient_id.eq.' + userId)
+        .order('sent_at', { ascending: false }),
+      supabase.from('messages').select('thread_id')
+        .eq('recipient_id', userId).is('read_at', null),
+    ])
+
+    if (unreadRes.data) {
+      const counts: Record<string, number> = {}
+      unreadRes.data.forEach((m: any) => { counts[m.thread_id] = (counts[m.thread_id] || 0) + 1 })
+      setUnreadCounts(counts)
+    }
+
+    if (msgRes.data) {
+      const seen = new Set()
+      const grouped = msgRes.data.filter((m: any) => {
+        if (seen.has(m.thread_id)) return false
+        seen.add(m.thread_id)
+        return true
+      })
+      const otherIds = [...new Set(grouped.map((m: any) =>
+        m.sender_id === userId ? m.recipient_id : m.sender_id
+      ))]
+      if (otherIds.length === 0) { setThreads([]); return }
+      const { data: profileData } = await supabase.from('profiles').select('id, name, avatar_url').in('id', otherIds)
+      const profileMap: Record<string, any> = {}
+      profileData?.forEach((p: any) => { profileMap[p.id] = p })
+      setThreads(grouped.map((thread: any) => {
+        const otherId = thread.sender_id === userId ? thread.recipient_id : thread.sender_id
+        return { ...thread, otherProfile: profileMap[otherId] || null }
+      }))
+    }
   }
 
   const handleAccept = async (connectionId: string) => {
