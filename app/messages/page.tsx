@@ -291,7 +291,7 @@ export default function MessagesPage() {
                 onClick={() => router.push('/communities/' + chat.communityId + '?tab=chat')}
                 className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/[0.02] transition-colors">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 border border-white/10"
-                  style={{ background: chat.community?.banner_gradient || '#1E2E1E' }}>
+                  style={{ background: chat.community?.banner_gradient || 'var(--gradient-community-banner)' }}>
                   {chat.community?.icon || '👥'}
                 </div>
                 <div className="flex-1 min-w-0 text-left">

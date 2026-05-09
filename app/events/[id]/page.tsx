@@ -460,7 +460,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Hero */}
       <div className="relative h-52 flex items-center justify-center text-6xl flex-shrink-0"
-        style={{background: 'linear-gradient(135deg,#1E3A1E,#2A1A0E)'}}>
+        style={{background: 'var(--gradient-event-hero)'}}>
         {(event as any).cover_url && (
           <img src={(event as any).cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
         )}

@@ -104,7 +104,7 @@ export default function TourPage() {
       {/* Slide */}
       <div className="flex-1 flex flex-col items-center px-7 pt-6">
 
-        <div className="w-full h-40 rounded-3xl flex items-center justify-center text-6xl mb-6 relative overflow-hidden"
+        <div className="tour-slide-bg w-full h-40 rounded-3xl flex items-center justify-center text-6xl mb-6 relative overflow-hidden"
           style={{ background: slide.bg }}>
           <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D]/30 to-transparent"></div>
           <span className="relative z-10">{slide.icon}</span>

@@ -29,7 +29,7 @@ export default function SplashPage() {
 
       {/* Glow */}
       <div className="absolute top-[-40px] left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(42,74,42,0.3) 0%, transparent 70%)' }} />
+        style={{ background: 'var(--gradient-landing-overlay)' }} />
 
       {/* Logo */}
       <div className="flex flex-col items-center mt-16 relative z-10">

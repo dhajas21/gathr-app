@@ -401,7 +401,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       <div className="px-4 pt-3 pb-3">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-            style={{ background: community.banner_gradient || '#1E2E1E' }}>
+            style={{ background: community.banner_gradient || 'var(--gradient-community-banner)' }}>
             {community.icon || '👥'}
           </div>
           <div>

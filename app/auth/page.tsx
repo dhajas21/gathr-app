@@ -73,9 +73,9 @@ export default function AuthPage() {
 
       {/* Ambient orbs */}
       <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle at center, rgba(46,110,60,0.18) 0%, transparent 65%)' }} />
+        style={{ background: 'var(--gradient-auth-green)' }} />
       <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle at center, rgba(232,184,75,0.12) 0%, transparent 65%)' }} />
+        style={{ background: 'var(--gradient-auth-gold)' }} />
 
       {/* Logo */}
       <div className="flex flex-col items-center mb-10 relative z-10">

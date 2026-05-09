@@ -37,7 +37,7 @@ export function HomePageSkeleton() {
 export function ProfilePageSkeleton() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
-      <div style={{ background: 'linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%)' }}>
+      <div style={{ background: 'var(--gradient-skeleton)' }}>
         <div className="flex justify-end px-4 pt-14 pb-3 gap-2">
           {[1, 2, 3, 4].map(i => <SkeletonBlock key={i} className="w-8 h-8 rounded-xl" />)}
         </div>
@@ -228,7 +228,7 @@ export function HostDashboardSkeleton() {
 export function PublicProfileSkeleton() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-32">
-      <div style={{ background: 'linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%)' }}>
+      <div style={{ background: 'var(--gradient-skeleton)' }}>
         <div className="flex items-start justify-between px-4 pt-14 mb-3">
           <SkeletonBlock className="w-9 h-9 rounded-xl" />
           <SkeletonBlock className="w-9 h-9 rounded-xl" />

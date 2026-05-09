@@ -39,12 +39,22 @@ input, select, textarea, button {
   --gradient-profile-header: linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%);
   --gradient-community-banner: linear-gradient(135deg,#1E2E1E,#0E1A0E);
   --gradient-category-card: linear-gradient(135deg,#1E2E1E,#0E1A0E);
+  --gradient-event-hero: linear-gradient(135deg,#1E3A1E,#2A1A0E);
+  --gradient-skeleton: linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%);
+  --gradient-landing-overlay: radial-gradient(circle, rgba(42,74,42,0.3) 0%, transparent 70%);
+  --gradient-auth-green: radial-gradient(circle at center, rgba(46,110,60,0.18) 0%, transparent 65%);
+  --gradient-auth-gold: radial-gradient(circle at center, rgba(232,184,75,0.12) 0%, transparent 65%);
 }
 
 [data-theme="light"] {
   --gradient-profile-header: linear-gradient(160deg,#D8EDD8 0%,#F4F0E8 65%);
   --gradient-community-banner: linear-gradient(135deg,#D8EDD8,#EDF6ED);
   --gradient-category-card: linear-gradient(135deg,#EDF6ED,#D8EDD8);
+  --gradient-event-hero: linear-gradient(135deg,#D8EDD8,#F4ECD8);
+  --gradient-skeleton: linear-gradient(160deg,#D8EDD8 0%,#F4F0E8 65%);
+  --gradient-landing-overlay: radial-gradient(circle, rgba(42,74,42,0.12) 0%, transparent 70%);
+  --gradient-auth-green: radial-gradient(circle at center, rgba(46,110,60,0.09) 0%, transparent 65%);
+  --gradient-auth-gold: radial-gradient(circle at center, rgba(232,184,75,0.07) 0%, transparent 65%);
 }
 
 /* ─── Light mode overrides ─────────────────────────── */
@@ -117,3 +127,6 @@ input, select, textarea, button {
 
 /* Category gradient cards — override inline style with !important */
 [data-theme="light"] .category-gradient-card { background: var(--gradient-category-card) !important; }
+
+/* Tour slide backgrounds */
+[data-theme="light"] .tour-slide-bg { background: var(--gradient-category-card) !important; }

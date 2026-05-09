@@ -558,7 +558,7 @@ export default function SearchPage() {
                   {visibleCommunities.map(comm => (
                     <div key={comm.id} onClick={() => router.push('/communities/' + comm.id)}
                       className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: comm.banner_gradient || '#1E2E1E' }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: comm.banner_gradient || 'var(--gradient-community-banner)' }}>
                         {comm.icon || '👥'}
                       </div>
                       <div className="flex-1 min-w-0">
