@@ -266,7 +266,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const handleLike = async (post: Post) => {
     if (!user) return
     const nowLiked = !post.liked
-    setPosts(prev => prev.map(p => p.id === post.id ? { ...p, liked: nowLiked, like_count: p.like_count + (nowLiked ? 1 : -1) } : p))
+    setPosts(prev => prev.map(p => p.id === post.id ? { ...p, liked: nowLiked, like_count: Math.max(0, p.like_count + (nowLiked ? 1 : -1)) } : p))
     if (nowLiked) {
       await supabase.from('community_post_likes').insert({ post_id: post.id, user_id: user.id })
       await supabase.from('community_posts').update({ like_count: post.like_count + 1 }).eq('id', post.id)

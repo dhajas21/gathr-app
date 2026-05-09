@@ -43,6 +43,7 @@ export default function CommunitiesPage() {
   const [profile, setProfile] = useState<any>(null)
   const [joined, setJoined] = useState<any[]>([])
   const [discover, setDiscover] = useState<any[]>([])
+  const [joiningId, setJoiningId] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState('All')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -78,7 +79,8 @@ export default function CommunitiesPage() {
   }
 
   const handleJoin = async (communityId: string) => {
-    if (!user) return
+    if (!user || joiningId) return
+    setJoiningId(communityId)
     const { error } = await supabase.from('community_members').insert({
       community_id: communityId,
       user_id: user.id,
@@ -89,8 +91,9 @@ export default function CommunitiesPage() {
       await supabase.from('communities').update({
         member_count: (comm?.member_count || 0) + 1
       }).eq('id', communityId)
-      fetchCommunities(user.id)
+      await fetchCommunities(user.id)
     }
+    setJoiningId(null)
   }
 
   const suggestedCats = new Set<string>(
@@ -228,8 +231,9 @@ export default function CommunitiesPage() {
                         )}
                       </div>
                       <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id) }}
-                        className="bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
-                        + Join
+                        disabled={joiningId === comm.id}
+                        className="bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform disabled:opacity-50">
+                        {joiningId === comm.id ? '...' : '+ Join'}
                       </button>
                     </div>
                   </div>
@@ -272,8 +276,9 @@ export default function CommunitiesPage() {
                       )}
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id) }}
-                      className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
-                      + Join
+                      disabled={joiningId === comm.id}
+                      className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform disabled:opacity-50">
+                      {joiningId === comm.id ? '...' : '+ Join'}
                     </button>
                   </div>
                 </div>

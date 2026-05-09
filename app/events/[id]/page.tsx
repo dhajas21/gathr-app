@@ -297,14 +297,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const handleWave = async (receiverId: string) => {
-    if (!user || !event) return
+    if (!user || !event || wavedIds.has(receiverId)) return
+    setWavedIds(prev => new Set([...prev, receiverId]))
     const { data } = await supabase.from('waves').insert({
       sender_id: user.id,
       receiver_id: receiverId,
       event_id: eventId,
     }).select().single()
     if (data) {
-      setWavedIds(prev => new Set([...prev, receiverId]))
       await supabase.from('notifications').insert({
         user_id: receiverId,
         actor_id: null,
@@ -495,14 +495,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </button>
             )}
             {isHost && (event.visibility === 'private' || event.visibility === 'unlisted') && inviteCode && (
-              <button onClick={handleCopyInvite} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center text-base transition-colors ' + (inviteCopied ? 'border-[#7EC87E]/40 text-[#7EC87E]' : 'border-[#E8B84B]/30')}>
+              <button onClick={handleCopyInvite} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center text-base transition-all active:scale-95 ' + (inviteCopied ? 'border-[#7EC87E]/40 text-[#7EC87E]' : 'border-[#E8B84B]/30')}>
                 {inviteCopied ? '✓' : '🔗'}
               </button>
             )}
-            <button onClick={handleShare} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center text-base transition-colors ' + (copied ? 'border-[#7EC87E]/40 text-[#7EC87E]' : 'border-white/15')}>
+            <button onClick={handleShare} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center text-base transition-all active:scale-95 ' + (copied ? 'border-[#7EC87E]/40 text-[#7EC87E]' : 'border-white/15')}>
               {copied ? '✓' : '↑'}
             </button>
-            <button onClick={handleBookmark} className={'w-9 h-9 border rounded-xl flex items-center justify-center text-base transition-all ' + (bookmarked ? 'bg-[#E8B84B]/20 border-[#E8B84B]/40' : 'bg-[#0D110D]/70 border-white/15')}>🔖</button>
+            <button onClick={handleBookmark} className={'w-9 h-9 border rounded-xl flex items-center justify-center text-base transition-all active:scale-95 ' + (bookmarked ? 'bg-[#E8B84B]/20 border-[#E8B84B]/40' : 'bg-[#0D110D]/70 border-white/15')}>🔖</button>
           </div>
         </div>
         <span className="relative z-5">
