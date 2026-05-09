@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { EventDetailSkeleton } from '@/components/Skeleton'
+import MysteryMatchCard from '@/components/MysteryMatchCard'
 
 interface Event {
   id: string
@@ -62,6 +63,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [matchConnStatuses, setMatchConnStatuses] = useState<Record<string, string>>({})
   const [matchConnLoading, setMatchConnLoading] = useState<string | null>(null)
   const [showAllMatches, setShowAllMatches] = useState(false)
+  const [isGathrPlus, setIsGathrPlus] = useState(false)
+  const [wavedIds, setWavedIds] = useState<Set<string>>(new Set())
+  const [mutualWaveIds, setMutualWaveIds] = useState<Set<string>>(new Set())
+  const [incomingWaveCount, setIncomingWaveCount] = useState(0)
   const [inviteCode, setInviteCode] = useState('')
   const [inviteCopied, setInviteCopied] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -250,10 +255,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
     const attendeeIds = rsvpData.map((r: any) => r.user_id)
 
-    const [profilesRes, myProfileRes, connectionsRes] = await Promise.all([
+    const [profilesRes, myProfileRes, connectionsRes, myWavesRes, incomingWavesRes] = await Promise.all([
       supabase.from('profiles').select('id, name, avatar_url, interests, bio_social, attended_count, safety_tier, review_count').in('id', attendeeIds).eq('matching_enabled', true),
-      supabase.from('profiles').select('interests').eq('id', userId).single(),
+      supabase.from('profiles').select('interests, gathr_plus').eq('id', userId).single(),
       supabase.from('connections').select('requester_id, addressee_id, status').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
+      supabase.from('waves').select('receiver_id').eq('sender_id', userId).eq('event_id', evtId),
+      supabase.from('waves').select('sender_id, is_mutual').eq('receiver_id', userId).eq('event_id', evtId),
     ])
 
     const myInterests: string[] = (myProfileRes.data?.interests || []).map((i: string) => i.toLowerCase())
@@ -277,6 +284,32 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       .sort((a: any, b: any) => b.shared.length - a.shared.length || b.trust - a.trust)
 
     setMatches(scored)
+    setIsGathrPlus(myProfileRes.data?.gathr_plus || false)
+    setWavedIds(new Set((myWavesRes.data || []).map((w: any) => w.receiver_id)))
+    const mutualIds = new Set((incomingWavesRes.data || []).filter((w: any) => w.is_mutual).map((w: any) => w.sender_id))
+    setMutualWaveIds(mutualIds)
+    setIncomingWaveCount((incomingWavesRes.data || []).length)
+  }
+
+  const handleWave = async (receiverId: string) => {
+    if (!user || !event) return
+    const { data } = await supabase.from('waves').insert({
+      sender_id: user.id,
+      receiver_id: receiverId,
+      event_id: eventId,
+    }).select().single()
+    if (data) {
+      setWavedIds(prev => new Set([...prev, receiverId]))
+      await supabase.from('notifications').insert({
+        user_id: receiverId,
+        actor_id: null,
+        type: 'wave',
+        title: 'Someone wants to meet you',
+        body: `A mystery match at "${event.title}" sent you a wave 👋`,
+        link: '/events/' + eventId,
+        read: false,
+      })
+    }
   }
 
   const handleMatchConnect = async (e: React.MouseEvent, personId: string) => {
@@ -553,86 +586,118 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* People Matching */}
-        {matches.length > 0 && (
-          <div className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl p-3.5 mb-3">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium flex-1">People you might vibe with</div>
-              <span className="text-[9px] text-[#E8B84B]/50">✦ Also going</span>
-            </div>
-            <div className="space-y-3">
-              {(showAllMatches ? matches : matches.slice(0, 5)).map((match: any) => {
-                const status = matchConnStatuses[match.id]
-                const isPostEvent = event && new Date(event.end_datetime).getTime() < Date.now()
-                const tierIcon = match.safety_tier === 'trusted' ? '⭐' : match.safety_tier === 'verified' ? '✓' : match.safety_tier === 'flagged' ? '⚠' : null
-                return (
-                  <div key={match.id} className="flex items-center gap-3">
-                    <button onClick={() => router.push('/profile/' + match.id)} className="flex-shrink-0">
-                      {match.avatar_url ? (
-                        <img src={match.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10" />
-                      ) : (
-                        <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base border border-white/10">
-                          {match.name?.charAt(0) || '?'}
-                        </div>
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-[#F0EDE6] truncate">{match.name}</span>
-                        {tierIcon && (
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${match.safety_tier === 'trusted' ? 'bg-[#E8B84B]/15 text-[#E8B84B]' : match.safety_tier === 'verified' ? 'bg-[#4A90D9]/15 text-[#4A90D9]' : 'bg-red-500/15 text-red-400'}`}>
-                            {tierIcon} {match.safety_tier === 'trusted' ? 'Trusted' : match.safety_tier === 'verified' ? 'Verified' : 'Flagged'}
-                          </span>
-                        )}
-                      </div>
-                      {match.shared.length > 0 ? (
-                        <div className="text-[10px] text-white/35 mt-0.5 truncate">
-                          {match.shared.slice(0, 3).join(' · ')}
-                        </div>
-                      ) : (
-                        <div className="text-[10px] text-white/25 mt-0.5">Also going to this event</div>
-                      )}
-                    </div>
-                    <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                      {!status ? (
-                        <button
-                          onClick={e => handleMatchConnect(e, match.id)}
-                          disabled={matchConnLoading === match.id}
-                          className="bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-[10px] font-semibold px-3 py-1.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50">
-                          {matchConnLoading === match.id ? '...' : '+ Hi'}
-                        </button>
-                      ) : status === 'accepted' ? (
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span className="text-[10px] text-[#7EC87E]">✓ Connected</span>
-                          {isPostEvent && (
-                            <button onClick={() => router.push('/events/' + eventId + '/survey')} className="text-[9px] text-[#E8B84B]/60">
-                              Rate →
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-white/30">Sent</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-            {matches.length > 5 && (
-              <button
-                onClick={() => setShowAllMatches(prev => !prev)}
-                className="mt-3 w-full text-[10px] text-[#E8B84B]/60 text-center py-1.5 border-t border-white/[0.06]">
-                {showAllMatches ? 'Show less ↑' : `See ${matches.length - 5} more →`}
-              </button>
-            )}
-            {matches.length <= 5 && (
-              <div className="mt-3 pt-2.5 border-t border-white/[0.06] text-center">
-                <button onClick={() => router.push('/settings')} className="text-[9px] text-white/20">
-                  Manage matching preferences →
-                </button>
+        {matches.length > 0 && event && (() => {
+          const nowMs = Date.now()
+          const eventState: 'upcoming' | 'ongoing' | 'ended' =
+            nowMs < new Date(event.start_datetime).getTime() ? 'upcoming'
+            : nowMs < new Date(event.end_datetime).getTime() ? 'ongoing'
+            : 'ended'
+          const isPostEvent = eventState === 'ended'
+
+          const headerEmoji = eventState === 'upcoming' ? '🔮' : eventState === 'ongoing' ? '🎯' : '✨'
+          const headerText = eventState === 'upcoming'
+            ? `${matches.length} match${matches.length !== 1 ? 'es' : ''} waiting`
+            : eventState === 'ongoing'
+            ? `${matches.length} ${matches.length !== 1 ? 'people' : 'person'} here now`
+            : `${matches.length} ${matches.length !== 1 ? 'people' : 'person'} you crossed paths with`
+
+          const freeVisibleCount = eventState === 'upcoming' && !isGathrPlus ? 1 : 5
+          const visibleMatches = showAllMatches ? matches : matches.slice(0, freeVisibleCount)
+          const hiddenCount = matches.length - visibleMatches.length
+
+          return (
+            <div className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl p-3.5 mb-3">
+
+              {/* Header */}
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm">{headerEmoji}</span>
+                  <span className="text-xs font-semibold text-[#F0EDE6]">{headerText}</span>
+                </div>
+                <p className="text-[10px] text-white/30 leading-relaxed">
+                  {eventState === 'upcoming'
+                    ? 'Full profiles unlock after the event. Show up to reveal who you matched with.'
+                    : eventState === 'ongoing'
+                    ? 'They\'re here. Find them in person or send a Hi.'
+                    : 'You were at the same event. Rate your experience below.'}
+                </p>
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Incoming wave teaser */}
+              {incomingWaveCount > 0 && eventState === 'upcoming' && (
+                <div className="mb-3 bg-[#E8B84B]/5 border border-[#E8B84B]/20 rounded-xl p-2.5 flex items-center gap-2.5">
+                  <span className="text-xl flex-shrink-0">👋</span>
+                  <div className="flex-1">
+                    <div className="text-[10px] font-semibold text-[#E8B84B]">
+                      {incomingWaveCount === 1 ? 'Someone is curious about meeting you' : `${incomingWaveCount} people are curious about meeting you`}
+                    </div>
+                    <div className="text-[9px] text-white/30 mt-0.5">Attend the event to find out who</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Match cards */}
+              <div className="space-y-3.5">
+                {visibleMatches.map((match: any) => (
+                  <MysteryMatchCard
+                    key={match.id}
+                    match={match}
+                    eventState={eventState}
+                    gathrPlus={isGathrPlus}
+                    eventId={eventId}
+                    connStatus={matchConnStatuses[match.id]}
+                    waved={wavedIds.has(match.id)}
+                    incomingMutual={mutualWaveIds.has(match.id)}
+                    matchConnLoading={matchConnLoading}
+                    onHi={id => handleMatchConnect({ stopPropagation: () => {} } as React.MouseEvent, id)}
+                    onWave={handleWave}
+                    onNavigate={path => router.push(path)}
+                    isPostEvent={isPostEvent}
+                  />
+                ))}
+              </div>
+
+              {/* Gathr+ upsell — free users on upcoming events with hidden matches */}
+              {eventState === 'upcoming' && !isGathrPlus && hiddenCount > 0 && (
+                <div className="mt-3.5 bg-[#E8B84B]/5 border border-[#E8B84B]/15 rounded-xl p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[10px] font-bold text-[#E8B84B]">✦ Gathr+</span>
+                    <span className="text-[9px] text-white/25">unlock before the event</span>
+                  </div>
+                  <p className="text-[9px] text-white/35 mb-2 leading-relaxed">
+                    See {hiddenCount} more {hiddenCount === 1 ? 'match' : 'matches'}, partial names, shared interests, and send waves before you arrive.
+                  </p>
+                  <button onClick={() => router.push('/gathr-plus')} className="text-[10px] text-[#E8B84B] font-semibold">
+                    Learn more →
+                  </button>
+                </div>
+              )}
+
+              {/* See more / show less for Gathr+ or post-event */}
+              {(isGathrPlus || eventState !== 'upcoming') && hiddenCount > 0 && !showAllMatches && (
+                <button onClick={() => setShowAllMatches(true)}
+                  className="mt-3 w-full text-[10px] text-[#E8B84B]/60 text-center py-1.5 border-t border-white/[0.06]">
+                  See {hiddenCount} more →
+                </button>
+              )}
+              {showAllMatches && matches.length > freeVisibleCount && (
+                <button onClick={() => setShowAllMatches(false)}
+                  className="mt-3 w-full text-[10px] text-[#E8B84B]/60 text-center py-1.5 border-t border-white/[0.06]">
+                  Show less ↑
+                </button>
+              )}
+
+              {/* Preferences link */}
+              {hiddenCount === 0 && !showAllMatches && (
+                <div className="mt-3 pt-2.5 border-t border-white/[0.06] text-center">
+                  <button onClick={() => router.push('/settings')} className="text-[9px] text-white/20">
+                    Manage matching preferences →
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Spots */}
         {event.capacity > 0 && (

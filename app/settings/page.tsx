@@ -24,19 +24,21 @@ export default function SettingsPage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [gathrPlus, setGathrPlus] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
-      supabase.from('profiles').select('name, avatar_url, profile_mode, discoverable, matching_enabled, city').eq('id', session.user.id).single()
+      supabase.from('profiles').select('name, avatar_url, profile_mode, discoverable, matching_enabled, city, gathr_plus').eq('id', session.user.id).single()
         .then(({ data }) => {
           if (data) {
             setProfile(data)
             setProfileMode(data.profile_mode || 'both')
             setDiscoverable(data.discoverable !== false)
             setMatchingEnabled(data.matching_enabled !== false)
+            setGathrPlus(data.gathr_plus || false)
           }
           setLoading(false)
         })
@@ -152,6 +154,32 @@ export default function SettingsPage() {
             Edit ›
           </div>
         </div>
+
+        {/* Gathr+ */}
+        {gathrPlus ? (
+          <div className="bg-gradient-to-br from-[#E8B84B]/10 to-[#C49A35]/5 border border-[#E8B84B]/25 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-[14px] bg-[#E8B84B] flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">✦</span>
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-bold text-[#E8B84B]">Gathr+ Active</div>
+              <div className="text-[10px] text-white/35 mt-0.5">Mystery matches, waves, and priority ranking are on</div>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => router.push('/gathr-plus')}
+            className="w-full bg-gradient-to-br from-[#E8B84B]/8 to-[#C49A35]/4 border border-[#E8B84B]/20 rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform text-left">
+            <div className="w-10 h-10 rounded-[14px] bg-[#E8B84B]/15 border border-[#E8B84B]/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">✦</span>
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-bold text-[#E8B84B]">Unlock Gathr+</div>
+              <div className="text-[10px] text-white/35 mt-0.5">See matches before events, send waves, and more</div>
+            </div>
+            <span className="text-[10px] text-[#E8B84B]/60 font-semibold flex-shrink-0">$4.99/mo →</span>
+          </button>
+        )}
 
         <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
           <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium px-4 pt-3.5 pb-2">Appearance</div>
