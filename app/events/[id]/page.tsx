@@ -165,7 +165,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).single(),
       supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', id).limit(12),
       supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('event_id', id),
-      supabase.from('event_comments').select('id, user_id, text, created_at, profiles(id, name, avatar_url)').eq('event_id', id).order('created_at', { ascending: true }),
+      supabase.from('event_comments').select('id, user_id, text, created_at, profiles(id, name, avatar_url)').eq('event_id', id).order('created_at', { ascending: true }).limit(100),
       supabase.from('events').select('*', { count: 'exact', head: true }).eq('host_id', eventData.host_id),
       supabase.from('event_bookmarks').select('id').eq('event_id', id).eq('user_id', userId).single(),
     ])

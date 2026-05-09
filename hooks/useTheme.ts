@@ -6,7 +6,8 @@ export function useTheme() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
 
   useEffect(() => {
-    const stored = (localStorage.getItem('gathr_theme') as 'dark' | 'light') || 'dark'
+    const raw = localStorage.getItem('gathr_theme')
+    const stored: 'dark' | 'light' = raw === 'light' || raw === 'dark' ? raw : 'dark'
     setTheme(stored)
   }, [])
 

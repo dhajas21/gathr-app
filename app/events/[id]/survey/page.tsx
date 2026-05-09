@@ -52,14 +52,20 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
   }, [])
 
   const fetchReviewees = async (evtId: string, userId: string) => {
-    const [eventRes, rsvpRes, reviewedRes, connectionsRes] = await Promise.all([
-      supabase.from('events').select('title').eq('id', evtId).single(),
+    const [eventRes, myRsvpRes, rsvpRes, reviewedRes, connectionsRes] = await Promise.all([
+      supabase.from('events').select('title, end_datetime').eq('id', evtId).single(),
+      supabase.from('rsvps').select('id').eq('event_id', evtId).eq('user_id', userId).maybeSingle(),
       supabase.from('rsvps').select('user_id').eq('event_id', evtId).neq('user_id', userId),
       supabase.from('user_reviews').select('reviewed_id').eq('reviewer_id', userId).eq('event_id', evtId),
       supabase.from('connections').select('requester_id, addressee_id').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`).eq('status', 'accepted'),
     ])
 
     if (eventRes.data) setEventTitle(eventRes.data.title)
+
+    // Reviewer must have attended the event and event must have ended
+    if (!myRsvpRes.data) { setLoading(false); setSkippedAll(true); return }
+    const eventEnded = eventRes.data ? new Date(eventRes.data.end_datetime).getTime() < Date.now() : false
+    if (!eventEnded) { setLoading(false); setSkippedAll(true); return }
 
     const attendeeIds = (rsvpRes.data || []).map((r: any) => r.user_id)
     if (!attendeeIds.length) { setLoading(false); setDone(true); return }
@@ -154,7 +160,9 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
         <div className="text-5xl mb-5">✨</div>
         <h1 className="text-xl font-bold text-[#F0EDE6] mb-2">All done!</h1>
         <p className="text-sm text-white/40 mb-8 max-w-[260px]">
-          {reviewees.length === 0
+          {skippedAll
+            ? 'Reviews are only available to people who attended the event after it ends.'
+            : reviewees.length === 0
             ? 'No one to review from this event yet.'
             : 'Your feedback helps everyone in the community stay safe and find their people.'}
         </p>

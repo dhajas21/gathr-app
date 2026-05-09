@@ -241,7 +241,7 @@ export default function SearchPage() {
     e.stopPropagation()
     if (!user || connectionStatuses[personId]) return
     const { data } = await supabase.from('connections').insert({
-      requester_id: user.id, addressee_id: personId, user_id: user.id, friend_id: personId,
+      requester_id: user.id, addressee_id: personId,
     }).select().single()
     if (data) {
       setConnectionStatuses(prev => ({ ...prev, [personId]: 'pending' }))

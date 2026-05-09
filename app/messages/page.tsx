@@ -92,15 +92,22 @@ export default function MessagesPage() {
         return true
       })
 
-      const enriched = await Promise.all(grouped.map(async (thread: any) => {
+      const otherIds = [...new Set(grouped.map((m: any) =>
+        m.sender_id === userId ? m.recipient_id : m.sender_id
+      ))]
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', otherIds)
+
+      const profileMap: Record<string, any> = {}
+      profileData?.forEach((p: any) => { profileMap[p.id] = p })
+
+      const enriched = grouped.map((thread: any) => {
         const otherId = thread.sender_id === userId ? thread.recipient_id : thread.sender_id
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, name, avatar_url')
-          .eq('id', otherId)
-          .single()
-        return { ...thread, otherProfile: profile }
-      }))
+        return { ...thread, otherProfile: profileMap[otherId] || null }
+      })
 
       setThreads(enriched)
     }

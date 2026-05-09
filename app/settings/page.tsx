@@ -83,7 +83,7 @@ export default function SettingsPage() {
   const handleChangePassword = async () => {
     setPasswordError('')
     if (!newPassword) { setPasswordError('Enter a new password'); return }
-    if (newPassword.length < 6) { setPasswordError('Password must be at least 6 characters'); return }
+    if (newPassword.length < 12) { setPasswordError('Password must be at least 12 characters'); return }
     if (newPassword !== confirmPassword) { setPasswordError('Passwords do not match'); return }
     setSavingPassword(true)
     const { error } = await supabase.auth.updateUser({ password: newPassword })
