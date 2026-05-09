@@ -69,7 +69,8 @@ export default function SetupPage() {
       }
     }
     setSaveStep('profile')
-    const { error: updateError } = await supabase.from('profiles').update({
+    const { error: updateError } = await supabase.from('profiles').upsert({
+      id: user.id,
       name: name.trim() || undefined,
       bio_social: bio.trim() || undefined,
       profile_mode: mode,
@@ -77,7 +78,7 @@ export default function SetupPage() {
       city,
       rsvp_visibility: rsvpVisibility,
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
-    }).eq('id', user.id)
+    }, { onConflict: 'id' })
     setSaving(false)
     setSaveStep(null)
     if (updateError) {
