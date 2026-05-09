@@ -277,10 +277,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     if (!user) return
     const nowLiked = !post.liked
     setPosts(prev => prev.map(p => p.id === post.id ? { ...p, liked: nowLiked, like_count: Math.max(0, p.like_count + (nowLiked ? 1 : -1)) } : p))
-    if (nowLiked) {
-      await supabase.from('community_post_likes').insert({ post_id: post.id, user_id: user.id })
-    } else {
-      await supabase.from('community_post_likes').delete().eq('post_id', post.id).eq('user_id', user.id)
+    const { error } = nowLiked
+      ? await supabase.from('community_post_likes').insert({ post_id: post.id, user_id: user.id })
+      : await supabase.from('community_post_likes').delete().eq('post_id', post.id).eq('user_id', user.id)
+    if (error) {
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, liked: !nowLiked, like_count: Math.max(0, p.like_count + (nowLiked ? -1 : 1)) } : p))
     }
   }
 

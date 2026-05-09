@@ -152,8 +152,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
       scrollToBottom()
     } else if (error) {
-      console.error('Send error:', error)
       setText(trimmed)
+      setUploadError(error.message?.includes('rate_limit') ? 'Slow down — you\'re sending too fast' : 'Message failed to send. Tap to retry.')
+      setTimeout(() => setUploadError(''), 3500)
     }
     setSending(false)
   }

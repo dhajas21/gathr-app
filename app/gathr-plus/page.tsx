@@ -77,7 +77,8 @@ export default function GathrPlusPage() {
       return
     }
 
-    const { error } = await supabase.from('profiles').update({ gathr_plus: true, gathr_plus_trial_used: true }).eq('id', session.user.id)
+    const trialExpiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
+    const { error } = await supabase.from('profiles').update({ gathr_plus_expires_at: trialExpiresAt, gathr_plus_trial_used: true }).eq('id', session.user.id)
     setLoading(false)
     if (error) {
       setTrialError('Something went wrong activating your trial. Please try again.')
