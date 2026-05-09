@@ -193,7 +193,6 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       if (!error) {
         setIsMember(true)
         setMemberRole('member')
-        await supabase.from('communities').update({ member_count: (community?.member_count || 0) + 1 }).eq('id', communityId)
         setCommunity((prev: any) => prev ? { ...prev, member_count: (prev.member_count || 0) + 1 } : prev)
       }
     }
@@ -214,7 +213,6 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     await supabase.from('community_members').delete().eq('community_id', communityId).eq('user_id', user.id)
     setIsMember(false)
     setMemberRole(null)
-    await supabase.from('communities').update({ member_count: Math.max(0, (community?.member_count || 1) - 1) }).eq('id', communityId)
     setCommunity((prev: any) => prev ? { ...prev, member_count: Math.max(0, (prev.member_count || 1) - 1) } : prev)
     setActionLoading(false)
   }
@@ -230,7 +228,6 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       .select('*, profile:profiles!community_members_user_id_fkey(id, name, bio_social, avatar_url)')
       .eq('community_id', communityId).eq('user_id', userId).single()
     if (newMember) setMembers(prev => [...prev, newMember])
-    await supabase.from('communities').update({ member_count: (community?.member_count || 0) + 1 }).eq('id', communityId)
     setCommunity((prev: any) => prev ? { ...prev, member_count: (prev.member_count || 0) + 1 } : prev)
     setAcceptingIds(prev => { const n = new Set(prev); n.delete(userId); return n })
   }
@@ -281,15 +278,9 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     const nowLiked = !post.liked
     setPosts(prev => prev.map(p => p.id === post.id ? { ...p, liked: nowLiked, like_count: Math.max(0, p.like_count + (nowLiked ? 1 : -1)) } : p))
     if (nowLiked) {
-      await Promise.all([
-        supabase.from('community_post_likes').insert({ post_id: post.id, user_id: user.id }),
-        supabase.from('community_posts').update({ like_count: post.like_count + 1 }).eq('id', post.id),
-      ])
+      await supabase.from('community_post_likes').insert({ post_id: post.id, user_id: user.id })
     } else {
-      await Promise.all([
-        supabase.from('community_post_likes').delete().eq('post_id', post.id).eq('user_id', user.id),
-        supabase.from('community_posts').update({ like_count: Math.max(0, post.like_count - 1) }).eq('id', post.id),
-      ])
+      await supabase.from('community_post_likes').delete().eq('post_id', post.id).eq('user_id', user.id)
     }
   }
 

@@ -163,17 +163,9 @@ export default function MessagesPage() {
     setLoading(false)
   }
 
-  const handleAccept = async (connectionId: string, requesterId: string) => {
+  const handleAccept = async (connectionId: string) => {
     const conn = connections.find(c => c.id === connectionId)
     await supabase.from('connections').update({ status: 'accepted' }).eq('id', connectionId)
-    await supabase.from('notifications').insert({
-      user_id: requesterId,
-      actor_id: user.id,
-      type: 'connection_accepted',
-      title: 'accepted your connection request',
-      link: '/profile/' + user.id,
-      read: false,
-    })
     setConnections(prev => prev.filter(c => c.id !== connectionId))
     if (conn) {
       setAcceptedConnections(prev => [...prev, { ...conn, status: 'accepted', otherProfile: conn.requester }])
@@ -276,7 +268,7 @@ export default function MessagesPage() {
                 <div className="text-sm font-medium text-[#F0EDE6]">{conn.requester?.name}</div>
                 <div className="text-xs text-white/40">wants to connect</div>
               </div>
-              <button onClick={() => handleAccept(conn.id, conn.requester_id)}
+              <button onClick={() => handleAccept(conn.id)}
                 className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
                 Accept
               </button>

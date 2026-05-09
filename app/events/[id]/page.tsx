@@ -224,17 +224,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         .eq('event_id', event.id)
         .limit(12)
       if (data) setAttendees(data as any)
-      if (event.host_id !== user.id) {
-        await supabase.from('notifications').insert({
-          user_id: event.host_id,
-          actor_id: user.id,
-          type: 'rsvp',
-          title: 'is going to your event',
-          body: event.title,
-          link: '/events/' + event.id,
-          read: false,
-        })
-      }
     }
     setRsvpLoading(false)
   }
@@ -330,15 +319,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     }).select().single()
     if (data) {
       setMatchConnStatuses(prev => ({ ...prev, [personId]: 'pending' }))
-      await supabase.from('notifications').insert({
-        user_id: personId,
-        actor_id: user.id,
-        type: 'connection_request',
-        title: 'wants to connect with you',
-        body: "You're both going to the same event.",
-        link: '/profile/' + user.id,
-        read: false,
-      })
     }
     setMatchConnLoading(null)
   }

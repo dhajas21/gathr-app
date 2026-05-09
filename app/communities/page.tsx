@@ -88,12 +88,6 @@ export default function CommunitiesPage() {
       role,
     })
     if (!error) {
-      if (!isPrivate) {
-        const comm = discover.find(c => c.id === communityId)
-        await supabase.from('communities').update({
-          member_count: (comm?.member_count || 0) + 1
-        }).eq('id', communityId)
-      }
       await fetchCommunities(user.id)
     }
     setJoiningId(null)
