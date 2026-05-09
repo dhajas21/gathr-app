@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -45,7 +45,7 @@ export default function GathrPlusPage() {
   const [activeTrial, setActiveTrial] = useState<string | null>(null)
   const router = useRouter()
 
-  useState(() => {
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) return
       supabase.from('profiles').select('gathr_plus, gathr_plus_expires_at').eq('id', session.user.id).single()
@@ -55,7 +55,7 @@ export default function GathrPlusPage() {
           if (trialActive && !data.gathr_plus) setActiveTrial(data.gathr_plus_expires_at)
         })
     })
-  })
+  }, [])
 
   const handleSubscribe = async () => {
     setLoading(true)
@@ -77,8 +77,12 @@ export default function GathrPlusPage() {
       return
     }
 
-    await supabase.from('profiles').update({ gathr_plus: true, gathr_plus_trial_used: true }).eq('id', session.user.id)
+    const { error } = await supabase.from('profiles').update({ gathr_plus: true, gathr_plus_trial_used: true }).eq('id', session.user.id)
     setLoading(false)
+    if (error) {
+      setTrialError('Something went wrong activating your trial. Please try again.')
+      return
+    }
     setSuccess(true)
     setTimeout(() => router.back(), 2200)
   }

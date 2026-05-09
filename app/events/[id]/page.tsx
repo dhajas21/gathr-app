@@ -293,11 +293,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const handleWave = async (receiverId: string) => {
     if (!user || !event || wavedIds.has(receiverId)) return
     setWavedIds(prev => new Set([...prev, receiverId]))
-    const { data } = await supabase.from('waves').insert({
+    const { data, error } = await supabase.from('waves').insert({
       sender_id: user.id,
       receiver_id: receiverId,
       event_id: eventId,
     }).select().single()
+    if (error) {
+      setWavedIds(prev => { const next = new Set(prev); next.delete(receiverId); return next })
+      return
+    }
     if (data) {
       await supabase.from('notifications').insert({
         user_id: receiverId,

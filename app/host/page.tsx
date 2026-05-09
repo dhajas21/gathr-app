@@ -18,17 +18,33 @@ export default function HostDashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [events, setEvents] = useState<any[]>([])
   const [rsvpCounts, setRsvpCounts] = useState<Record<string, number>>({})
-  const [ticketRevenue, setTicketRevenue] = useState<Record<string, number>>({})
+  const [ticketRevenue] = useState<Record<string, number>>({})
   const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'insights'>('overview')
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel>
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
       fetchData(session.user.id)
+
+      channel = supabase
+        .channel('host-rsvps')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rsvps' }, (payload) => {
+          const eventId = (payload.new as any).event_id
+          setRsvpCounts(prev => ({ ...prev, [eventId]: (prev[eventId] || 0) + 1 }))
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'rsvps' }, (payload) => {
+          const eventId = (payload.old as any).event_id
+          setRsvpCounts(prev => ({ ...prev, [eventId]: Math.max(0, (prev[eventId] || 0) - 1) }))
+        })
+        .subscribe()
     })
+
+    return () => { if (channel) supabase.removeChannel(channel) }
   }, [])
 
   const fetchData = async (userId: string) => {
@@ -43,21 +59,11 @@ export default function HostDashboardPage() {
 
     if (data.length > 0) {
       const ids = data.map((e: any) => e.id)
-      const [rsvpRes, ticketRes] = await Promise.all([
-        supabase.from('rsvps').select('event_id').in('event_id', ids),
-        supabase.from('tickets').select('event_id, total_amount').in('event_id', ids),
-      ])
-
-      if (rsvpRes.data) {
+      const { data: rsvpData } = await supabase.from('rsvps').select('event_id').in('event_id', ids)
+      if (rsvpData) {
         const counts: Record<string, number> = {}
-        rsvpRes.data.forEach((r: any) => { counts[r.event_id] = (counts[r.event_id] || 0) + 1 })
+        rsvpData.forEach((r: any) => { counts[r.event_id] = (counts[r.event_id] || 0) + 1 })
         setRsvpCounts(counts)
-      }
-
-      if (ticketRes.data && !ticketRes.error) {
-        const revenue: Record<string, number> = {}
-        ticketRes.data.forEach((t: any) => { revenue[t.event_id] = (revenue[t.event_id] || 0) + (t.total_amount || 0) })
-        setTicketRevenue(revenue)
       }
     }
 

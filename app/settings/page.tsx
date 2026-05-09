@@ -61,7 +61,8 @@ export default function SettingsPage() {
       next = 'both'
     }
     setProfileMode(next)
-    await supabase.from('profiles').update({ profile_mode: next }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update({ profile_mode: next }).eq('id', user.id)
+    if (error) setProfileMode(current)
     setSavingMode(false)
   }
 
@@ -70,7 +71,8 @@ export default function SettingsPage() {
     setSavingDiscoverable(true)
     const next = !discoverable
     setDiscoverable(next)
-    await supabase.from('profiles').update({ discoverable: next }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update({ discoverable: next }).eq('id', user.id)
+    if (error) setDiscoverable(!next)
     setSavingDiscoverable(false)
   }
 
@@ -79,7 +81,8 @@ export default function SettingsPage() {
     setSavingMatching(true)
     const next = !matchingEnabled
     setMatchingEnabled(next)
-    await supabase.from('profiles').update({ matching_enabled: next }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update({ matching_enabled: next }).eq('id', user.id)
+    if (error) setMatchingEnabled(!next)
     setSavingMatching(false)
   }
 

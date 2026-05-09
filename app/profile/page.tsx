@@ -233,7 +233,8 @@ export default function ProfilePage() {
     if (!nextSocial && !nextPro) nextSocial = true
     const next = nextSocial && nextPro ? 'both' : nextPro ? 'professional' : 'social'
     setProfile((p: any) => ({ ...p, profile_mode: next }))
-    await supabase.from('profiles').update({ profile_mode: next }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update({ profile_mode: next }).eq('id', user.id)
+    if (error) setProfile((p: any) => ({ ...p, profile_mode: current }))
   }
 
   const handleTogglePin = async (title: string) => {

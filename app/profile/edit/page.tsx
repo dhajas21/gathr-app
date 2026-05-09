@@ -21,6 +21,7 @@ export default function EditProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [uploadError, setUploadError] = useState('')
+  const [saveError, setSaveError] = useState('')
   const [interestSearch, setInterestSearch] = useState('')
   const [rsvpVisibility, setRsvpVisibility] = useState('public')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -82,13 +83,15 @@ export default function EditProfilePage() {
 
   const handleSave = async () => {
     setSaving(true)
+    setSaveError('')
     let finalAvatarUrl = avatarUrl
     if (avatarFile) finalAvatarUrl = await uploadAvatar()
     else if (!avatarPreview && avatarUrl) finalAvatarUrl = null
-    await supabase.from('profiles').update({
+    const { error } = await supabase.from('profiles').update({
       name: name.trim(), bio_social: bio.trim(), city, interests, profile_mode: mode, avatar_url: finalAvatarUrl, rsvp_visibility: rsvpVisibility,
     }).eq('id', userId)
     setSaving(false)
+    if (error) { setSaveError('Failed to save changes. Please try again.'); return }
     router.push('/profile')
   }
 
@@ -254,6 +257,11 @@ export default function EditProfilePage() {
           {!interestSearch && <p className="text-[10px] text-white/25 mt-2">Search to find more interests</p>}
         </div>
 
+        {saveError && (
+          <div className="text-xs text-[#E85B5B] bg-[#E85B5B]/8 border border-[#E85B5B]/20 rounded-xl px-3 py-2.5">
+            {saveError}
+          </div>
+        )}
         <button onClick={handleSave} disabled={saving}
           className="w-full bg-[#E8B84B] text-[#0D110D] rounded-2xl py-4 font-bold text-sm disabled:opacity-50 mt-2 active:scale-95 transition-transform"
           style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
