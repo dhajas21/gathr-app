@@ -142,6 +142,7 @@ export default function CreateEventPage() {
   const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setError('Only JPG, PNG, and WebP images are allowed'); return }
     if (file.size > 5 * 1024 * 1024) { setError('Cover photo must be under 5 MB'); return }
     setCoverFile(file)
     const reader = new FileReader()

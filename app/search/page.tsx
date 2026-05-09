@@ -167,11 +167,14 @@ export default function SearchPage() {
 
     const categoryToUse = activeCategory !== 'All' ? activeCategory : vibe.detectedCategory
 
+    // Strip PostgREST filter syntax characters from user input to prevent filter injection
+    const sanitize = (s: string) => s.replace(/[(),]/g, '').trim()
+
     // Search events
     let eventQuery = supabase.from('events').select('*').eq('visibility', 'public')
       .order('start_datetime', { ascending: true }).limit(30)
     if (categoryToUse) eventQuery = eventQuery.eq('category', categoryToUse)
-    if (vibe.searchTerms) eventQuery = eventQuery.or('title.ilike.%' + vibe.searchTerms + '%,description.ilike.%' + vibe.searchTerms + '%,location_name.ilike.%' + vibe.searchTerms + '%')
+    if (vibe.searchTerms) { const t = sanitize(vibe.searchTerms); if (t) eventQuery = eventQuery.or('title.ilike.%' + t + '%,description.ilike.%' + t + '%,location_name.ilike.%' + t + '%') }
     const { data: eventData } = await eventQuery
     let filteredEvents = eventData || []
     if (vibe.targetDay !== null) filteredEvents = filteredEvents.filter(e => matchesDay(new Date(e.start_datetime), vibe.targetDay!))
@@ -190,9 +193,10 @@ export default function SearchPage() {
 
     // Search people
     if (q.trim()) {
+      const sq = sanitize(q.trim())
       const { data: peopleData } = await supabase.from('profiles')
         .select('id, name, bio_social, city, avatar_url')
-        .or('name.ilike.%' + q.trim() + '%,bio_social.ilike.%' + q.trim() + '%,city.ilike.%' + q.trim() + '%')
+        .or('name.ilike.%' + sq + '%,bio_social.ilike.%' + sq + '%,city.ilike.%' + sq + '%')
         .neq('id', user?.id).limit(10)
       if (peopleData) {
         setPeople(peopleData)
@@ -213,8 +217,9 @@ export default function SearchPage() {
 
     // Search communities
     if (q.trim()) {
+      const sq = sanitize(q.trim())
       const { data: commData } = await supabase.from('communities').select('*')
-        .or('name.ilike.%' + q.trim() + '%,description.ilike.%' + q.trim() + '%').limit(10)
+        .or('name.ilike.%' + sq + '%,description.ilike.%' + sq + '%').limit(10)
       if (commData) setCommunities(commData)
     } else { setCommunities([]) }
 

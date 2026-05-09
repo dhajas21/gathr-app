@@ -68,7 +68,8 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 
   const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || file.size > 5 * 1024 * 1024) return
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) return
     setCoverFile(file)
     const reader = new FileReader()
     reader.onload = (ev) => setCoverPreview(ev.target?.result as string)

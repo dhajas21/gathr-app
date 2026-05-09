@@ -41,6 +41,7 @@ export default function SetupPage() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return
     if (file.size > 5 * 1024 * 1024) return
     setAvatarFile(file)
     const reader = new FileReader()

@@ -7,6 +7,25 @@ import BottomNav from '@/components/BottomNav'
 import { PublicProfileSkeleton } from '@/components/Skeleton'
 import SafetyBadge from '@/components/SafetyBadge'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+const ACHIEVEMENT_LOOKUP: Record<string, { icon: string; tier: 'bronze' | 'silver' | 'gold' }> = {
+  'First Event': { icon: '🎉', tier: 'bronze' }, 'Rising Host': { icon: '🎙', tier: 'silver' },
+  'Host with the Most': { icon: '🏆', tier: 'gold' }, 'Community Builder': { icon: '🌆', tier: 'gold' },
+  'First Steps': { icon: '👟', tier: 'bronze' }, 'Scene Regular': { icon: '📅', tier: 'silver' },
+  'Event Veteran': { icon: '⭐', tier: 'gold' }, 'Gathr Legend': { icon: '🌟', tier: 'gold' },
+  'First Connection': { icon: '🤝', tier: 'bronze' }, 'Networker': { icon: '📡', tier: 'silver' },
+  'Social Butterfly': { icon: '🦋', tier: 'gold' }, 'Connector': { icon: '👑', tier: 'gold' },
+  'Explorer': { icon: '🗺', tier: 'bronze' }, 'Passionate': { icon: '🎯', tier: 'silver' },
+  'Dual Mode': { icon: '🔀', tier: 'silver' }, 'All-Rounder': { icon: '💎', tier: 'gold' },
+  'On Fire': { icon: '🔥', tier: 'gold' }, 'Power User': { icon: '🚀', tier: 'gold' },
+  'Avatar': { icon: '📸', tier: 'bronze' }, 'Storyteller': { icon: '✍️', tier: 'bronze' },
+  'Curious': { icon: '🎪', tier: 'bronze' }, 'Scene Explorer': { icon: '🌈', tier: 'silver' },
+  'Renaissance Person': { icon: '🎭', tier: 'gold' }, 'Versatile Host': { icon: '🎨', tier: 'silver' },
+  'Group Member': { icon: '🏘️', tier: 'bronze' }, 'Community Regular': { icon: '🌿', tier: 'silver' },
+  'Trusted Member': { icon: '🛡️', tier: 'silver' }, 'Community Pillar': { icon: '💠', tier: 'gold' },
+}
+
 export default function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -26,6 +45,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
 
   useEffect(() => {
     params.then(({ id }) => {
+      if (!UUID_RE.test(id)) { router.push('/home'); return }
       setProfileId(id)
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }
@@ -182,6 +202,24 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
               <span className="text-[10px] px-2.5 py-1 rounded-lg bg-[#2A4A2A]/40 border border-[#7EC87E]/20 text-[#7EC87E]">💼 Professional</span>
             )}
           </div>
+          {profile.pinned_badges && profile.pinned_badges.length > 0 && (
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              {profile.pinned_badges.map((title: string) => {
+                const meta = ACHIEVEMENT_LOOKUP[title]
+                if (!meta) return null
+                const style = meta.tier === 'gold'
+                  ? 'text-[#E8B84B] border-[#E8B84B]/25 bg-gradient-to-br from-[#2A2010] to-[#1A1408]'
+                  : meta.tier === 'silver'
+                  ? 'text-[#A0AEC0] border-[#A0AEC0]/25 bg-gradient-to-br from-[#1E2024] to-[#141618]'
+                  : 'text-[#CD7F32] border-[#CD7F32]/25 bg-gradient-to-br from-[#241A0E] to-[#16100A]'
+                return (
+                  <span key={title} className={`text-[10px] px-2 py-1 rounded-lg border ${style}`}>
+                    {meta.icon} {title}
+                  </span>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 

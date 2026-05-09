@@ -26,7 +26,7 @@ export default function PrivacyPage() {
           },
           {
             title: '2. Information We Collect',
-            body: 'We collect information you provide directly: your name, email address, city, profile photo, interests, and bio. When you use Gathr, we also collect activity data such as events you create or RSVP to, messages you send, connections you make, community posts you write, and content you upload. We also store XP and level milestones derived from your activity, and which achievements you have earned. If you subscribe to Gathr+, we record your subscription status and billing period. If you receive a level-milestone Gathr+ preview reward, we record the expiry timestamp of that preview on your profile.',
+            body: 'We collect information you provide directly: your name, email address, city, profile photo, interests, and bio. When you use Gathr, we also collect activity data such as events you create or RSVP to, messages you send, connections you make, community groups you join, community posts you write, and content you upload. We also store XP and level milestones derived from your activity, and which achievements you have earned. If you subscribe to Gathr+, we record your subscription status and billing period. If you receive a level-milestone Gathr+ preview reward, we record the expiry timestamp of that preview on your profile.',
           },
           {
             title: '3. How We Use Your Information',

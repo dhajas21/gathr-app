@@ -56,7 +56,7 @@ const tourSlides = [
     icon: '⭐',
     title: 'Your Profile',
     highlight: 'Level up, earn badges, unlock perks',
-    body: 'Hosting, attending, connecting, and adding interests all earn XP. Level up through four tiers — Newcomer, Regular, Veteran, and Legend. Earn 20 achievements across bronze, silver, and gold. Reach level 5 to unlock a 48-hour Gathr+ preview. Hit level 10 for a 7-day preview.',
+    body: 'Hosting, attending, connecting, and adding interests all earn XP. Level up through four tiers — Newcomer, Regular, Veteran, and Legend. Earn 28 achievements across bronze, silver, and gold — including category variety, community membership, and safety tier milestones. Reach level 5 to unlock a 48-hour Gathr+ preview. Hit level 10 for a 7-day preview.',
     tip: 'Find your level, tier, XP, badges, and safety score in Profile → Stats tab. Pin your favourite badges to your public profile. Level-up rewards appear automatically when you cross a milestone.',
     bg: 'linear-gradient(135deg,#2A2010,#1A1A08)',
   },
