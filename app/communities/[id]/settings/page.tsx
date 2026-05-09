@@ -131,7 +131,7 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
       <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
         <button onClick={() => router.back()}
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
-          ←
+          {'←'}
         </button>
         <h1 className="text-lg font-bold text-[#F0EDE6] flex-1">Community Settings</h1>
         <button onClick={handleSave} disabled={saving || !name.trim()}

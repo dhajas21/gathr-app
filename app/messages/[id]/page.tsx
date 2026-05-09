@@ -241,7 +241,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       <div className="flex items-center gap-3 px-4 pt-14 pb-3 border-b border-white/10 flex-shrink-0">
         <button onClick={() => router.push('/messages')}
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
-          ←
+          {'←'}
         </button>
         {other?.avatar_url ? (
           <img src={other.avatar_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />

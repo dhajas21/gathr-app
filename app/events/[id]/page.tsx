@@ -443,7 +443,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
           <button onClick={() => router.back()}
             className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-[#F0EDE6]">
-            ←
+            {'←'}
           </button>
           <div className="flex gap-2">
             {isHost && (
