@@ -210,7 +210,7 @@ export default function CommunitiesPage() {
               {suggestedDiscover.map(comm => (
                 <div key={comm.id} className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl overflow-hidden">
                   <div className="h-14 flex items-center justify-center text-2xl relative"
-                    style={{ background: comm.banner_gradient || 'linear-gradient(135deg,#1E2E1E,#0E1A0E)' }}>
+                    style={{ background: comm.banner_gradient || 'var(--gradient-community-banner)' }}>
                     {comm.icon || '👥'}
                     <div className="absolute top-1.5 right-2">
                       <span className="text-[8px] bg-[#E8B84B]/20 text-[#E8B84B] px-2 py-0.5 rounded-full border border-[#E8B84B]/20 font-medium">✦ For you</span>
@@ -257,7 +257,7 @@ export default function CommunitiesPage() {
             {filteredDiscover.map(comm => (
               <div key={comm.id} className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
                 <div className="h-14 flex items-center justify-center text-2xl"
-                  style={{ background: comm.banner_gradient || 'linear-gradient(135deg,#1E2E1E,#0E1A0E)' }}>
+                  style={{ background: comm.banner_gradient || 'var(--gradient-community-banner)' }}>
                   {comm.icon || '👥'}
                 </div>
                 <div className="p-3">

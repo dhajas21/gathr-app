@@ -295,7 +295,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
 
-      <div style={{ background: 'linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%)' }}>
+      <div style={{ background: 'var(--gradient-profile-header)' }}>
         <div className="flex items-start justify-between px-4 pt-14 mb-3">
           <div className="flex items-center gap-2">
             <button onClick={() => router.push('/settings')}

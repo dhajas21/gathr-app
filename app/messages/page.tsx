@@ -12,17 +12,52 @@ export default function MessagesPage() {
   const [connections, setConnections] = useState<any[]>([])
   const [acceptedConnections, setAcceptedConnections] = useState<any[]>([])
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
+  const [communityChats, setCommunityChats] = useState<any[]>([])
+  const [showCompose, setShowCompose] = useState(false)
+  const [composeSearch, setComposeSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
+  const fetchCommunityChats = async (userId: string) => {
+    const { data: memberships } = await supabase
+      .from('community_members')
+      .select('community_id, community:communities(id, name, icon, banner_gradient)')
+      .eq('user_id', userId)
+      .neq('role', 'pending')
+    if (!memberships || memberships.length === 0) { setCommunityChats([]); return }
+
+    const communityIds = memberships.map((m: any) => m.community_id)
+    const { data: lastMsgs } = await supabase
+      .from('community_chat_messages')
+      .select('community_id, user_id, text, created_at, profiles(name)')
+      .in('community_id', communityIds)
+      .order('created_at', { ascending: false })
+      .limit(communityIds.length * 3 + 10)
+
+    const lastMsgMap: Record<string, any> = {}
+    if (lastMsgs) {
+      lastMsgs.forEach((msg: any) => {
+        if (!lastMsgMap[msg.community_id]) lastMsgMap[msg.community_id] = msg
+      })
+    }
+
+    setCommunityChats(
+      memberships
+        .map((m: any) => ({ communityId: m.community_id, community: m.community, lastMessage: lastMsgMap[m.community_id] || null }))
+        .filter((m: any) => m.community)
+    )
+  }
+
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>
+    let commChatChannel: ReturnType<typeof supabase.channel>
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       const uid = session.user.id
       setUser(session.user)
       fetchData(uid)
+      fetchCommunityChats(uid)
 
       channel = supabase
         .channel('messages-list-realtime')
@@ -31,9 +66,19 @@ export default function MessagesPage() {
           if (msg.sender_id === uid || msg.recipient_id === uid) fetchData(uid)
         })
         .subscribe()
+
+      commChatChannel = supabase
+        .channel('messages-community-chats')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_chat_messages' }, () => {
+          fetchCommunityChats(uid)
+        })
+        .subscribe()
     })
 
-    return () => { if (channel) supabase.removeChannel(channel) }
+    return () => {
+      if (channel) supabase.removeChannel(channel)
+      if (commChatChannel) supabase.removeChannel(commChatChannel)
+    }
   }, [])
 
   const fetchData = async (userId: string) => {
@@ -192,15 +237,22 @@ export default function MessagesPage() {
       <div className="px-4 pt-14 pb-3 border-b border-white/10">
         <div className="flex items-center justify-between">
           <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>Messages</h1>
-          {totalUnread > 0 && (
-            <span className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-2.5 py-1 rounded-full">
-              {totalUnread > 99 ? '99+' : totalUnread} unread
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {totalUnread > 0 && (
+              <span className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-2.5 py-1 rounded-full">
+                {totalUnread > 99 ? '99+' : totalUnread} unread
+              </span>
+            )}
+            <button onClick={() => setShowCompose(true)}
+              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-base">
+              ✏️
+            </button>
+          </div>
         </div>
         <p className="text-xs text-white/40 mt-1">
           {threads.length > 0
             ? threads.length + ' conversation' + (threads.length > 1 ? 's' : '')
+            : communityChats.length > 0 ? communityChats.length + ' community chat' + (communityChats.length > 1 ? 's' : '')
             : 'No messages yet'}
         </p>
       </div>
@@ -234,7 +286,38 @@ export default function MessagesPage() {
         </div>
       )}
 
-      {threads.length === 0 ? (
+      {/* Community chats */}
+      {communityChats.length > 0 && (
+        <div className="mt-2">
+          <div className="text-[9px] uppercase tracking-widest text-white/20 px-4 py-2 font-medium">Community Chats</div>
+          <div className="divide-y divide-white/[0.05]">
+            {communityChats.map(chat => (
+              <button key={chat.communityId}
+                onClick={() => router.push('/communities/' + chat.communityId + '?tab=chat')}
+                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/[0.02] transition-colors">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 border border-white/10"
+                  style={{ background: chat.community?.banner_gradient || '#1E2E1E' }}>
+                  {chat.community?.icon || '👥'}
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-sm font-medium text-[#F0EDE6]/85">{chat.community?.name}</div>
+                  <div className="text-xs text-white/35 truncate mt-0.5">
+                    {chat.lastMessage
+                      ? ((chat.lastMessage.profiles as any)?.name ? (chat.lastMessage.profiles as any).name + ': ' : '') + chat.lastMessage.text
+                      : 'Tap to open chat'}
+                  </div>
+                </div>
+                {chat.lastMessage && (
+                  <div className="text-[10px] text-white/30 flex-shrink-0">{formatTime(chat.lastMessage.created_at)}</div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Direct messages */}
+      {threads.length === 0 && communityChats.length === 0 ? (
         <div className="flex flex-col items-center pt-10 pb-20 px-4">
           <div className="text-4xl mb-3">💬</div>
           <p className="text-[#F0EDE6] opacity-50 text-sm text-center mb-1">No messages yet</p>
@@ -266,9 +349,12 @@ export default function MessagesPage() {
             </>
           )}
         </div>
-      ) : (
+      ) : threads.length > 0 ? (
         <div className="mt-2">
-          {totalUnread > 0 && (
+          {communityChats.length > 0 && (
+            <div className="text-[9px] uppercase tracking-widest text-white/20 px-4 py-2 font-medium">Direct Messages</div>
+          )}
+          {totalUnread > 0 && communityChats.length === 0 && (
             <div className="text-[9px] uppercase tracking-widest text-white/20 px-4 py-2 font-medium">Unread</div>
           )}
           {threads
@@ -281,7 +367,7 @@ export default function MessagesPage() {
               const isUnread = (unreadCounts[thread.thread_id] || 0) > 0
               const count = unreadCounts[thread.thread_id] || 0
               const prevIsUnread = i > 0 && (unreadCounts[arr[i - 1]?.thread_id] || 0) > 0
-              const showEarlierLabel = !isUnread && (i === 0 || prevIsUnread) && totalUnread > 0
+              const showEarlierLabel = !isUnread && (i === 0 || prevIsUnread) && totalUnread > 0 && communityChats.length === 0
               return (
                 <div key={thread.id}>
                   {showEarlierLabel && (
@@ -302,9 +388,71 @@ export default function MessagesPage() {
               )
             })}
         </div>
-      )}
+      ) : null}
 
       <BottomNav />
+
+      {/* Compose overlay */}
+      {showCompose && (
+        <div className="fixed inset-0 bg-[#0D110D] z-50 flex flex-col">
+          <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
+            <button onClick={() => { setShowCompose(false); setComposeSearch('') }}
+              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
+              ✕
+            </button>
+            <h2 className="text-base font-bold text-[#F0EDE6]">New Message</h2>
+          </div>
+          <div className="px-4 pt-3 pb-2">
+            <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-xl px-3 py-2.5">
+              <span className="text-white/30 text-sm">🔍</span>
+              <input
+                autoFocus
+                value={composeSearch}
+                onChange={e => setComposeSearch(e.target.value)}
+                placeholder="Search connections..."
+                className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none"
+              />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
+            {acceptedConnections.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-3xl mb-2">🤝</div>
+                <p className="text-white/40 text-sm">No connections yet</p>
+                <p className="text-white/25 text-xs mt-1">Connect with people at events first</p>
+              </div>
+            ) : (
+              <div className="space-y-2 mt-1">
+                {acceptedConnections
+                  .filter(conn => !composeSearch || conn.otherProfile?.name?.toLowerCase().includes(composeSearch.toLowerCase()))
+                  .map(conn => (
+                    <button key={conn.id}
+                      onClick={() => {
+                        setShowCompose(false)
+                        setComposeSearch('')
+                        router.push('/messages/' + [conn.requester_id, conn.addressee_id].sort().join('_'))
+                      }}
+                      className="w-full flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] transition-transform">
+                      {conn.otherProfile?.avatar_url ? (
+                        <img src={conn.otherProfile.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0">🧑</div>
+                      )}
+                      <div className="flex-1 text-left">
+                        <div className="text-sm font-medium text-[#F0EDE6]">{conn.otherProfile?.name}</div>
+                        <div className="text-xs text-white/30">Send a message</div>
+                      </div>
+                      <span className="text-white/20 text-lg">→</span>
+                    </button>
+                  ))}
+                {composeSearch && acceptedConnections.filter(c => c.otherProfile?.name?.toLowerCase().includes(composeSearch.toLowerCase())).length === 0 && (
+                  <p className="text-center text-white/30 text-xs py-8">No connections match "{composeSearch}"</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

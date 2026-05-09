@@ -469,7 +469,7 @@ export default function HomePage() {
                 return (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className={'flex-shrink-0 w-44 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/30' : 'border-white/10')}>
-                    <div className="h-20 flex items-center justify-center text-3xl relative"
+                    <div className="category-gradient-card h-20 flex items-center justify-center text-3xl relative"
                       style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
                       <span>{CAT_EMOJI[event.category] || '🎉'}</span>
                       <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-70"></div>
@@ -495,7 +495,7 @@ export default function HomePage() {
         {featuredEvent && activeTab === 0 && (
           <div onClick={() => router.push('/events/' + featuredEvent.id)}
             className="rounded-3xl overflow-hidden mb-4 cursor-pointer active:scale-[0.98] transition-transform border border-[#E8B84B]/20">
-            <div className="h-36 flex items-center justify-center text-5xl relative"
+            <div className="category-gradient-card h-36 flex items-center justify-center text-5xl relative"
               style={{ background: CAT_GRADIENT[featuredEvent.category] || CAT_GRADIENT['Social'] }}>
               {(featuredEvent as any).cover_url && <img src={(featuredEvent as any).cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />}
               <span className="relative z-10">{CAT_EMOJI[featuredEvent.category] || '🎉'}</span>
@@ -581,7 +581,7 @@ export default function HomePage() {
               return (
                 <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                   className={'bg-[#1C241C] rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/25' : 'border-white/10')}>
-                  <div className="h-28 flex items-center justify-center text-4xl relative"
+                  <div className="category-gradient-card h-28 flex items-center justify-center text-4xl relative"
                     style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
                     {(event as any).cover_url && <img src={(event as any).cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />}
                     <span className="relative z-10">{CAT_EMOJI[event.category] || '🎉'}</span>

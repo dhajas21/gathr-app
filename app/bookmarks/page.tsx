@@ -71,7 +71,7 @@ export default function BookmarksPage() {
           {events.map(event => (
             <div key={event.id} onClick={() => router.push('/events/' + event.id)}
               className="bg-[#1C241C] rounded-2xl overflow-hidden border border-white/10 cursor-pointer active:scale-[0.98] transition-transform">
-              <div className="h-28 flex items-center justify-center text-4xl relative"
+              <div className="category-gradient-card h-28 flex items-center justify-center text-4xl relative"
                 style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
                 {event.cover_url
                   ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />

@@ -34,6 +34,19 @@ input, select, textarea, button {
   padding-bottom: max(env(safe-area-inset-bottom), 16px);
 }
 
+/* ─── Gradient CSS variables ───────────────────────── */
+:root {
+  --gradient-profile-header: linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%);
+  --gradient-community-banner: linear-gradient(135deg,#1E2E1E,#0E1A0E);
+  --gradient-category-card: linear-gradient(135deg,#1E2E1E,#0E1A0E);
+}
+
+[data-theme="light"] {
+  --gradient-profile-header: linear-gradient(160deg,#D8EDD8 0%,#F4F0E8 65%);
+  --gradient-community-banner: linear-gradient(135deg,#D8EDD8,#EDF6ED);
+  --gradient-category-card: linear-gradient(135deg,#EDF6ED,#D8EDD8);
+}
+
 /* ─── Light mode overrides ─────────────────────────── */
 [data-theme="light"] body {
   background: #F4F0E8;
@@ -101,3 +114,6 @@ input, select, textarea, button {
 
 /* Bottom nav blur tint */
 [data-theme="light"] .backdrop-blur-2xl { background-color: rgba(244,240,232,0.94) !important; }
+
+/* Category gradient cards — override inline style with !important */
+[data-theme="light"] .category-gradient-card { background: var(--gradient-category-card) !important; }

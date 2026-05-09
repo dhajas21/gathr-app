@@ -16,6 +16,14 @@ interface Post {
   liked?: boolean
 }
 
+interface ChatMessage {
+  id: string
+  user_id: string
+  text: string
+  created_at: string
+  profiles: { id: string; name: string; avatar_url: string | null }
+}
+
 export default function CommunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [user, setUser] = useState<any>(null)
   const [community, setCommunity] = useState<any>(null)
@@ -29,18 +37,24 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [communityId, setCommunityId] = useState('')
-  const [activeTab, setActiveTab] = useState<'feed' | 'events' | 'members'>('feed')
+  const [activeTab, setActiveTab] = useState<'feed' | 'events' | 'members' | 'chat'>('feed')
   const [postText, setPostText] = useState('')
   const [posting, setPosting] = useState(false)
   const [showAddEventModal, setShowAddEventModal] = useState(false)
   const [myEvents, setMyEvents] = useState<any[]>([])
   const [addingEvent, setAddingEvent] = useState(false)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatSending, setChatSending] = useState(false)
   const postInputRef = useRef<HTMLTextAreaElement>(null)
+  const chatEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   useEffect(() => {
     params.then(({ id }) => {
       setCommunityId(id)
+      const tab = new URLSearchParams(window.location.search).get('tab')
+      if (tab === 'chat' || tab === 'feed' || tab === 'events' || tab === 'members') setActiveTab(tab)
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }
         setUser(session.user)
@@ -69,6 +83,45 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [communityId])
+
+  useEffect(() => {
+    if (!communityId || !isMember) return
+    const channel = supabase
+      .channel('community-chat-' + communityId)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'community_chat_messages',
+        filter: 'community_id=eq.' + communityId,
+      }, async (payload) => {
+        const { data } = await supabase
+          .from('community_chat_messages')
+          .select('id, user_id, text, created_at, profiles(id, name, avatar_url)')
+          .eq('id', payload.new.id).single()
+        if (data) setChatMessages(prev => {
+          if (prev.some(m => m.id === (data as any).id)) return prev
+          return [...prev, data as any]
+        })
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [communityId, isMember])
+
+  useEffect(() => {
+    if (activeTab === 'chat' && communityId && isMember) fetchChat(communityId)
+  }, [activeTab, communityId, isMember])
+
+  useEffect(() => {
+    if (activeTab === 'chat') chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatMessages, activeTab])
+
+  const fetchChat = async (id: string) => {
+    const { data } = await supabase
+      .from('community_chat_messages')
+      .select('id, user_id, text, created_at, profiles(id, name, avatar_url)')
+      .eq('community_id', id)
+      .order('created_at', { ascending: true })
+      .limit(100)
+    if (data) setChatMessages(data as any)
+  }
 
   const fetchCommunity = async (id: string, userId: string) => {
     const { data: commData } = await supabase.from('communities').select('*').eq('id', id).single()
@@ -225,6 +278,35 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     setPosts(prev => prev.filter(p => p.id !== postId))
   }
 
+  const handleSendChat = async () => {
+    const trimmed = chatInput.trim()
+    if (!trimmed || !user || chatSending) return
+    setChatSending(true)
+    setChatInput('')
+    const optimisticId = 'optimistic-' + Date.now()
+    const optimistic: ChatMessage = {
+      id: optimisticId,
+      user_id: user.id,
+      text: trimmed,
+      created_at: new Date().toISOString(),
+      profiles: { id: user.id, name: user.user_metadata?.name || user.email || '', avatar_url: user.user_metadata?.avatar_url || null },
+    }
+    setChatMessages(prev => [...prev, optimistic])
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    const { data, error } = await supabase
+      .from('community_chat_messages')
+      .insert({ community_id: communityId, user_id: user.id, text: trimmed })
+      .select('id, user_id, text, created_at, profiles(id, name, avatar_url)')
+      .single()
+    if (!error && data) {
+      setChatMessages(prev => prev.map(m => m.id === optimisticId ? (data as any) : m))
+    } else if (error) {
+      setChatMessages(prev => prev.filter(m => m.id !== optimisticId))
+      setChatInput(trimmed)
+    }
+    setChatSending(false)
+  }
+
   const handleOpenAddEvent = async () => {
     if (!user) return
     const { data } = await supabase.from('events')
@@ -281,7 +363,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
 
       {/* Banner */}
       <div className="relative h-44 flex items-center justify-center text-5xl"
-        style={{ background: community.banner_gradient || 'linear-gradient(135deg,#1E2E1E,#0E1A0E)' }}>
+        style={{ background: community.banner_gradient || 'var(--gradient-community-banner)' }}>
         {community.banner_url ? (
           <img src={community.banner_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
@@ -341,7 +423,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
 
       {/* Tabs */}
       <div className="flex border-b border-white/10 px-4 gap-5">
-        {(['feed', 'events', 'members'] as const).map(tab => (
+        {(['feed', 'events', 'members', 'chat'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={'py-3 text-xs font-semibold capitalize border-b-2 transition-all ' +
               (activeTab === tab ? 'border-[#E8B84B] text-[#E8B84B]' : 'border-transparent text-white/35')}>
@@ -349,7 +431,9 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               ? `Feed${posts.length > 0 ? ' · ' + posts.length : ''}`
               : tab === 'events'
               ? `Events${events.length > 0 ? ' · ' + events.length : ''}`
-              : `Members · ${members.length}${pendingRequests.length > 0 ? ' · ' + pendingRequests.length + ' pending' : ''}`}
+              : tab === 'members'
+              ? `Members · ${members.length}${pendingRequests.length > 0 ? ' · ' + pendingRequests.length + ' pending' : ''}`
+              : 'Chat'}
           </button>
         ))}
       </div>
@@ -557,11 +641,84 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             </div>
           </div>
         )}
+        {/* CHAT TAB */}
+        {activeTab === 'chat' && (
+          <div className="pb-4">
+            {!isMember ? (
+              <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-5 text-center">
+                <div className="text-3xl mb-2">💬</div>
+                <div className="text-sm font-semibold text-[#F0EDE6] mb-1">Members Only</div>
+                <div className="text-xs text-white/40">Join the community to participate in the chat.</div>
+              </div>
+            ) : chatMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <div className="text-4xl">💬</div>
+                <p className="text-white/40 text-sm text-center">No messages yet — say hello!</p>
+              </div>
+            ) : (
+              <div className="space-y-0.5 pb-4">
+                {chatMessages.map((msg, i) => {
+                  const isOwn = msg.user_id === user?.id
+                  const profile = (msg as any).profiles
+                  const showHeader = i === 0 || chatMessages[i - 1].user_id !== msg.user_id
+                  return (
+                    <div key={msg.id} className={'flex items-end gap-2 ' + (isOwn ? 'justify-end' : 'justify-start') + (showHeader ? ' mt-4' : ' mt-0.5')}>
+                      {!isOwn && (
+                        <div className="w-7 h-7 flex-shrink-0 self-end">
+                          {showHeader ? (
+                            profile?.avatar_url ? (
+                              <img src={profile.avatar_url} alt="" className="w-7 h-7 rounded-lg object-cover" />
+                            ) : (
+                              <div className="w-7 h-7 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-xs text-[#F0EDE6]">
+                                {profile?.name?.charAt(0) || '?'}
+                              </div>
+                            )
+                          ) : <div className="w-7" />}
+                        </div>
+                      )}
+                      <div className="max-w-[72%]">
+                        {showHeader && !isOwn && (
+                          <button onClick={() => router.push('/profile/' + profile?.id)}
+                            className="text-[10px] text-white/40 mb-1 ml-1 block">{profile?.name || 'Unknown'}</button>
+                        )}
+                        <div className={'px-3 py-2 text-sm leading-relaxed ' +
+                          (isOwn
+                            ? 'bg-[#E8B84B] text-[#0D110D] rounded-2xl rounded-br-sm'
+                            : 'bg-[#1C241C] text-[#F0EDE6] rounded-2xl rounded-bl-sm border border-white/10')}>
+                          {msg.text}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                <div ref={chatEndRef} />
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
       {/* CTA bar */}
       <div className="fixed bottom-24 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] via-[#0D110D]/95 to-transparent">
-        {isMember ? (
+        {activeTab === 'chat' && isMember ? (
+          <div className="flex items-end gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-3 pt-2.5 pb-2.5">
+            <textarea
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendChat() } }}
+              placeholder="Message the community..."
+              maxLength={500}
+              rows={1}
+              className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/20 outline-none resize-none leading-5"
+              style={{ minHeight: '20px' }}
+            />
+            <button onClick={handleSendChat} disabled={!chatInput.trim() || chatSending}
+              className="w-8 h-8 bg-[#E8B84B] rounded-xl flex items-center justify-center text-[#0D110D] text-lg font-bold flex-shrink-0 disabled:opacity-30 active:scale-95 transition-transform">
+              ↑
+            </button>
+          </div>
+        ) : isMember ? (
           <div className="flex gap-3">
             <button onClick={handleLeave} disabled={memberRole === 'owner' || actionLoading}
               className="flex-1 py-3.5 rounded-2xl bg-[#1C241C] border border-white/10 text-white/50 text-sm font-medium text-center disabled:opacity-30">

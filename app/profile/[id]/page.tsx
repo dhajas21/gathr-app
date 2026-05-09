@@ -160,7 +160,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   return (
     <div className="min-h-screen bg-[#0D110D] pb-32">
 
-      <div style={{ background: 'linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%)' }}>
+      <div style={{ background: 'var(--gradient-profile-header)' }}>
         <div className="flex items-start justify-between px-4 pt-14 mb-3">
           <button onClick={() => router.back()}
             className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
