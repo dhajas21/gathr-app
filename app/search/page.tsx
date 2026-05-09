@@ -198,7 +198,7 @@ export default function SearchPage() {
         .select('id, name, bio_social, city, avatar_url')
         .or('name.ilike.%' + sq + '%,bio_social.ilike.%' + sq + '%,city.ilike.%' + sq + '%')
         .neq('id', user?.id)
-        .eq('discoverable', true)
+        .eq('is_discoverable', true)
         .limit(10)
       if (peopleData) {
         setPeople(peopleData)
