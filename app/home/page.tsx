@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
-import { HomePageSkeleton } from '@/components/Skeleton'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 
@@ -171,6 +170,7 @@ export default function HomePage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [geoGranted, setGeoGranted] = useState(false)
   const [bookmarkedEventIds, setBookmarkedEventIds] = useState<string[]>([])
+  const [friendRsvpEventIds, setFriendRsvpEventIds] = useState<string[]>([])
   const router = useRouter()
 
   const { refreshing, pullProgress, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
@@ -219,9 +219,18 @@ export default function HomePage() {
     ])
     if (profileRes.data) setProfile(profileRes.data)
     if (rsvpRes.data) setRsvpEventIds(rsvpRes.data.map((r: any) => r.event_id))
-    if (connRes.data) setConnectionIds(connRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id))
     if (notifRes.count !== null) setUnreadCount(notifRes.count)
     if (bookmarkRes.data) setBookmarkedEventIds(bookmarkRes.data.map((b: any) => b.event_id))
+
+    if (connRes.data) {
+      const friendIds = connRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id)
+      setConnectionIds(friendIds)
+      if (friendIds.length > 0) {
+        const { data: friendRsvps } = await supabase.from('rsvps').select('event_id').in('user_id', friendIds)
+        if (friendRsvps) setFriendRsvpEventIds(friendRsvps.map((r: any) => r.event_id))
+      }
+    }
+
     const allEvents: Event[] = eventsRes.data || []
     setEvents(allEvents)
     setSoonEvents(allEvents.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
@@ -343,7 +352,9 @@ export default function HomePage() {
         }
         break
       case 3:
-        setFilteredEvents(connectionIds.length > 0 ? events.filter(e => connectionIds.includes(e.host_id)) : [])
+        setFilteredEvents(connectionIds.length > 0
+          ? events.filter(e => friendRsvpEventIds.includes(e.id) || connectionIds.includes(e.host_id))
+          : [])
         break
       case 4:
         setFilteredEvents(events.filter(e => e.host_id === user?.id || rsvpEventIds.includes(e.id)))
@@ -351,13 +362,13 @@ export default function HomePage() {
       default:
         setFilteredEvents(events)
     }
-  }, [activeTab, events, profile, rsvpEventIds, connectionIds, user, userLocation])
+  }, [activeTab, events, profile, rsvpEventIds, connectionIds, friendRsvpEventIds, user, userLocation])
 
   const getEmptyMessage = () => {
     switch (activeTab) {
       case 1: return profile?.interests?.length > 0 ? 'No events match your interests yet' : 'Add interests to get personalized picks'
       case 2: return geoGranted ? 'No events within 80km of you' : 'No events in ' + (profile?.city || 'your city') + ' yet'
-      case 3: return connectionIds.length > 0 ? 'No friends are hosting right now' : 'Connect with people to see their events here'
+      case 3: return connectionIds.length > 0 ? 'No friends have upcoming events' : 'Connect with people to see their events here'
       case 4: return 'No events yet — create or RSVP to one!'
       default: return 'No events yet — be the first!'
     }
@@ -365,7 +376,21 @@ export default function HomePage() {
 
   const filteredCities = ALL_CITIES.filter(c => !citySearch || c.toLowerCase().includes(citySearch.toLowerCase()))
 
-  if (loading) return <HomePageSkeleton />
+  if (loading) return (
+    <div className="min-h-screen bg-[#0D110D] flex flex-col items-center justify-center gap-6">
+      <div className="text-center">
+        <h1 className="font-extrabold text-[#F0EDE6] text-5xl tracking-tight leading-none">
+          Gathr<span className="text-[#E8B84B] animate-pulse">.</span>
+        </h1>
+      </div>
+      <div className="flex gap-3">
+        {['🎸', '🏃', '🍺', '💻', '🥾', '🎉'].map((emoji, i) => (
+          <span key={i} className="text-xl animate-pulse" style={{ animationDelay: i * 120 + 'ms', opacity: 0.5 }}>{emoji}</span>
+        ))}
+      </div>
+      <div className="w-10 h-0.5 bg-[#E8B84B]/40 rounded-full animate-pulse" />
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24"
@@ -385,6 +410,14 @@ export default function HomePage() {
             {profile?.name && <p className="text-xs text-white/30 mt-0.5">Hey {profile.name.split(' ')[0]} 👋</p>}
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => router.push('/map')}
+              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-white/50 active:scale-95 transition-transform">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+                <line x1="8" y1="2" x2="8" y2="18"/>
+                <line x1="16" y1="6" x2="16" y2="22"/>
+              </svg>
+            </button>
             <button onClick={() => router.push('/notifications')}
               className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center relative">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0EDE6" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
