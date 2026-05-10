@@ -32,9 +32,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const userIdRef = useRef<string | null>(null)
   const router = useRouter()
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   useEffect(() => {
     const from = searchParams?.get('from')
-    if (from) {
+    if (from && UUID_RE.test(from)) {
       fromEventIdRef.current = from
       supabase.from('events').select('title').eq('id', from).single()
         .then(({ data }) => { if (data) setFromEventName(data.title) })

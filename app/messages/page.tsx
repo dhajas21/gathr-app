@@ -16,6 +16,7 @@ export default function MessagesPage() {
   const [showCompose, setShowCompose] = useState(false)
   const [composeSearch, setComposeSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [hiddenThreadIds, setHiddenThreadIds] = useState<Set<string>>(new Set())
   const router = useRouter()
 
   const fetchCommunityChats = async (userId: string) => {
@@ -62,6 +63,8 @@ export default function MessagesPage() {
       if (!session) { router.push('/auth'); return }
       const uid = session.user.id
       setUser(session.user)
+      const stored = localStorage.getItem('gathr_hidden_threads_' + uid)
+      if (stored) { try { setHiddenThreadIds(new Set(JSON.parse(stored))) } catch {} }
       fetchData(uid)
       fetchCommunityChats(uid)
 
@@ -272,6 +275,17 @@ export default function MessagesPage() {
     }
   }
 
+  const deleteThread = (threadId: string) => {
+    if (!user) return
+    setHiddenThreadIds(prev => {
+      const next = new Set(prev)
+      next.add(threadId)
+      try { localStorage.setItem('gathr_hidden_threads_' + user.id, JSON.stringify([...next])) } catch {}
+      return next
+    })
+    setThreads(prev => prev.filter(t => t.thread_id !== threadId))
+  }
+
   const formatTime = (dt: string) => {
     const d = new Date(dt)
     const diff = Date.now() - d.getTime()
@@ -477,6 +491,7 @@ export default function MessagesPage() {
                       router.push('/messages/' + thread.thread_id)
                     }}
                     onToggleRead={() => toggleRead(thread)}
+                    onDelete={() => deleteThread(thread.thread_id)}
                     formatTime={formatTime}
                   />
                 </div>
@@ -552,12 +567,13 @@ export default function MessagesPage() {
   )
 }
 
-function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, formatTime }: {
+function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, onDelete, formatTime }: {
   thread: any
   isUnread: boolean
   unreadCount: number
   onTap: () => void
   onToggleRead: () => void
+  onDelete: () => void
   formatTime: (dt: string) => string
 }) {
   const startX = useRef(0)
@@ -565,6 +581,14 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, forma
   const rowRef = useRef<HTMLDivElement>(null)
   const [swiped, setSwiped] = useState(false)
   const [dragging, setDragging] = useState(false)
+
+  const snapBack = () => {
+    if (rowRef.current) {
+      rowRef.current.style.transition = 'transform 0.25s ease-out'
+      rowRef.current.style.transform = 'translateX(0)'
+    }
+    setSwiped(false)
+  }
 
   const handleTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX
@@ -577,7 +601,7 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, forma
     const diff = e.touches[0].clientX - startX.current
     currentX.current = diff
     if (diff < 0 && rowRef.current) {
-      const clamped = Math.max(diff, -90)
+      const clamped = Math.max(diff, -155)
       rowRef.current.style.transform = 'translateX(' + clamped + 'px)'
       rowRef.current.style.transition = 'none'
     }
@@ -588,7 +612,7 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, forma
     if (rowRef.current) {
       rowRef.current.style.transition = 'transform 0.25s ease-out'
       if (currentX.current < -50) {
-        rowRef.current.style.transform = 'translateX(-80px)'
+        rowRef.current.style.transform = 'translateX(-140px)'
         setSwiped(true)
       } else {
         rowRef.current.style.transform = 'translateX(0)'
@@ -597,14 +621,8 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, forma
     }
   }
 
-  const handleAction = () => {
-    if (rowRef.current) {
-      rowRef.current.style.transition = 'transform 0.25s ease-out'
-      rowRef.current.style.transform = 'translateX(0)'
-    }
-    setSwiped(false)
-    onToggleRead()
-  }
+  const handleAction = () => { snapBack(); onToggleRead() }
+  const handleDelete = () => { snapBack(); onDelete() }
 
   const handleClick = () => {
     if (!swiped && Math.abs(currentX.current) < 10) {
@@ -616,13 +634,18 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, forma
 
   return (
     <div className="relative overflow-hidden border-b border-white/[0.05]">
-      <div className="absolute right-0 top-0 bottom-0 w-20 flex items-center justify-center z-0">
+      <div className="absolute right-0 top-0 bottom-0 w-[140px] flex items-stretch z-0">
         <button onClick={handleAction}
-          className={'flex flex-col items-center gap-1 px-2 py-2 rounded-xl ' + (isUnread ? 'bg-[#1E3A1E]' : 'bg-[#E8B84B]/15')}>
+          className={'flex-1 flex flex-col items-center justify-center gap-1 ' + (isUnread ? 'bg-[#1E3A1E]' : 'bg-[#2A2010]')}>
           <span className="text-base">{isUnread ? '✓' : '●'}</span>
           <span className={'text-[9px] font-medium ' + (isUnread ? 'text-[#7EC87E]' : 'text-[#E8B84B]')}>
             {isUnread ? 'Read' : 'Unread'}
           </span>
+        </button>
+        <button onClick={handleDelete}
+          className="flex-1 flex flex-col items-center justify-center gap-1 bg-[#3A1E1E]">
+          <span className="text-base">🗑</span>
+          <span className="text-[9px] font-medium text-[#E85B5B]">Delete</span>
         </button>
       </div>
 

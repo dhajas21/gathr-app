@@ -169,7 +169,7 @@ export default function SearchPage() {
     const categoryToUse = activeCategory !== 'All' ? activeCategory : vibe.detectedCategory
 
     // Strip PostgREST filter syntax characters from user input to prevent filter injection
-    const sanitize = (s: string) => s.replace(/[(),]/g, '').trim()
+    const sanitize = (s: string) => s.replace(/[(),%_\\]/g, '').trim()
 
     // Search events
     let eventQuery = supabase.from('events').select('*').eq('visibility', 'public')
