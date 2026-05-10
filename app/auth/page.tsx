@@ -31,12 +31,24 @@ export default function AuthPage() {
     setLoading(true); setError('')
     const { data, error: authError } = await supabase.auth.signUp({ email: email.trim(), password })
     if (authError) { setError(authError.message); setLoading(false); return }
-    if (data.user) {
+    if (data.session) {
+      // Email confirmation disabled — session is immediately available
+      await supabase.from('profiles').upsert({
+        id: data.user!.id, name: name.trim(), city,
+        profile_mode: 'both', hosted_count: 0, attended_count: 0, interests: [],
+      })
+      router.push('/setup')
+    } else if (data.user) {
+      // Email confirmation required — create the profile now (user exists) but
+      // tell them to check their inbox before they can sign in
       await supabase.from('profiles').upsert({
         id: data.user.id, name: name.trim(), city,
         profile_mode: 'both', hosted_count: 0, attended_count: 0, interests: [],
       })
-      router.push('/setup')
+      setError('')
+      setLoading(false)
+      // Re-use the resetSent state to show a "check your email" message
+      setResetSent(true)
     }
   }
 
@@ -117,6 +129,19 @@ export default function AuthPage() {
                 </div>
               </>
             )}
+          </div>
+        ) : isSignUp && resetSent ? (
+          <div className="flex flex-col min-h-[60vh] justify-center text-center">
+            <div className="text-5xl mb-5">📬</div>
+            <h2 className="text-xl font-bold text-[#F0EDE6] mb-2">Check your inbox</h2>
+            <p className="text-sm text-white/40 mb-1">Confirmation link sent to</p>
+            <p className="text-sm font-medium text-white/60 mb-6">{email}</p>
+            <p className="text-xs text-white/25 leading-relaxed">
+              Click the link in the email to activate your account, then{' '}
+              <button onClick={() => { setResetSent(false); setIsSignUp(false) }} className="text-[#E8B84B]/70 underline">
+                sign in
+              </button>.
+            </p>
           </div>
         ) : (
           <>

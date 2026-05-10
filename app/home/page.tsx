@@ -6,6 +6,9 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
+import { ALL_CITIES, CAT_GRADIENT, INTEREST_TO_CATS } from '@/lib/constants'
+import { CAT_EMOJI } from '@/lib/categoryEmoji'
+import { isToday, isTomorrow, formatTime, formatDate } from '@/lib/utils'
 
 interface Event {
   id: string; title: string; category: string; start_datetime: string; end_datetime: string
@@ -14,143 +17,6 @@ interface Event {
 }
 
 const TABS = ['🔥 Trending', '✦ For You', '🏙 Near Me', '👥 Friends', '📌 Mine']
-
-const ALL_CITIES = [
-  'Bellingham', 'Seattle', 'Tacoma', 'Olympia', 'Spokane',
-  'Vancouver', 'Victoria', 'Surrey', 'Burnaby',
-  'Portland', 'Eugene', 'Salem',
-  'San Francisco', 'Los Angeles', 'San Diego', 'Sacramento',
-  'New York', 'Brooklyn', 'Chicago', 'Austin', 'Denver',
-  'Miami', 'Atlanta', 'Nashville', 'Boston', 'Philadelphia',
-  'Minneapolis', 'Detroit', 'Phoenix', 'Las Vegas', 'Honolulu'
-]
-
-const CAT_EMOJI: Record<string, string> = {
-  'Music': '🎸', 'DJ & Electronic': '🎧', 'Hip Hop & R&B': '🎤', 'Jazz & Blues': '🎷', 'Live Concerts & Festivals': '🎪',
-  'Fitness': '🏃', 'Yoga & Pilates': '🧘', 'Running & Cycling': '🚴', 'Climbing & Hiking': '🧗', 'Combat Sports & CrossFit': '🥊',
-  'Food & Drink': '🍺', 'Coffee & Brunch': '☕', 'Wine & Cocktails': '🍷', 'Cooking & Culinary': '👨‍🍳', 'Street Food & Markets': '🌮',
-  'Tech & Coding': '💻', 'Startups & Entrepreneurship': '🚀', 'AI & Innovation': '🤖', 'Gaming & Esports': '🎮', 'Web3 & Crypto': '⛓',
-  'Outdoors & Adventure': '🥾', 'Hiking & Camping': '⛺', 'Water Sports': '🏄', 'Snow Sports': '🎿',
-  'Arts & Culture': '🎨', 'Photography & Film': '📷', 'Theatre & Comedy': '🎭', 'Fashion & Style': '👗', 'Literature & Writing': '📚',
-  'Social & Parties': '🎉', 'Nightlife': '🌙', 'Networking': '💼', 'Business & Finance': '📈',
-  'Wellness & Mindfulness': '🌿', 'Dance & Movement': '💃', 'Spirituality': '✨', 'Volunteering & Activism': '🌱',
-  'Education & Workshops': '🎓', 'Sports & Recreation': '⚽', 'Pets & Animals': '🐾', 'Science & Innovation': '🔬',
-  'Markets & Pop-ups': '🏪',
-  'Tech': '💻', 'Outdoors': '🥾', 'Social': '🎉',
-}
-
-const CAT_GRADIENT: Record<string, string> = {
-  'Music': 'linear-gradient(135deg,#1E2E3A,#1A0E2A)',
-  'DJ & Electronic': 'linear-gradient(135deg,#1A0E2A,#0E0A1E)',
-  'Hip Hop & R&B': 'linear-gradient(135deg,#2A0E1A,#1A0E0E)',
-  'Jazz & Blues': 'linear-gradient(135deg,#0E1A2A,#1A1E2A)',
-  'Live Concerts & Festivals': 'linear-gradient(135deg,#1E1A2A,#2A1E0E)',
-  'Fitness': 'linear-gradient(135deg,#2A1E0E,#1A2A0E)',
-  'Yoga & Pilates': 'linear-gradient(135deg,#1A2A1A,#0E2A1A)',
-  'Running & Cycling': 'linear-gradient(135deg,#2A2A0E,#1A2A0E)',
-  'Climbing & Hiking': 'linear-gradient(135deg,#1A2A1A,#0E1A0E)',
-  'Combat Sports & CrossFit': 'linear-gradient(135deg,#2A1A0E,#1A0E0E)',
-  'Food & Drink': 'linear-gradient(135deg,#2A1A0E,#1E1A0E)',
-  'Coffee & Brunch': 'linear-gradient(135deg,#2A1E0E,#1A1A0E)',
-  'Wine & Cocktails': 'linear-gradient(135deg,#2A0E1A,#1A0E0E)',
-  'Cooking & Culinary': 'linear-gradient(135deg,#2A1A0E,#2A0E0E)',
-  'Street Food & Markets': 'linear-gradient(135deg,#2A1E0E,#1E2A0E)',
-  'Tech & Coding': 'linear-gradient(135deg,#1A1E2A,#0E1A2A)',
-  'Startups & Entrepreneurship': 'linear-gradient(135deg,#1E1A2A,#2A1A0E)',
-  'AI & Innovation': 'linear-gradient(135deg,#0E1A2A,#1A0E2A)',
-  'Gaming & Esports': 'linear-gradient(135deg,#1A0E2A,#0E0A1E)',
-  'Web3 & Crypto': 'linear-gradient(135deg,#1A1E0E,#0E1A2A)',
-  'Outdoors & Adventure': 'linear-gradient(135deg,#1A2A1A,#0E2A1A)',
-  'Hiking & Camping': 'linear-gradient(135deg,#1A2A1A,#0E1A0E)',
-  'Water Sports': 'linear-gradient(135deg,#0E1A2A,#1A2A2A)',
-  'Snow Sports': 'linear-gradient(135deg,#1A1E2A,#0E1A2A)',
-  'Arts & Culture': 'linear-gradient(135deg,#2A1A2A,#1A0E1E)',
-  'Photography & Film': 'linear-gradient(135deg,#1A1A1A,#2A1A0E)',
-  'Theatre & Comedy': 'linear-gradient(135deg,#2A1A0E,#1A0E2A)',
-  'Fashion & Style': 'linear-gradient(135deg,#2A0E1A,#1A0E2A)',
-  'Literature & Writing': 'linear-gradient(135deg,#1A1E2A,#0E1A1A)',
-  'Social & Parties': 'linear-gradient(135deg,#1E3A1E,#2A1A0E)',
-  'Nightlife': 'linear-gradient(135deg,#1A0E2A,#0E0A1A)',
-  'Networking': 'linear-gradient(135deg,#1E1A2A,#1A1E2A)',
-  'Business & Finance': 'linear-gradient(135deg,#1A1E2A,#2A1A0E)',
-  'Wellness & Mindfulness': 'linear-gradient(135deg,#1A2A1A,#2A2A0E)',
-  'Dance & Movement': 'linear-gradient(135deg,#2A0E1A,#1A0E2A)',
-  'Spirituality': 'linear-gradient(135deg,#1A0E2A,#2A1A0E)',
-  'Volunteering & Activism': 'linear-gradient(135deg,#1A2A1A,#0E2A1A)',
-  'Education & Workshops': 'linear-gradient(135deg,#1A1E2A,#0E1A2A)',
-  'Sports & Recreation': 'linear-gradient(135deg,#1E2A0E,#2A1E0E)',
-  'Pets & Animals': 'linear-gradient(135deg,#2A2A0E,#1A2A0E)',
-  'Science & Innovation': 'linear-gradient(135deg,#0E1A2A,#1A1E2A)',
-  'Markets & Pop-ups': 'linear-gradient(135deg,#2A1E0E,#1A2A0E)',
-  'Tech': 'linear-gradient(135deg,#1A1E2A,#0E1A2A)',
-  'Outdoors': 'linear-gradient(135deg,#1A2A1A,#0E2A1A)',
-  'Social': 'linear-gradient(135deg,#1E3A1E,#2A1A0E)',
-}
-
-const INTEREST_TO_CATS: Record<string, string[]> = {
-  'music': ['Music', 'Live Concerts & Festivals'], 'live music': ['Music', 'Live Concerts & Festivals'],
-  'concerts': ['Live Concerts & Festivals'], 'festivals': ['Live Concerts & Festivals'],
-  'dj': ['DJ & Electronic'], 'electronic': ['DJ & Electronic'], 'hip hop': ['Hip Hop & R&B'],
-  'jazz': ['Jazz & Blues'], 'classical': ['Jazz & Blues'], 'indie': ['Music'], 'rock': ['Music'],
-  'r&b': ['Hip Hop & R&B'], 'pop': ['Music'], 'rap': ['Hip Hop & R&B'], 'karaoke': ['Music', 'Social & Parties'],
-  'film': ['Photography & Film'], 'movies': ['Photography & Film'], 'theatre': ['Theatre & Comedy'],
-  'comedy': ['Theatre & Comedy'], 'stand-up': ['Theatre & Comedy'], 'podcasts': ['Tech & Coding', 'Social & Parties'],
-  'art': ['Arts & Culture'], 'photography': ['Photography & Film'],
-  'painting': ['Arts & Culture'], 'drawing': ['Arts & Culture'], 'ceramics': ['Arts & Culture'],
-  'fashion': ['Fashion & Style'], 'design': ['Arts & Culture'], 'architecture': ['Arts & Culture'],
-  'writing': ['Literature & Writing'], 'poetry': ['Literature & Writing'], 'books': ['Literature & Writing'],
-  'reading': ['Literature & Writing'], 'history': ['Arts & Culture'], 'museums': ['Arts & Culture'],
-  'food': ['Food & Drink', 'Street Food & Markets'], 'coffee': ['Coffee & Brunch'],
-  'wine': ['Wine & Cocktails'], 'beer': ['Food & Drink', 'Wine & Cocktails'],
-  'cocktails': ['Wine & Cocktails'], 'cooking': ['Cooking & Culinary'], 'baking': ['Cooking & Culinary'],
-  'brunch': ['Coffee & Brunch'], 'restaurants': ['Food & Drink'], 'street food': ['Street Food & Markets'],
-  'vegan': ['Cooking & Culinary'], 'vegetarian': ['Cooking & Culinary'],
-  'craft beer': ['Wine & Cocktails'], 'whiskey': ['Wine & Cocktails'], 'tea': ['Coffee & Brunch'],
-  'fitness': ['Fitness'], 'running': ['Running & Cycling'], 'gym': ['Fitness'],
-  'yoga': ['Yoga & Pilates'], 'pilates': ['Yoga & Pilates'], 'cycling': ['Running & Cycling'],
-  'swimming': ['Water Sports'], 'rock climbing': ['Climbing & Hiking'], 'martial arts': ['Combat Sports & CrossFit'],
-  'boxing': ['Combat Sports & CrossFit'], 'crossfit': ['Combat Sports & CrossFit'],
-  'wellness': ['Wellness & Mindfulness'], 'meditation': ['Wellness & Mindfulness'],
-  'mental health': ['Wellness & Mindfulness'], 'nutrition': ['Cooking & Culinary'],
-  'dancing': ['Dance & Movement'], 'salsa': ['Dance & Movement'], 'bachata': ['Dance & Movement'],
-  'outdoors': ['Outdoors & Adventure'], 'hiking': ['Climbing & Hiking', 'Hiking & Camping'],
-  'camping': ['Hiking & Camping'], 'surfing': ['Water Sports'], 'skiing': ['Snow Sports'],
-  'snowboarding': ['Snow Sports'], 'kayaking': ['Water Sports'], 'travel': ['Outdoors & Adventure'],
-  'adventure': ['Outdoors & Adventure'], 'nature': ['Outdoors & Adventure', 'Hiking & Camping'],
-  'gardening': ['Volunteering & Activism'], 'birdwatching': ['Outdoors & Adventure'],
-  'tech': ['Tech & Coding'], 'startups': ['Startups & Entrepreneurship'], 'ai': ['AI & Innovation'],
-  'crypto': ['Web3 & Crypto'], 'coding': ['Tech & Coding'], 'ux': ['Tech & Coding'],
-  'product': ['Startups & Entrepreneurship'], 'entrepreneurship': ['Startups & Entrepreneurship'],
-  'investing': ['Business & Finance'], 'business': ['Business & Finance'], 'marketing': ['Business & Finance'],
-  'web3': ['Web3 & Crypto'], 'gaming': ['Gaming & Esports'], 'esports': ['Gaming & Esports'],
-  'sports': ['Sports & Recreation'], 'football': ['Sports & Recreation'], 'basketball': ['Sports & Recreation'],
-  'soccer': ['Sports & Recreation'], 'tennis': ['Sports & Recreation'], 'golf': ['Sports & Recreation'],
-  'baseball': ['Sports & Recreation'], 'hockey': ['Sports & Recreation'], 'volleyball': ['Sports & Recreation'],
-  'f1': ['Sports & Recreation'], 'motorsports': ['Sports & Recreation'], 'mma': ['Combat Sports & CrossFit'],
-  'networking': ['Networking'], 'volunteering': ['Volunteering & Activism'],
-  'activism': ['Volunteering & Activism'], 'sustainability': ['Volunteering & Activism'],
-  'community': ['Social & Parties', 'Volunteering & Activism'], 'nightlife': ['Nightlife'],
-  'parties': ['Social & Parties'], 'mindfulness': ['Wellness & Mindfulness'],
-  'self-improvement': ['Wellness & Mindfulness', 'Education & Workshops'],
-  'astrology': ['Spirituality'], 'spirituality': ['Spirituality'], 'science': ['Science & Innovation'],
-  'languages': ['Education & Workshops'], 'pets': ['Pets & Animals'], 'dogs': ['Pets & Animals'],
-}
-
-function isToday(dt: string) {
-  const d = new Date(dt), now = new Date()
-  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-}
-function isTomorrow(dt: string) {
-  const d = new Date(dt), tom = new Date(); tom.setDate(tom.getDate() + 1)
-  return d.getDate() === tom.getDate() && d.getMonth() === tom.getMonth() && d.getFullYear() === tom.getFullYear()
-}
-function formatTime(dt: string) { return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }
-function formatDate(dt: string) {
-  const d = new Date(dt)
-  if (isToday(dt)) return 'Today · ' + formatTime(dt)
-  if (isTomorrow(dt)) return 'Tomorrow · ' + formatTime(dt)
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + formatTime(dt)
-}
 
 export default function HomePage() {
   const [user, setUser] = useState<any>(null)
@@ -178,8 +44,10 @@ export default function HomePage() {
   )
 
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel>
+    let channel: ReturnType<typeof supabase.channel> | undefined
+    let cancelled = false
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
       fetchAll(session.user.id)
@@ -205,8 +73,8 @@ export default function HomePage() {
         })
         .subscribe()
     })
-    return () => { if (channel) supabase.removeChannel(channel) }
-  }, [])
+    return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
+  }, [router])
 
   const requestGeolocation = () => {
     if (!navigator.geolocation) return
@@ -228,7 +96,7 @@ export default function HomePage() {
   const fetchAll = async (userId: string) => {
     const [profileRes, eventsRes, rsvpRes, connRes, notifRes, bookmarkRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
-      supabase.from('events').select('*').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(100),
+      supabase.from('events').select('id,title,category,start_datetime,end_datetime,location_name,city,spots_left,capacity,tags,visibility,is_featured,host_id,cover_url,latitude,longitude').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(50),
       supabase.from('rsvps').select('event_id').eq('user_id', userId),
       supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),
       supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false),
@@ -255,7 +123,7 @@ export default function HomePage() {
     setLoading(false)
     if (!sessionStorage.getItem('gathr_match_check')) {
       sessionStorage.setItem('gathr_match_check', '1')
-      supabase.functions.invoke('after-event-matches').catch(() => {})
+      supabase.functions.invoke('after-event-matches').catch((err) => console.error('after-event-matches:', err))
     }
   }
 

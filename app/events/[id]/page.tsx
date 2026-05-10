@@ -86,7 +86,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         fetchEvent(id, session.user.id)
       })
     })
-  }, [])
+  }, [params, router])
 
   useEffect(() => {
     if (!eventId) return
@@ -156,16 +156,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       .single()
 
     if (!eventData) { router.push('/home'); return }
-    setEvent(eventData)
 
-    try {
-      const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
-      const stored = localStorage.getItem(RECENTLY_VIEWED_KEY)
-      const viewed = stored ? JSON.parse(stored) : []
-      const updated = [eventData, ...viewed.filter((e: any) => e.id !== eventData.id)].slice(0, 10)
-      localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(updated))
-    } catch {}
-
+    // Privacy gate — check before committing any data to state
     const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes, hostCountRes, bookmarkRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', eventData.host_id).single(),
       supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).single(),
@@ -176,6 +168,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       supabase.from('event_bookmarks').select('id').eq('event_id', id).eq('user_id', userId).single(),
     ])
 
+    if (eventData.visibility === 'private' && eventData.host_id !== userId && !rsvpRes.data) {
+      const inviteParam = new URLSearchParams(window.location.search).get('invite')
+      if (inviteParam !== eventData.invite_code) {
+        setBlocked(true)
+        setLoading(false)
+        return
+      }
+    }
+
+    // Access confirmed — commit to state
+    setEvent(eventData)
     if (hostRes.data) setHost(hostRes.data)
     if (hostCountRes.count !== null) setHostEventCount(hostCountRes.count)
     if (rsvpRes.data) setRsvped(true)
@@ -185,14 +188,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (bookmarkRes.data) setBookmarked(true)
     if (eventData.invite_code) setInviteCode(eventData.invite_code)
 
-    if (eventData.visibility === 'private' && eventData.host_id !== userId && !rsvpRes.data) {
-      const inviteParam = new URLSearchParams(window.location.search).get('invite')
-      if (inviteParam !== eventData.invite_code) {
-        setBlocked(true)
-        setLoading(false)
-        return
-      }
-    }
+    try {
+      const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
+      const stored = localStorage.getItem(RECENTLY_VIEWED_KEY)
+      const viewed = stored ? JSON.parse(stored) : []
+      const updated = [eventData, ...viewed.filter((e: any) => e.id !== eventData.id)].slice(0, 10)
+      localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(updated))
+    } catch {}
 
     setLoading(false)
 
@@ -207,25 +209,41 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (!user || !event) return
     setRsvpLoading(true)
     if (rsvped) {
-      await supabase.from('rsvps').delete()
-        .eq('event_id', event.id).eq('user_id', user.id)
+      // Optimistic update
       setRsvped(false)
       setTotalAttendees(prev => Math.max(0, prev - 1))
       setAttendees(prev => prev.filter(a => a.user_id !== user.id))
       setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
+      const { error } = await supabase.from('rsvps').delete()
+        .eq('event_id', event.id).eq('user_id', user.id)
+      if (error) {
+        // Roll back on failure
+        setRsvped(true)
+        setTotalAttendees(prev => prev + 1)
+        setAttendees(prev => [...prev, { user_id: user.id, profiles: null } as any])
+        setEvent(prev => prev ? { ...prev, spots_left: Math.max(0, prev.spots_left - 1) } : prev)
+      }
     } else {
-      await supabase.from('rsvps').insert({
-        event_id: event.id, user_id: user.id, status: 'joined'
-      })
+      // Optimistic update
       setRsvped(true)
       setTotalAttendees(prev => prev + 1)
       setEvent(prev => prev ? { ...prev, spots_left: Math.max(0, prev.spots_left - 1) } : prev)
-      const { data } = await supabase
-        .from('rsvps')
-        .select('user_id, profiles(id, name, avatar_url)')
-        .eq('event_id', event.id)
-        .limit(12)
-      if (data) setAttendees(data as any)
+      const { error } = await supabase.from('rsvps').insert({
+        event_id: event.id, user_id: user.id, status: 'joined'
+      })
+      if (error) {
+        // Roll back on failure
+        setRsvped(false)
+        setTotalAttendees(prev => Math.max(0, prev - 1))
+        setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
+      } else {
+        const { data } = await supabase
+          .from('rsvps')
+          .select('user_id, profiles(id, name, avatar_url)')
+          .eq('event_id', event.id)
+          .limit(12)
+        if (data) setAttendees(data as any)
+      }
     }
     setRsvpLoading(false)
   }
@@ -233,11 +251,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const handleBookmark = async () => {
     if (!user || !event) return
     if (bookmarked) {
-      await supabase.from('event_bookmarks').delete().eq('event_id', event.id).eq('user_id', user.id)
       setBookmarked(false)
+      const { error } = await supabase.from('event_bookmarks').delete().eq('event_id', event.id).eq('user_id', user.id)
+      if (error) setBookmarked(true)
     } else {
-      await supabase.from('event_bookmarks').insert({ event_id: event.id, user_id: user.id })
       setBookmarked(true)
+      const { error } = await supabase.from('event_bookmarks').insert({ event_id: event.id, user_id: user.id })
+      if (error) setBookmarked(false)
     }
   }
 
@@ -315,8 +335,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  const handleMatchConnect = async (e: React.MouseEvent, personId: string) => {
-    e.stopPropagation()
+  const handleMatchConnect = async (personId: string) => {
     if (!user || matchConnLoading) return
     setMatchConnLoading(personId)
     const { data } = await supabase.from('connections').insert({
@@ -330,7 +349,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const handleDelete = async () => {
-    if (!event) return
+    if (!event || !user || user.id !== event.host_id) return
     setDeleting(true)
     await Promise.all([
       supabase.from('rsvps').delete().eq('event_id', event.id),
@@ -655,7 +674,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     waved={wavedIds.has(match.id)}
                     incomingMutual={mutualWaveIds.has(match.id)}
                     matchConnLoading={matchConnLoading}
-                    onHi={id => handleMatchConnect({ stopPropagation: () => {} } as React.MouseEvent, id)}
+                    onHi={id => handleMatchConnect(id)}
                     onWave={handleWave}
                     onNavigate={path => router.push(path)}
                     onMessage={() => router.push('/messages/' + [user?.id, match.id].sort().join('_') + '?from=' + eventId)}

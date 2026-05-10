@@ -28,6 +28,8 @@ export default function CreateEventPage() {
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [privacy, setPrivacy] = useState('public')
+  const [ticketType, setTicketType] = useState('free')
+  const [ticketPrice, setTicketPrice] = useState('')
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const coverRef = useRef<HTMLInputElement>(null)
@@ -74,6 +76,8 @@ export default function CreateEventPage() {
     setCapacity(draft.capacity || '')
     setTags(draft.tags || [])
     setPrivacy(draft.privacy || 'public')
+    setTicketType(draft.ticket_type || 'free')
+    setTicketPrice(draft.ticket_price ? String(draft.ticket_price) : '')
     if (draft.cover_url) setCoverPreview(draft.cover_url)
     if (draft.lat) setLat(draft.lat)
     if (draft.lng) setLng(draft.lng)
@@ -114,7 +118,9 @@ export default function CreateEventPage() {
       title, category, description, date,
       start_time: startTime, end_time: endTime,
       venue_name: venueName, address, city, capacity,
-      tags, privacy, cover_url: coverUrl, lat, lng,
+      tags, privacy, ticket_type: ticketType,
+      ticket_price: ticketType === 'paid' && ticketPrice ? parseFloat(ticketPrice) : null,
+      cover_url: coverUrl, lat, lng,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
 
@@ -125,7 +131,7 @@ export default function CreateEventPage() {
       setDraftToast(true)
       setTimeout(() => setDraftToast(false), 2500)
     }
-  }, [userId, title, category, description, date, startTime, endTime, venueName, address, city, capacity, tags, privacy, coverFile, coverPreview, lat, lng])
+  }, [userId, title, category, description, date, startTime, endTime, venueName, address, city, capacity, tags, privacy, ticketType, ticketPrice, coverFile, coverPreview, lat, lng])
 
   // Auto-save every 30s when there's content
   useEffect(() => {
@@ -180,7 +186,18 @@ export default function CreateEventPage() {
     if (!session) { router.push('/auth'); return }
 
     const startDatetime = new Date(date + 'T' + startTime)
-    const endDatetime = endTime ? new Date(date + 'T' + endTime) : new Date(date + 'T' + startTime)
+    const endDatetime = endTime ? new Date(date + 'T' + endTime) : new Date(startDatetime.getTime() + 3600000)
+
+    if (startDatetime < new Date()) {
+      setError('Start time must be in the future')
+      setLoading(false)
+      return
+    }
+    if (endDatetime <= startDatetime) {
+      setError('End time must be after start time')
+      setLoading(false)
+      return
+    }
 
     // Upload final cover (might already be a URL from draft)
     let coverUrl: string | null = coverFile ? null : coverPreview
@@ -211,7 +228,9 @@ export default function CreateEventPage() {
       latitude: lat ?? getCityCoords(city).lat,
       longitude: lng ?? getCityCoords(city).lng,
       cover_url: coverUrl,
-      invite_code: Math.random().toString(36).substring(2, 10).toUpperCase(),
+      ticket_type: ticketType,
+      ticket_price: ticketType === 'paid' && ticketPrice ? parseFloat(ticketPrice) : null,
+      invite_code: crypto.randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase(),
     }).select('id').single()
 
     if (insertError) {
@@ -409,6 +428,33 @@ export default function CreateEventPage() {
               </div>
             </div>
 
+            <div>
+              <label className={labelClass}>Tickets</label>
+              <div className="space-y-2">
+                {[
+                  { value: 'free', label: 'Free', desc: 'No cost to attend' },
+                  { value: 'paid', label: 'Paid', desc: 'Set a price per ticket' },
+                  { value: 'donation', label: 'Donation', desc: 'Pay what you want' },
+                ].map(opt => (
+                  <div key={opt.value} onClick={() => setTicketType(opt.value)} className={'flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ' + (ticketType === opt.value ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
+                    <div className={'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ' + (ticketType === opt.value ? 'border-[#E8B84B]' : 'border-white/20')}>
+                      {ticketType === opt.value && <div className="w-2 h-2 rounded-full bg-[#E8B84B]" />}
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-[#F0EDE6]">{opt.label}</div>
+                      <div className="text-xs text-white/40">{opt.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {ticketType === 'paid' && (
+                <div className="mt-3 relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
+                  <input type="number" className={inputClass + ' pl-8'} placeholder="0.00" value={ticketPrice} onChange={e => setTicketPrice(e.target.value)} min={0} step={0.01} />
+                </div>
+              )}
+            </div>
+
             {error && <p className="text-[#E85B5B] text-xs">{error}</p>}
           </>
         )}
@@ -421,7 +467,10 @@ export default function CreateEventPage() {
         )}
         {step === 1 ? (
           <button
-            onClick={() => setStep(2)}
+            onClick={async () => {
+              if (address && !lat) await geocodeAddress(address, venueName, city)
+              setStep(2)
+            }}
             disabled={!title || !category || !date || !startTime || !venueName || geocoding}
             className="w-full bg-[#E8B84B] text-[#0D110D] rounded-2xl py-4 font-bold text-sm disabled:opacity-40 active:scale-95 transition-transform"
           >

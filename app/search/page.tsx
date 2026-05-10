@@ -104,7 +104,7 @@ export default function SearchPage() {
       const viewed = localStorage.getItem(RECENTLY_VIEWED_KEY)
       if (viewed) setRecentlyViewed(JSON.parse(viewed))
     } catch {}
-  }, [])
+  }, [router])
 
   const saveRecentSearch = (term: string) => {
     if (!term.trim()) return

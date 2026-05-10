@@ -49,7 +49,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         fetchMessages(id, session.user.id)
       })
     })
-  }, [])
+  }, [params, searchParams, router])
 
   useEffect(() => {
     if (!threadId || !user) return
@@ -222,10 +222,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
     setUploadError('')
 
-    const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'pdf', 'doc', 'docx', 'txt', 'zip']
+    const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'pdf', 'txt']
+    const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'application/pdf', 'text/plain']
     const fileExt = file.name.split('.').pop()?.toLowerCase() || ''
-    if (!ALLOWED_EXTS.includes(fileExt)) {
-      setUploadError('File type not supported')
+    if (!ALLOWED_EXTS.includes(fileExt) || !ALLOWED_MIME.includes(file.type)) {
+      setUploadError('File type not supported — images and PDFs only')
       setTimeout(() => setUploadError(''), 3000)
       return
     }
@@ -259,7 +260,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     const { data: urlData } = supabase.storage.from('chat-attachments').getPublicUrl(path)
     if (!urlData?.publicUrl) { setUploading(false); return }
 
-    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(ext)
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(ext) && file.type.startsWith('image/')
     const msgText = isImage
       ? `[image]${urlData.publicUrl}`
       : `[file:${file.name}]${urlData.publicUrl}`
@@ -291,7 +292,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const formatTime = (dt: string) =>
     new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
-  const isSafeUrl = (url: string) => /^https?:\/\//i.test(url)
+  const SUPABASE_STORAGE_ORIGIN = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '') + '/storage/v1/object/public/'
+  const isSafeUrl = (url: string) => url.startsWith(SUPABASE_STORAGE_ORIGIN)
 
   const renderContent = (msg: any) => {
     const t = msg.text || ''
@@ -463,7 +465,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       <input
         ref={fileRef}
         type="file"
-        accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+        accept="image/*,.pdf,.txt"
         onChange={handleFileSelect}
         className="hidden"
       />

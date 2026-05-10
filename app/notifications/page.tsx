@@ -15,9 +15,11 @@ export default function NotificationsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel>
+    let channel: ReturnType<typeof supabase.channel> | undefined
+    let cancelled = false
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
       fetchNotifications(session.user.id)
@@ -34,8 +36,8 @@ export default function NotificationsPage() {
         .subscribe()
     })
 
-    return () => { if (channel) supabase.removeChannel(channel) }
-  }, [])
+    return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
+  }, [router])
 
   const fetchNotifications = async (userId: string) => {
     const { data } = await supabase

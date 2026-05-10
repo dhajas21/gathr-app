@@ -9,6 +9,7 @@ export function useTheme() {
     const raw = localStorage.getItem('gathr_theme')
     const stored: 'dark' | 'light' = raw === 'light' || raw === 'dark' ? raw : 'dark'
     setTheme(stored)
+    document.documentElement.setAttribute('data-theme', stored)
   }, [])
 
   const toggleTheme = () => {

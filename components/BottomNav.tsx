@@ -40,10 +40,11 @@ export default function BottomNav() {
   const [unreadNotifs, setUnreadNotifs] = useState(0)
 
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel>
+    let channel: ReturnType<typeof supabase.channel> | undefined
+    let cancelled = false
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return
+      if (cancelled || !session) return
       const uid = session.user.id
 
       const fetchCounts = async () => {
@@ -51,6 +52,7 @@ export default function BottomNav() {
           supabase.from('messages').select('*', { count: 'exact', head: true }).eq('recipient_id', uid).is('read_at', null),
           supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', uid).eq('read', false),
         ])
+        if (cancelled) return
         if (msgRes.count !== null) setUnreadMessages(msgRes.count)
         if (notifRes.count !== null) setUnreadNotifs(notifRes.count)
       }
@@ -66,7 +68,7 @@ export default function BottomNav() {
         .subscribe()
     })
 
-    return () => { if (channel) supabase.removeChannel(channel) }
+    return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
   }, [])
 
   const active = (href: string) =>
