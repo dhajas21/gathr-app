@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import confetti from 'canvas-confetti'
 import BottomNav from '@/components/BottomNav'
 import { ProfilePageSkeleton } from '@/components/Skeleton'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -167,21 +168,17 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!showLevelUp) return
-    import('canvas-confetti').then(({ default: confetti }) => {
-      confetti({ particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] })
-    })
+    confetti({ particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] })
   }, [showLevelUp])
 
   useEffect(() => {
     if (!showAchievementUnlock) return
-    import('canvas-confetti').then(({ default: confetti }) => {
-      const count = Math.min(newAchievements.length, 4)
-      for (let i = 0; i < count; i++) {
-        setTimeout(() => {
-          confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] })
-        }, i * 450)
-      }
-    })
+    const count = Math.min(newAchievements.length, 4)
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] })
+      }, i * 450)
+    }
   }, [showAchievementUnlock])
 
   const fetchAll = async (userId: string) => {
