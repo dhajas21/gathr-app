@@ -1,8 +1,10 @@
 export const CITIES = [
   { name: 'Bellingham', lat: 48.7519, lng: -122.4787 },
+  { name: 'Bellevue', lat: 47.6101, lng: -122.2015 },
   { name: 'Seattle', lat: 47.6062, lng: -122.3321 },
   { name: 'Tacoma', lat: 47.2529, lng: -122.4443 },
   { name: 'Olympia', lat: 47.0379, lng: -122.9007 },
+  { name: 'Portland', lat: 45.5051, lng: -122.6750 },
   { name: 'Vancouver', lat: 49.2827, lng: -123.1207 },
   { name: 'Victoria', lat: 48.4284, lng: -123.3656 },
 ]
@@ -61,7 +63,7 @@ export const EVENT_CATEGORIES = [
 ]
 
 export const ALL_CITIES = [
-  'Bellingham', 'Seattle', 'Tacoma', 'Olympia', 'Spokane',
+  'Bellingham', 'Bellevue', 'Seattle', 'Tacoma', 'Olympia', 'Spokane',
   'Vancouver', 'Victoria', 'Surrey', 'Burnaby',
   'Portland', 'Eugene', 'Salem',
   'San Francisco', 'Los Angeles', 'San Diego', 'Sacramento',
