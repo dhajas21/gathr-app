@@ -96,6 +96,8 @@ export default function MessagesPage() {
         })
         .subscribe()
 
+
+
       commChatChannel = supabase
         .channel('messages-community-chats')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_chat_messages' }, async (payload) => {
@@ -126,7 +128,7 @@ export default function MessagesPage() {
       if (connChannel) supabase.removeChannel(connChannel)
       if (commChatChannel) supabase.removeChannel(commChatChannel)
     }
-  }, [])
+  }, [router])
 
   const buildThreads = async (msgData: any[], userId: string) => {
     const seen = new Set()
@@ -219,7 +221,8 @@ export default function MessagesPage() {
 
   const handleAccept = async (connectionId: string) => {
     const conn = connections.find(c => c.id === connectionId)
-    await supabase.from('connections').update({ status: 'accepted' }).eq('id', connectionId)
+    const { error } = await supabase.from('connections').update({ status: 'accepted' }).eq('id', connectionId)
+    if (error) return
     setConnections(prev => prev.filter(c => c.id !== connectionId))
     if (conn) {
       setAcceptedConnections(prev => [...prev, { ...conn, status: 'accepted', otherProfile: conn.requester }])
@@ -227,7 +230,8 @@ export default function MessagesPage() {
   }
 
   const handleDecline = async (connectionId: string) => {
-    await supabase.from('connections').delete().eq('id', connectionId)
+    const { error } = await supabase.from('connections').delete().eq('id', connectionId)
+    if (error) return
     setConnections(prev => prev.filter(c => c.id !== connectionId))
   }
 
@@ -657,7 +661,10 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, forma
             </div>
           </div>
           <div className={'text-xs truncate ' + (isUnread ? 'text-[#F0EDE6]/70 font-medium' : 'text-white/35')}>
-            {thread.sender_id === thread.otherProfile?.id ? '' : 'You: '}{thread.text}
+            {thread.sender_id === thread.otherProfile?.id ? '' : 'You: '}
+            {(thread.text || '').startsWith('[image]') ? '📷 Photo'
+              : (thread.text || '').startsWith('[file:') ? '📎 ' + ((thread.text || '').match(/^\[file:(.+?)\]/)?.[1] || 'File')
+              : thread.text}
           </div>
         </div>
       </div>

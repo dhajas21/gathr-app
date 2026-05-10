@@ -4,6 +4,9 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+const THREAD_RE = new RegExp('^' + UUID + '_' + UUID + '$', 'i')
+
 export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
@@ -28,9 +31,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const presenceChannelRef = useRef<any>(null)
   const userIdRef = useRef<string | null>(null)
   const router = useRouter()
-
-  const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-  const THREAD_RE = new RegExp('^' + UUID + '_' + UUID + '$', 'i')
 
   useEffect(() => {
     const from = searchParams?.get('from')
@@ -57,14 +57,14 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     const presence = supabase.channel('typing-' + threadId)
     presence
       .on('presence', { event: 'sync' }, () => {
-        const state = presence.presenceState<{ typing: boolean }>()
-        const others = Object.entries(state)
-          .filter(([key]) => key !== userId)
-          .flatMap(([, v]) => v)
+        const state = presence.presenceState<{ typing: boolean; userId: string }>()
+        const others = Object.values(state)
+          .flatMap(v => v)
+          .filter(p => p.userId !== userId)
         setIsOtherTyping(others.some(p => p.typing))
       })
       .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') await presence.track({ typing: false })
+        if (status === 'SUBSCRIBED') await presence.track({ typing: false, userId })
       })
     presenceChannelRef.current = presence
     return () => {
@@ -92,6 +92,15 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         if (userIdRef.current && msg.recipient_id === userIdRef.current && !msg.read_at) {
           await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id)
         }
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'messages',
+        filter: 'thread_id=eq.' + threadId
+      }, (payload) => {
+        const deleted = payload.old as any
+        if (deleted?.id) setMessages(prev => prev.filter(m => m.id !== deleted.id))
       })
       .subscribe()
 
@@ -483,10 +492,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
             value={text}
             onChange={e => {
               setText(e.target.value)
-              presenceChannelRef.current?.track({ typing: true })
+              presenceChannelRef.current?.track({ typing: true, userId: user.id })
               if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
               typingTimeoutRef.current = setTimeout(() => {
-                presenceChannelRef.current?.track({ typing: false })
+                presenceChannelRef.current?.track({ typing: false, userId: user.id })
               }, 2000)
             }}
             onKeyDown={handleKeyDown}
