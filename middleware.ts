@@ -13,6 +13,7 @@ function buildCsp(nonce: string): string {
     `img-src 'self' data: blob: https://${SUPABASE_HOST} https://lh3.googleusercontent.com`,
     `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST} https://nominatim.openstreetmap.org`,
     "font-src 'self' data:",
+    "worker-src blob:",
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",

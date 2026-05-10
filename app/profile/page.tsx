@@ -136,7 +136,7 @@ export default function ProfilePage() {
         }
         setCelebrateLevel(levelVal)
         setShowLevelUp(true)
-        setTimeout(() => confetti({ particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] }), 50)
+        setTimeout(() => { try { confetti({ zIndex: 9999, particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] }) } catch {} }, 50)
       }
       localStorage.setItem('gathr_user_level', String(levelVal))
 
@@ -152,7 +152,7 @@ export default function ProfilePage() {
           setShowAchievementUnlock(true)
           const count = Math.min(fresh.length, 4)
           for (let i = 0; i < count; i++) {
-            setTimeout(() => confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] }), i * 450 + 50)
+            setTimeout(() => { try { confetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] }) } catch {} }, i * 450 + 50)
           }
         }
       }
