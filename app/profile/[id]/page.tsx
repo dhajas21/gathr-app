@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { PublicProfileSkeleton } from '@/components/Skeleton'
@@ -27,6 +27,7 @@ const ACHIEVEMENT_LOOKUP: Record<string, { icon: string; tier: 'bronze' | 'silve
 }
 
 export default function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [hostedEvents, setHostedEvents] = useState<any[]>([])
@@ -130,7 +131,8 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   const handleMessage = () => {
     if (!user) return
     const threadId = [user.id, profileId].sort().join('_')
-    router.push('/messages/' + threadId)
+    const from = searchParams?.get('from')
+    router.push('/messages/' + threadId + (from ? '?from=' + from : ''))
   }
 
   const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })

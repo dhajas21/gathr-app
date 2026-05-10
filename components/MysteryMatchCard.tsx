@@ -14,12 +14,13 @@ interface Props {
   onHi: (id: string) => void
   onWave: (id: string) => void
   onNavigate: (path: string) => void
+  onMessage?: () => void
   isPostEvent: boolean
 }
 
 export default function MysteryMatchCard({
   match, eventState, gathrPlus, eventId, connStatus,
-  waved, incomingMutual, matchConnLoading, onHi, onWave, onNavigate, isPostEvent,
+  waved, incomingMutual, matchConnLoading, onHi, onWave, onNavigate, onMessage, isPostEvent,
 }: Props) {
   const isRevealed = eventState === 'ongoing' || eventState === 'ended'
 
@@ -40,7 +41,7 @@ export default function MysteryMatchCard({
 
       {/* Avatar */}
       <button
-        onClick={() => isRevealed && onNavigate('/profile/' + match.id)}
+        onClick={() => isRevealed && onNavigate('/profile/' + match.id + '?from=' + eventId)}
         className={'flex-shrink-0 ' + (isRevealed ? 'cursor-pointer' : 'cursor-default')}>
         {isRevealed ? (
           match.avatar_url ? (
@@ -137,8 +138,15 @@ export default function MysteryMatchCard({
             {matchConnLoading === match.id ? '…' : '+ Hi'}
           </button>
         ) : connStatus === 'accepted' ? (
-          <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[10px] text-[#7EC87E]">✓ Connected</span>
+          <div className="flex flex-col items-end gap-1">
+            {onMessage && (
+              <button
+                onClick={onMessage}
+                className="bg-[#1C241C] border border-white/15 text-white/60 text-[10px] font-semibold px-3 py-1.5 rounded-xl active:scale-95 transition-transform">
+                Message
+              </button>
+            )}
+            {!onMessage && <span className="text-[10px] text-[#7EC87E]">✓ Connected</span>}
             {isPostEvent && (
               <button onClick={() => onNavigate('/events/' + eventId + '/survey')} className="text-[9px] text-[#E8B84B]/60">
                 Rate →

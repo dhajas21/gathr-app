@@ -658,6 +658,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     onHi={id => handleMatchConnect({ stopPropagation: () => {} } as React.MouseEvent, id)}
                     onWave={handleWave}
                     onNavigate={path => router.push(path)}
+                    onMessage={() => router.push('/messages/' + [user?.id, match.id].sort().join('_') + '?from=' + eventId)}
                     isPostEvent={isPostEvent}
                   />
                 ))}

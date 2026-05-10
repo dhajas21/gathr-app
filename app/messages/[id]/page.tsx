@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [other, setOther] = useState<any>(null)
+  const [fromEventName, setFromEventName] = useState<string | null>(null)
+  const fromEventIdRef = useRef<string | null>(null)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -30,6 +33,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const THREAD_RE = new RegExp('^' + UUID + '_' + UUID + '$', 'i')
 
   useEffect(() => {
+    const from = searchParams?.get('from')
+    if (from) {
+      fromEventIdRef.current = from
+      supabase.from('events').select('title').eq('id', from).single()
+        .then(({ data }) => { if (data) setFromEventName(data.title) })
+    }
     params.then(({ id }) => {
       if (!THREAD_RE.test(id)) { router.push('/messages'); return }
       setThreadId(id)
@@ -108,6 +117,15 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       const { data: otherProfile } = await supabase
         .from('profiles').select('id, name, avatar_url').eq('id', otherId).single()
       if (otherProfile) setOther(otherProfile)
+      // If opened without a ?from= param, check if a prior message recorded the event context
+      if (!fromEventIdRef.current) {
+        const eventCtxId = ordered.find((m: any) => m.event_id)?.event_id
+        if (eventCtxId) {
+          fromEventIdRef.current = eventCtxId
+          supabase.from('events').select('title').eq('id', eventCtxId).single()
+            .then(({ data: ev }) => { if (ev) setFromEventName(ev.title) })
+        }
+      }
       await supabase.from('messages')
         .update({ read_at: new Date().toISOString() })
         .eq('thread_id', tId).eq('recipient_id', userId).is('read_at', null)
@@ -184,6 +202,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       sender_id: user.id,
       recipient_id: recipientId,
       text: trimmed,
+      ...(fromEventIdRef.current ? { event_id: fromEventIdRef.current } : {}),
     }).select().single()
     if (!error && sent) {
       setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
@@ -250,6 +269,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       sender_id: user.id,
       recipient_id: recipientId,
       text: msgText,
+      ...(fromEventIdRef.current ? { event_id: fromEventIdRef.current } : {}),
     })
 
     setUploading(false)
@@ -340,7 +360,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         )}
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-[#F0EDE6]">{other?.name || 'Chat'}</div>
-          <div className="text-[10px] text-white/40">Connected via Gathr</div>
+          <div className="text-[10px] text-white/40">
+            {fromEventName ? 'You met at ' + fromEventName : 'Connected via Gathr'}
+          </div>
         </div>
         <button onClick={() => other && router.push('/profile/' + other.id)}
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-sm">
