@@ -19,6 +19,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const fileRef = useRef<HTMLInputElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const presenceChannelRef = useRef<any>(null)
+  const userIdRef = useRef<string | null>(null)
   const router = useRouter()
 
   const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
@@ -31,6 +32,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }
         setUser(session.user)
+        userIdRef.current = session.user.id
         fetchMessages(id, session.user.id)
       })
     })
@@ -74,8 +76,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           return [...prev, msg]
         })
         scrollToBottom()
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session && msg.recipient_id === session.user.id && !msg.read_at) {
+        if (userIdRef.current && msg.recipient_id === userIdRef.current && !msg.read_at) {
           await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id)
         }
       })
@@ -208,7 +209,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       ? `[image]${urlData.publicUrl}`
       : `[file:${file.name}]${urlData.publicUrl}`
 
-    await supabase.from('messages').insert({
+    const { error: msgError } = await supabase.from('messages').insert({
       thread_id: threadId,
       sender_id: user.id,
       recipient_id: recipientId,
@@ -216,6 +217,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     })
 
     setUploading(false)
+    if (msgError) {
+      setUploadError('File sent but message failed — try again')
+      setTimeout(() => setUploadError(''), 3500)
+      return
+    }
     scrollToBottom()
   }
 
