@@ -32,12 +32,12 @@ export default function SettingsPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
-      supabase.from('profiles').select('name, avatar_url, profile_mode, discoverable, matching_enabled, city, gathr_plus, gathr_plus_expires_at').eq('id', session.user.id).single()
+      supabase.from('profiles').select('name, avatar_url, profile_mode, is_discoverable, matching_enabled, city, gathr_plus, gathr_plus_expires_at').eq('id', session.user.id).single()
         .then(({ data }) => {
           if (data) {
             setProfile(data)
             setProfileMode(data.profile_mode || 'both')
-            setDiscoverable(data.discoverable !== false)
+            setDiscoverable(data.is_discoverable !== false)
             setMatchingEnabled(data.matching_enabled !== false)
             const trialActive = data.gathr_plus_expires_at ? new Date(data.gathr_plus_expires_at) > new Date() : false
             setGathrPlus(data.gathr_plus === true || trialActive)
@@ -52,14 +52,14 @@ export default function SettingsPage() {
     if (savingMode) return
     setSavingMode(true)
     const current = profileMode
-    let next: string
-    if (current === 'both') {
-      next = mode === 'social' ? 'professional' : 'social'
-    } else if (current === mode) {
-      next = mode === 'social' ? 'professional' : 'social'
-    } else {
-      next = 'both'
-    }
+    const hasSocial = current === 'social' || current === 'both'
+    const hasProfessional = current === 'professional' || current === 'both'
+    let nextSocial = hasSocial
+    let nextPro = hasProfessional
+    if (mode === 'social') nextSocial = !hasSocial
+    else nextPro = !hasProfessional
+    if (!nextSocial && !nextPro) nextSocial = true
+    const next = nextSocial && nextPro ? 'both' : nextPro ? 'professional' : 'social'
     setProfileMode(next)
     const { error } = await supabase.from('profiles').update({ profile_mode: next }).eq('id', user.id)
     if (error) setProfileMode(current)
@@ -71,7 +71,7 @@ export default function SettingsPage() {
     setSavingDiscoverable(true)
     const next = !discoverable
     setDiscoverable(next)
-    const { error } = await supabase.from('profiles').update({ discoverable: next }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update({ is_discoverable: next }).eq('id', user.id)
     if (error) setDiscoverable(!next)
     setSavingDiscoverable(false)
   }

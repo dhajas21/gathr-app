@@ -43,6 +43,32 @@ export default function BookmarksPage() {
     'Networking': 'linear-gradient(135deg,#1E2A3A,#0E1E2A)',
   }
 
+  const now = Date.now()
+  const upcoming = events.filter(e => new Date(e.start_datetime).getTime() >= now)
+  const past = events.filter(e => new Date(e.start_datetime).getTime() < now)
+
+  const EventCard = ({ event }: { event: any }) => (
+    <div key={event.id} onClick={() => router.push('/events/' + event.id)}
+      className="bg-[#1C241C] rounded-2xl overflow-hidden border border-white/10 cursor-pointer active:scale-[0.98] transition-transform">
+      <div className="category-gradient-card h-28 flex items-center justify-center text-4xl relative"
+        style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
+        {event.cover_url
+          ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          : <span className="relative z-10">{event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : event.category === 'Outdoors' ? '🥾' : event.category === 'Arts & Culture' ? '🎨' : '🎉'}</span>
+        }
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80" />
+      </div>
+      <div className="p-3.5">
+        <div className="text-[10px] text-[#E8B84B] font-medium mb-0.5">{event.category}</div>
+        <h3 className="font-bold text-[#F0EDE6] text-sm leading-snug mb-2">{event.title}</h3>
+        <div className="flex items-center gap-3 text-[10px] text-white/40">
+          <span>📅 {formatDate(event.start_datetime)} · {formatTime(event.start_datetime)}</span>
+        </div>
+        <div className="text-[10px] text-white/40 mt-0.5">📍 {event.location_name}{event.city ? ', ' + event.city : ''}</div>
+      </div>
+    </div>
+  )
+
   if (loading) return <BookmarksPageSkeleton />
 
   return (
@@ -68,27 +94,17 @@ export default function BookmarksPage() {
         </div>
       ) : (
         <div className="px-4 py-4 space-y-3">
-          {events.map(event => (
-            <div key={event.id} onClick={() => router.push('/events/' + event.id)}
-              className="bg-[#1C241C] rounded-2xl overflow-hidden border border-white/10 cursor-pointer active:scale-[0.98] transition-transform">
-              <div className="category-gradient-card h-28 flex items-center justify-center text-4xl relative"
-                style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
-                {event.cover_url
-                  ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                  : <span className="relative z-10">{event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : event.category === 'Outdoors' ? '🥾' : event.category === 'Arts & Culture' ? '🎨' : '🎉'}</span>
-                }
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80" />
-              </div>
-              <div className="p-3.5">
-                <div className="text-[10px] text-[#E8B84B] font-medium mb-0.5">{event.category}</div>
-                <h3 className="font-bold text-[#F0EDE6] text-sm leading-snug mb-2">{event.title}</h3>
-                <div className="flex items-center gap-3 text-[10px] text-white/40">
-                  <span>📅 {formatDate(event.start_datetime)} · {formatTime(event.start_datetime)}</span>
+          {upcoming.map(event => <EventCard key={event.id} event={event} />)}
+          {past.length > 0 && (
+            <>
+              <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium pt-2 pb-1">Past Events</div>
+              {past.map(event => (
+                <div key={event.id} className="opacity-50">
+                  <EventCard event={event} />
                 </div>
-                <div className="text-[10px] text-white/40 mt-0.5">📍 {event.location_name}{event.city ? ', ' + event.city : ''}</div>
-              </div>
-            </div>
-          ))}
+              ))}
+            </>
+          )}
         </div>
       )}
 
