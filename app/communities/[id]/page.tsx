@@ -56,18 +56,22 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
   useEffect(() => {
+    let cancelled = false
     params.then(({ id }) => {
+      if (cancelled) return
       if (!UUID_RE.test(id)) { router.push('/communities'); return }
       setCommunityId(id)
       const tab = new URLSearchParams(window.location.search).get('tab')
       if (tab === 'chat' || tab === 'feed' || tab === 'events' || tab === 'members') setActiveTab(tab)
       supabase.auth.getSession().then(({ data: { session } }) => {
+        if (cancelled) return
         if (!session) { router.push('/auth'); return }
         setUser(session.user)
         fetchCommunity(id, session.user.id)
       })
     })
-  }, [])
+    return () => { cancelled = true }
+  }, [params, router])
 
   useEffect(() => {
     if (!communityId) return

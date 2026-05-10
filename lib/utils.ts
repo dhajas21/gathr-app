@@ -1,3 +1,18 @@
+const ALLOWED_IMG_ORIGINS = [
+  'https://adhahiqpiqwlvkykhbtf.supabase.co',
+  'https://lh3.googleusercontent.com',
+]
+
+export function safeImgSrc(url: string | null | undefined): string | null {
+  if (!url) return null
+  try {
+    const { origin } = new URL(url)
+    return ALLOWED_IMG_ORIGINS.includes(origin) ? url : null
+  } catch {
+    return null
+  }
+}
+
 export function isToday(dt: string) {
   const d = new Date(dt), now = new Date()
   return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()

@@ -49,7 +49,7 @@ export default function CreateEventPage() {
       setUserId(session.user.id)
       checkForDraft(session.user.id)
     })
-  }, [])
+  }, [router])
 
   const checkForDraft = async (uid: string) => {
     const { data } = await supabase

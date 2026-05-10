@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import dynamic from 'next/dynamic'
+import { safeImgSrc } from '@/lib/utils'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -130,8 +131,8 @@ export default function MapPage() {
             onClick={() => router.push('/events/' + selected.id)}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0 overflow-hidden relative">
-                {selected.cover_url
-                  ? <img src={selected.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                {safeImgSrc(selected.cover_url)
+                  ? <img src={safeImgSrc(selected.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
                   : catEmoji(selected.category)
                 }
               </div>

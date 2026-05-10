@@ -84,7 +84,7 @@ export default function NotificationsPage() {
 
   const handleTap = async (notif: any) => {
     if (!notif.read) await markRead(notif.id)
-    if (notif.link) router.push(notif.link)
+    if (notif.link?.startsWith('/')) router.push(notif.link)
   }
 
   const handleAcceptConnection = async (notif: any) => {
@@ -227,13 +227,13 @@ export default function NotificationsPage() {
           )}
 
           {/* Event / message quick action */}
-          {(notif.type === 'rsvp' || notif.type === 'event_comment' || notif.type === 'event_reminder') && notif.link && (
+          {(notif.type === 'rsvp' || notif.type === 'event_comment' || notif.type === 'event_reminder') && notif.link?.startsWith('/') && (
             <button onClick={e => { e.stopPropagation(); router.push(notif.link) }}
               className="mt-2 text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/15 px-2.5 py-1 rounded-lg">
               View event →
             </button>
           )}
-          {notif.type === 'message' && notif.link && (
+          {notif.type === 'message' && notif.link?.startsWith('/') && (
             <button onClick={e => { e.stopPropagation(); router.push(notif.link) }}
               className="mt-2 text-[10px] text-[#7EC87E] bg-[#7EC87E]/10 border border-[#7EC87E]/15 px-2.5 py-1 rounded-lg">
               Reply →
