@@ -15,9 +15,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [threadId, setThreadId] = useState('')
   const [uploadError, setUploadError] = useState('')
   const [isOtherTyping, setIsOtherTyping] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingEarlier, setLoadingEarlier] = useState(false)
+  const [longPressMsg, setLongPressMsg] = useState<any>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const presenceChannelRef = useRef<any>(null)
   const userIdRef = useRef<string | null>(null)
   const router = useRouter()
@@ -86,18 +90,21 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   }, [threadId])
 
   const fetchMessages = async (tId: string, userId: string) => {
+    // Fetch newest 150 first (desc), then reverse for chronological display
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('thread_id', tId)
-      .order('sent_at', { ascending: true })
+      .order('sent_at', { ascending: false })
       .limit(150)
 
     if (error) { console.error('Fetch error:', error); setLoading(false); return }
 
     if (data && data.length > 0) {
-      setMessages(data)
-      const otherId = data[0].sender_id === userId ? data[0].recipient_id : data[0].sender_id
+      const ordered = [...data].reverse()
+      setMessages(ordered)
+      setHasMore(data.length === 150)
+      const otherId = ordered[0].sender_id === userId ? ordered[0].recipient_id : ordered[0].sender_id
       const { data: otherProfile } = await supabase
         .from('profiles').select('id, name, avatar_url').eq('id', otherId).single()
       if (otherProfile) setOther(otherProfile)
@@ -105,6 +112,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         .update({ read_at: new Date().toISOString() })
         .eq('thread_id', tId).eq('recipient_id', userId).is('read_at', null)
     } else {
+      setHasMore(false)
       // New thread — parse other user from thread_id (format: "id1_id2" sorted)
       const parts = tId.split('_')
       const otherId = parts.find(p => p !== userId) || null
@@ -116,6 +124,34 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }
     setLoading(false)
     scrollToBottom()
+  }
+
+  const loadEarlier = async () => {
+    if (!messages.length || loadingEarlier) return
+    setLoadingEarlier(true)
+    const oldest = messages[0].sent_at
+    const { data } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('thread_id', threadId)
+      .order('sent_at', { ascending: false })
+      .lt('sent_at', oldest)
+      .limit(150)
+    if (data && data.length > 0) {
+      setMessages(prev => [...[...data].reverse(), ...prev])
+      setHasMore(data.length === 150)
+    } else {
+      setHasMore(false)
+    }
+    setLoadingEarlier(false)
+  }
+
+  const handleUnsend = async () => {
+    if (!longPressMsg) return
+    const msg = longPressMsg
+    setLongPressMsg(null)
+    setMessages(prev => prev.filter(m => m.id !== msg.id))
+    await supabase.from('messages').delete().eq('id', msg.id)
   }
 
   const scrollToBottom = () => {
@@ -313,6 +349,18 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        {hasMore && (
+          <div className="flex justify-center pt-1 pb-2">
+            <button
+              onClick={loadEarlier}
+              disabled={loadingEarlier}
+              className="text-[10px] text-white/35 bg-[#1C241C] border border-white/10 rounded-full px-4 py-1.5 active:scale-95 transition-transform disabled:opacity-40"
+            >
+              {loadingEarlier ? 'Loading…' : 'Load earlier messages'}
+            </button>
+          </div>
+        )}
+
         {messages.map((msg, i) => {
           const mine = msg.sender_id === user?.id
           const showTime = i === 0 ||
@@ -336,15 +384,27 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                     </div>
                   )
                 )}
-                <div className={
-                  isImageMsg
-                    ? 'max-w-[78%] overflow-hidden rounded-2xl ' + (mine ? 'rounded-br-sm' : 'rounded-bl-sm')
-                    : 'max-w-[78%] px-3 py-2 text-sm leading-relaxed ' + (
-                      mine
-                        ? 'bg-[#E8B84B] text-[#0D110D] rounded-2xl rounded-br-sm font-medium'
-                        : 'bg-[#1C241C] text-[#F0EDE6] rounded-2xl rounded-bl-sm'
-                    )
-                }>
+                <div
+                  className={
+                    isImageMsg
+                      ? 'max-w-[78%] overflow-hidden rounded-2xl ' + (mine ? 'rounded-br-sm' : 'rounded-bl-sm')
+                      : 'max-w-[78%] px-3 py-2 text-sm leading-relaxed ' + (
+                        mine
+                          ? 'bg-[#E8B84B] text-[#0D110D] rounded-2xl rounded-br-sm font-medium'
+                          : 'bg-[#1C241C] text-[#F0EDE6] rounded-2xl rounded-bl-sm'
+                      )
+                  }
+                  onTouchStart={() => {
+                    if (!mine) return
+                    longPressTimer.current = setTimeout(() => setLongPressMsg(msg), 500)
+                  }}
+                  onTouchEnd={() => {
+                    if (longPressTimer.current) clearTimeout(longPressTimer.current)
+                  }}
+                  onTouchMove={() => {
+                    if (longPressTimer.current) clearTimeout(longPressTimer.current)
+                  }}
+                >
                   {renderContent(msg)}
                 </div>
               </div>
@@ -419,6 +479,38 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           ↑
         </button>
       </div>
+
+      {/* Unsend sheet */}
+      {longPressMsg && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+          onClick={() => setLongPressMsg(null)}
+        >
+          <div
+            className="w-full max-w-md bg-[#1C241C] rounded-t-3xl pb-10 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-4" />
+            <div className="px-4 pb-2 text-[10px] text-white/30 truncate">
+              {(longPressMsg.text || '').startsWith('[image]') ? '📷 Image'
+                : (longPressMsg.text || '').startsWith('[file:') ? '📎 File'
+                : longPressMsg.text}
+            </div>
+            <button
+              onClick={handleUnsend}
+              className="w-full px-4 py-4 text-left text-sm text-[#E85B5B] font-medium active:bg-white/[0.03] transition-colors"
+            >
+              Unsend
+            </button>
+            <button
+              onClick={() => setLongPressMsg(null)}
+              className="w-full px-4 py-4 text-left text-sm text-white/40 active:bg-white/[0.03] transition-colors border-t border-white/[0.06]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
