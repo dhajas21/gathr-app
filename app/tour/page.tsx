@@ -16,8 +16,8 @@ const tourSlides = [
     icon: '＋',
     title: 'Create an Event',
     highlight: 'In under 2 minutes',
-    body: 'Hosting a meetup, run club, open mic, or coffee chat? Tap the gold + button. Choose from 40+ categories and set public, unlisted, or private visibility.',
-    tip: 'Your progress auto-saves as a draft — leave mid-way and it\'ll be waiting when you come back. Add a cover photo and interest tags so the right people find you.',
+    body: 'Hosting a meetup, run club, open mic, or coffee chat? Tap the gold + button. Choose from 40+ categories, set public, unlisted, or private visibility, and pick a ticket type: Free, Paid, or Donation.',
+    tip: 'Your progress auto-saves as a draft — leave mid-way and it\'ll be waiting when you come back. Add a cover photo and interest tags so the right people find you. Paid and Donation events display price info on the event card.',
     bg: 'linear-gradient(135deg,#2A2010,#1A1408)',
   },
   {
