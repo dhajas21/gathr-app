@@ -93,12 +93,12 @@ export default function BottomNav() {
       <div className="h-6 bg-gradient-to-t from-[#0D110D] to-transparent pointer-events-none" />
       <div className="bg-[#0A0E0A]/92 backdrop-blur-2xl border-t border-white/[0.07] flex items-center px-1 pb-8 pt-2.5">
 
-        <button onClick={() => router.push('/home')} className={tabClass('/home')}>
+        <button onClick={() => { if (path !== '/home') router.push('/home') }} className={tabClass('/home')}>
           <HomeIcon />
           <span className="text-[9px] font-semibold tracking-wider uppercase">Home</span>
         </button>
 
-        <button onClick={() => router.push('/communities')} className={tabClass('/communities')}>
+        <button onClick={() => { if (path !== '/communities') router.push('/communities') }} className={tabClass('/communities')}>
           <CommunitiesIcon />
           <span className="text-[9px] font-semibold tracking-wider uppercase">Groups</span>
         </button>
@@ -112,7 +112,7 @@ export default function BottomNav() {
           </div>
         </button>
 
-        <button onClick={() => router.push('/messages')} className={tabClass('/messages')}>
+        <button onClick={() => { if (path !== '/messages') router.push('/messages') }} className={tabClass('/messages')}>
           <div className="relative">
             <MessageIcon />
             <Badge count={unreadMessages} />
@@ -120,7 +120,7 @@ export default function BottomNav() {
           <span className="text-[9px] font-semibold tracking-wider uppercase">Messages</span>
         </button>
 
-        <button onClick={() => router.push('/profile')} className={tabClass('/profile')}>
+        <button onClick={() => { if (path !== '/profile') router.push('/profile') }} className={tabClass('/profile')}>
           <div className="relative">
             <ProfileIcon />
             <Badge count={unreadNotifs} />
