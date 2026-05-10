@@ -46,7 +46,7 @@ function computeAchievements(
     { icon: '👑', title: 'Connector', desc: 'Make 50 connections', tier: 'gold', val: connCount, req: 50 },
     { icon: '🗺', title: 'Explorer', desc: 'Add 5 interests', tier: 'bronze', val: interests.length, req: 5 },
     { icon: '🎯', title: 'Passionate', desc: 'Add 10 interests', tier: 'silver', val: interests.length, req: 10 },
-    { icon: '🔀', title: 'Dual Mode', desc: 'Activate Professional mode', tier: 'silver', val: (profile?.profile_mode === 'both' || profile?.profile_mode === 'professional') ? 1 : 0, req: 1 },
+    { icon: '🔀', title: 'Dual Mode', desc: 'Enable both Social & Professional mode', tier: 'silver', val: profile?.profile_mode === 'both' ? 1 : 0, req: 1 },
     { icon: '💎', title: 'All-Rounder', desc: 'Host, attend & connect (5 each)', tier: 'gold', val: Math.min(hostedCount, attendedCount, connCount), req: 5 },
     { icon: '🔥', title: 'On Fire', desc: 'Reach level 5', tier: 'gold', val: level, req: 5 },
     { icon: '🚀', title: 'Power User', desc: 'Reach level 10', tier: 'gold', val: level, req: 10 },
@@ -119,7 +119,6 @@ export default function ProfilePage() {
 
       const storedLevel = parseInt(localStorage.getItem('gathr_user_level') || '0')
       if (storedLevel > 0 && levelVal > storedLevel) {
-        // Check if crossing a Gathr+ trial milestone for the first time
         const grantedRaw = localStorage.getItem('gathr_level_trials')
         const grantedLevels: number[] = grantedRaw ? JSON.parse(grantedRaw) : []
         const milestone = LEVEL_MILESTONES.find(
@@ -137,6 +136,7 @@ export default function ProfilePage() {
         }
         setCelebrateLevel(levelVal)
         setShowLevelUp(true)
+        setTimeout(() => confetti({ particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] }), 50)
       }
       localStorage.setItem('gathr_user_level', String(levelVal))
 
@@ -150,6 +150,10 @@ export default function ProfilePage() {
         if (fresh.length > 0) {
           setNewAchievements(fresh)
           setShowAchievementUnlock(true)
+          const count = Math.min(fresh.length, 4)
+          for (let i = 0; i < count; i++) {
+            setTimeout(() => confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] }), i * 450 + 50)
+          }
         }
       }
       localStorage.setItem('gathr_seen_achievements', JSON.stringify(allAch.filter(a => a.val >= a.req).map(a => a.title)))
@@ -166,20 +170,6 @@ export default function ProfilePage() {
     return () => clearTimeout(t)
   }, [activeTab, hostedEvents.length, attendedEvents.length, connections.length, profile])
 
-  useEffect(() => {
-    if (!showLevelUp) return
-    confetti({ particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] })
-  }, [showLevelUp])
-
-  useEffect(() => {
-    if (!showAchievementUnlock) return
-    const count = Math.min(newAchievements.length, 4)
-    for (let i = 0; i < count; i++) {
-      setTimeout(() => {
-        confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] })
-      }, i * 450)
-    }
-  }, [showAchievementUnlock])
 
   const fetchAll = async (userId: string) => {
     const [profileRes, hostedRes, rsvpRes, connRes, communityRes] = await Promise.all([
