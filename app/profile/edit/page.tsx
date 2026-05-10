@@ -31,7 +31,7 @@ export default function EditProfilePage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUserId(session.user.id)
-      supabase.from('profiles').select('*').eq('id', session.user.id).single()
+      supabase.from('profiles').select('name,bio_social,city,interests,profile_mode,rsvp_visibility,avatar_url').eq('id', session.user.id).single()
         .then(({ data }) => {
           if (data) {
             setName(data.name || '')
@@ -46,7 +46,7 @@ export default function EditProfilePage() {
           setLoading(false)
         })
     })
-  }, [])
+  }, [router])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError('')

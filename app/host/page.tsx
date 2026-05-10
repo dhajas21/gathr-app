@@ -24,9 +24,11 @@ export default function HostDashboardPage() {
   const router = useRouter()
 
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel>
+    let channel: ReturnType<typeof supabase.channel> | undefined
+    let cancelled = false
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
       fetchData(session.user.id)
@@ -44,13 +46,13 @@ export default function HostDashboardPage() {
         .subscribe()
     })
 
-    return () => { if (channel) supabase.removeChannel(channel) }
-  }, [])
+    return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
+  }, [router])
 
   const fetchData = async (userId: string) => {
     const { data } = await supabase
       .from('events')
-      .select('*')
+      .select('id,title,category,start_datetime,end_datetime,location_name,capacity,spots_left,visibility,cover_url,ticket_type,ticket_price')
       .eq('host_id', userId)
       .order('start_datetime', { ascending: false })
 

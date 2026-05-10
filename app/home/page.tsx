@@ -95,7 +95,7 @@ export default function HomePage() {
 
   const fetchAll = async (userId: string) => {
     const [profileRes, eventsRes, rsvpRes, connRes, notifRes, bookmarkRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.from('profiles').select('name,city,interests,profile_mode,avatar_url').eq('id', userId).single(),
       supabase.from('events').select('id,title,category,start_datetime,end_datetime,location_name,city,spots_left,capacity,tags,visibility,is_featured,host_id,cover_url,latitude,longitude').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(50),
       supabase.from('rsvps').select('event_id').eq('user_id', userId),
       supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),

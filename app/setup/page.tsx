@@ -36,7 +36,7 @@ export default function SetupPage() {
           if (data?.city) setCity(data.city)
         })
     })
-  }, [])
+  }, [router])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
