@@ -96,7 +96,7 @@ export default function HomePage() {
   const fetchAll = async (userId: string) => {
     const [profileRes, eventsRes, rsvpRes, connRes, notifRes, bookmarkRes] = await Promise.all([
       supabase.from('profiles').select('name,city,interests,profile_mode,avatar_url').eq('id', userId).single(),
-      supabase.from('events').select('id,title,category,start_datetime,end_datetime,location_name,city,spots_left,capacity,tags,visibility,is_featured,host_id,cover_url,latitude,longitude').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(50),
+      supabase.from('events').select('id,title,category,start_datetime,end_datetime,location_name,city,spots_left,capacity,tags,visibility,is_featured,host_id,cover_url,latitude,longitude,ticket_type,ticket_price').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(50),
       supabase.from('rsvps').select('event_id').eq('user_id', userId),
       supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),
       supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false),
@@ -443,10 +443,16 @@ export default function HomePage() {
                       )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <div className="flex gap-1.5 flex-wrap flex-1">
+                      <div className="flex gap-1.5 flex-wrap flex-1 items-center">
                         {event.tags?.slice(0, 2).map(tag => (
                           <span key={tag} className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-1.5 py-0.5 rounded border border-[#7EC87E]/10">#{tag}</span>
                         ))}
+                        {(event as any).ticket_type === 'paid' && (event as any).ticket_price > 0 && (
+                          <span className="text-[9px] font-bold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-1.5 py-0.5 rounded">${(event as any).ticket_price}</span>
+                        )}
+                        {(event as any).ticket_type === 'donation' && (
+                          <span className="text-[9px] text-[#7EC87E] bg-[#7EC87E]/10 border border-[#7EC87E]/20 px-1.5 py-0.5 rounded">Donation</span>
+                        )}
                       </div>
                       {event.capacity > 0 && (
                         <div className="flex-shrink-0 text-right ml-2">
