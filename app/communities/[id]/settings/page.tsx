@@ -31,6 +31,8 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
   const [saving, setSaving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [members, setMembers] = useState<any[]>([])
+  const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -60,6 +62,41 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
       setVisibility(data.is_private ? 'private' : 'public')
     }
     setLoading(false)
+    fetchMembers(id)
+  }
+
+  const fetchMembers = async (id: string) => {
+    const { data } = await supabase
+      .from('community_members')
+      .select('*, profile:profiles!community_members_user_id_fkey(id, name, avatar_url)')
+      .eq('community_id', id)
+      .neq('role', 'pending')
+      .order('joined_at', { ascending: true })
+    if (data) setMembers(data)
+  }
+
+  const handlePromote = async (userId: string) => {
+    setUpdatingMemberId(userId)
+    await supabase.from('community_members').update({ role: 'admin' })
+      .eq('community_id', communityId).eq('user_id', userId)
+    setMembers(prev => prev.map(m => m.user_id === userId ? { ...m, role: 'admin' } : m))
+    setUpdatingMemberId(null)
+  }
+
+  const handleDemote = async (userId: string) => {
+    setUpdatingMemberId(userId)
+    await supabase.from('community_members').update({ role: 'member' })
+      .eq('community_id', communityId).eq('user_id', userId)
+    setMembers(prev => prev.map(m => m.user_id === userId ? { ...m, role: 'member' } : m))
+    setUpdatingMemberId(null)
+  }
+
+  const handleRemoveMember = async (userId: string) => {
+    setUpdatingMemberId(userId)
+    await supabase.from('community_members').delete()
+      .eq('community_id', communityId).eq('user_id', userId)
+    setMembers(prev => prev.filter(m => m.user_id !== userId))
+    setUpdatingMemberId(null)
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,6 +282,58 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
           className="w-full bg-[#E85B5B]/5 border border-[#E85B5B]/20 rounded-2xl py-4 text-[#E85B5B] text-sm font-medium active:scale-[0.98] transition-transform">
           Delete Community
         </button>
+
+        {/* Member management */}
+        {members.length > 0 && (
+          <div>
+            <label className="text-xs text-white/40 mb-3 block">
+              Members · {members.length}
+            </label>
+            <div className="space-y-2">
+              {members.map(member => {
+                const isOwnerRow = member.role === 'owner'
+                const isUpdating = updatingMemberId === member.user_id
+                return (
+                  <div key={member.user_id} className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-3.5 py-3">
+                    {member.profile?.avatar_url ? (
+                      <img src={member.profile.avatar_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
+                        {member.profile?.name?.charAt(0) || '🧑'}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-[#F0EDE6] truncate">{member.profile?.name || 'Unknown'}</div>
+                      <div className={'text-[10px] mt-0.5 ' + (isOwnerRow ? 'text-[#E8B84B]' : member.role === 'admin' ? 'text-[#7EC87E]' : 'text-white/30')}>
+                        {member.role}
+                      </div>
+                    </div>
+                    {!isOwnerRow && (
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        {member.role === 'member' && (
+                          <button onClick={() => handlePromote(member.user_id)} disabled={isUpdating}
+                            className="bg-[#1E3A1E] border border-[#7EC87E]/20 text-[#7EC87E] text-[10px] font-semibold px-2.5 py-1.5 rounded-xl disabled:opacity-40 active:scale-95 transition-transform">
+                            {isUpdating ? '…' : 'Make Admin'}
+                          </button>
+                        )}
+                        {member.role === 'admin' && (
+                          <button onClick={() => handleDemote(member.user_id)} disabled={isUpdating}
+                            className="bg-[#1C241C] border border-white/10 text-white/40 text-[10px] font-semibold px-2.5 py-1.5 rounded-xl disabled:opacity-40 active:scale-95 transition-transform">
+                            {isUpdating ? '…' : 'Demote'}
+                          </button>
+                        )}
+                        <button onClick={() => handleRemoveMember(member.user_id)} disabled={isUpdating}
+                          className="bg-[#E85B5B]/10 border border-[#E85B5B]/20 text-[#E85B5B] text-[10px] font-semibold px-2.5 py-1.5 rounded-xl disabled:opacity-40 active:scale-95 transition-transform">
+                          {isUpdating ? '…' : 'Remove'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {showDeleteConfirm && (

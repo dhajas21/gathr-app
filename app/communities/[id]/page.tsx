@@ -24,6 +24,15 @@ interface ChatMessage {
   profiles: { id: string; name: string; avatar_url: string | null }
 }
 
+interface Comment {
+  id: string
+  post_id: string
+  user_id: string
+  text: string
+  created_at: string
+  profiles: { id: string; name: string; avatar_url: string | null }
+}
+
 export default function CommunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [user, setUser] = useState<any>(null)
   const [community, setCommunity] = useState<any>(null)
@@ -49,6 +58,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const [postCount, setPostCount] = useState(0)
   const [acceptingIds, setAcceptingIds] = useState<Set<string>>(new Set())
   const [decliningIds, setDecliningIds] = useState<Set<string>>(new Set())
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null)
+  const [commentsMap, setCommentsMap] = useState<Record<string, Comment[]>>({})
+  const [commentCountMap, setCommentCountMap] = useState<Record<string, number>>({})
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({})
+  const [commentingId, setCommentingId] = useState<string | null>(null)
   const postInputRef = useRef<HTMLTextAreaElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -111,6 +125,12 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           return [...prev, data as any]
         })
       })
+      .on('postgres_changes', {
+        event: 'DELETE', schema: 'public', table: 'community_chat_messages',
+        filter: 'community_id=eq.' + communityId,
+      }, (payload) => {
+        setChatMessages(prev => prev.filter(m => m.id !== (payload.old as any).id))
+      })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [communityId, isMember])
@@ -131,6 +151,18 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       .order('created_at', { ascending: true })
       .limit(100)
     if (data) setChatMessages(data as any)
+  }
+
+  const fetchCommentCounts = async (postIds: string[]) => {
+    if (postIds.length === 0) return
+    const { data } = await supabase
+      .from('community_post_comments')
+      .select('post_id')
+      .in('post_id', postIds)
+    if (!data) return
+    const counts: Record<string, number> = {}
+    data.forEach((r: any) => { counts[r.post_id] = (counts[r.post_id] || 0) + 1 })
+    setCommentCountMap(counts)
   }
 
   const fetchCommunity = async (id: string, userId: string) => {
@@ -177,6 +209,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     if (postsData.data) {
       const likedIds = new Set((likesData.data || []).map((l: any) => l.post_id))
       setPosts(postsData.data.map((p: any) => ({ ...p, liked: likedIds.has(p.id) })))
+      fetchCommentCounts(postsData.data.map((p: any) => p.id))
     }
 
     setLoading(false)
@@ -293,6 +326,66 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     await supabase.from('community_posts').delete().eq('id', postId)
     setPosts(prev => prev.filter(p => p.id !== postId))
     setPostCount(prev => Math.max(0, prev - 1))
+  }
+
+  const fetchComments = async (postId: string) => {
+    const { data } = await supabase
+      .from('community_post_comments')
+      .select('id, post_id, user_id, text, created_at, profiles(id, name, avatar_url)')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true })
+    if (data) setCommentsMap(prev => ({ ...prev, [postId]: data as any }))
+  }
+
+  const handleExpandPost = (postId: string) => {
+    if (expandedPostId === postId) {
+      setExpandedPostId(null)
+    } else {
+      setExpandedPostId(postId)
+      if (!commentsMap[postId]) fetchComments(postId)
+    }
+  }
+
+  const handleAddComment = async (postId: string) => {
+    const text = (commentInputs[postId] || '').trim()
+    if (!text || !user || commentingId === postId) return
+    setCommentingId(postId)
+    setCommentInputs(prev => ({ ...prev, [postId]: '' }))
+    const optimisticId = 'optimistic-' + Date.now()
+    const optimistic: Comment = {
+      id: optimisticId, post_id: postId, user_id: user.id, text,
+      created_at: new Date().toISOString(),
+      profiles: { id: user.id, name: user.user_metadata?.name || user.email || '', avatar_url: user.user_metadata?.avatar_url || null },
+    }
+    setCommentsMap(prev => ({ ...prev, [postId]: [...(prev[postId] || []), optimistic] }))
+    setCommentCountMap(prev => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }))
+    const { data, error } = await supabase
+      .from('community_post_comments')
+      .insert({ post_id: postId, user_id: user.id, text })
+      .select('id, post_id, user_id, text, created_at, profiles(id, name, avatar_url)')
+      .single()
+    if (!error && data) {
+      setCommentsMap(prev => ({
+        ...prev,
+        [postId]: (prev[postId] || []).map(c => c.id === optimisticId ? (data as any) : c),
+      }))
+    } else if (error) {
+      setCommentsMap(prev => ({ ...prev, [postId]: (prev[postId] || []).filter(c => c.id !== optimisticId) }))
+      setCommentCountMap(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 1) - 1) }))
+      setCommentInputs(prev => ({ ...prev, [postId]: text }))
+    }
+    setCommentingId(null)
+  }
+
+  const handleDeleteComment = async (commentId: string, postId: string) => {
+    await supabase.from('community_post_comments').delete().eq('id', commentId)
+    setCommentsMap(prev => ({ ...prev, [postId]: (prev[postId] || []).filter(c => c.id !== commentId) }))
+    setCommentCountMap(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 1) - 1) }))
+  }
+
+  const handleDeleteChatMessage = async (msgId: string) => {
+    await supabase.from('community_chat_messages').delete().eq('id', msgId)
+    setChatMessages(prev => prev.filter(m => m.id !== msgId))
   }
 
   const handleSendChat = async () => {
@@ -530,7 +623,57 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       <span>{post.liked ? '♥' : '♡'}</span>
                       <span>{post.like_count > 0 ? post.like_count : ''}</span>
                     </button>
+                    <button onClick={() => handleExpandPost(post.id)}
+                      className={'flex items-center gap-1.5 text-xs font-medium transition-all active:scale-95 ' + (expandedPostId === post.id ? 'text-[#7EC87E]' : 'text-white/30')}>
+                      <span>💬</span>
+                      <span>{commentCountMap[post.id] ? commentCountMap[post.id] : 'Reply'}</span>
+                    </button>
                   </div>
+                  {expandedPostId === post.id && (
+                    <div className="mt-3 pt-3 border-t border-white/[0.07]">
+                      {(commentsMap[post.id] || []).length === 0 && (
+                        <p className="text-[11px] text-white/25 mb-3 text-center">No replies yet</p>
+                      )}
+                      {(commentsMap[post.id] || []).map(comment => (
+                        <div key={comment.id} className="flex items-start gap-2 mb-2.5">
+                          {comment.profiles?.avatar_url ? (
+                            <img src={comment.profiles.avatar_url} alt="" className="w-6 h-6 rounded-lg object-cover flex-shrink-0 mt-0.5" />
+                          ) : (
+                            <div className="w-6 h-6 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">
+                              {comment.profiles?.name?.charAt(0) || '?'}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <button onClick={() => router.push('/profile/' + comment.profiles?.id)}
+                                className="text-[11px] font-semibold text-[#F0EDE6]/80">{comment.profiles?.name || 'Unknown'}</button>
+                              <span className="text-[9px] text-white/25">{formatTime(comment.created_at)}</span>
+                            </div>
+                            <p className="text-xs text-white/60 leading-relaxed">{comment.text}</p>
+                          </div>
+                          {(comment.user_id === user?.id || isOwnerOrAdmin) && (
+                            <button onClick={() => handleDeleteComment(comment.id, post.id)}
+                              className="text-white/20 text-xs mt-0.5 flex-shrink-0 active:text-[#E85B5B]">✕</button>
+                          )}
+                        </div>
+                      ))}
+                      <div className="flex gap-2 mt-2">
+                        <input
+                          value={commentInputs[post.id] || ''}
+                          onChange={e => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                          onKeyDown={e => { if (e.key === 'Enter') handleAddComment(post.id) }}
+                          placeholder="Add a reply..."
+                          maxLength={500}
+                          className="flex-1 bg-[#0D110D] border border-white/10 rounded-xl px-3 py-2 text-xs text-[#F0EDE6] placeholder-white/20 outline-none focus:border-white/20"
+                        />
+                        <button onClick={() => handleAddComment(post.id)}
+                          disabled={!(commentInputs[post.id] || '').trim() || commentingId === post.id}
+                          className="w-8 h-8 bg-[#E8B84B] rounded-xl flex items-center justify-center text-[#0D110D] font-bold text-sm flex-shrink-0 disabled:opacity-30 active:scale-95 transition-transform">
+                          ↑
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -680,6 +823,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   const isOwn = msg.user_id === user?.id
                   const profile = (msg as any).profiles
                   const showHeader = i === 0 || chatMessages[i - 1].user_id !== msg.user_id
+                  const canDelete = isOwn || isOwnerOrAdmin
                   return (
                     <div key={msg.id} className={'flex items-end gap-2 ' + (isOwn ? 'justify-end' : 'justify-start') + (showHeader ? ' mt-4' : ' mt-0.5')}>
                       {!isOwn && (
@@ -707,6 +851,12 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                           {msg.text}
                         </div>
                       </div>
+                      {canDelete && (
+                        <button onClick={() => handleDeleteChatMessage(msg.id)}
+                          className="text-white/20 text-xs self-center flex-shrink-0 active:text-[#E85B5B] transition-colors px-1">
+                          ✕
+                        </button>
+                      )}
                     </div>
                   )
                 })}

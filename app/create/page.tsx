@@ -34,6 +34,9 @@ export default function CreateEventPage() {
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const coverRef = useRef<HTMLInputElement>(null)
 
+  // Community context (when navigated from a community page)
+  const [fromCommunityId, setFromCommunityId] = useState<string | null>(null)
+
   // Draft state
   const [userId, setUserId] = useState<string | null>(null)
   const [pendingDraft, setPendingDraft] = useState<any>(null)
@@ -43,7 +46,11 @@ export default function CreateEventPage() {
   const [draftToast, setDraftToast] = useState(false)
   const [isFromDraft, setIsFromDraft] = useState(false)
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get('community')
+    if (param && UUID_RE.test(param)) setFromCommunityId(param)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUserId(session.user.id)
@@ -231,6 +238,7 @@ export default function CreateEventPage() {
       ticket_type: ticketType,
       ticket_price: ticketType === 'paid' && ticketPrice ? parseFloat(ticketPrice) : null,
       invite_code: crypto.randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase(),
+      ...(fromCommunityId ? { community_id: fromCommunityId } : {}),
     }).select('id').single()
 
     if (insertError) {
@@ -241,7 +249,11 @@ export default function CreateEventPage() {
 
     // Clean up the draft now that we've published
     await deleteDraft()
-    router.push('/events/' + insertedEvent!.id)
+    if (fromCommunityId) {
+      router.push('/communities/' + fromCommunityId + '?tab=events')
+    } else {
+      router.push('/events/' + insertedEvent!.id)
+    }
   }
 
   const formatDraftAge = (d: Date) => {
