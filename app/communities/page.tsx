@@ -7,35 +7,37 @@ import BottomNav from '@/components/BottomNav'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { CommunitiesPageSkeleton } from '@/components/Skeleton'
 
-const CATEGORIES = ['All', 'Fitness', 'Wellness', 'Startups', 'Arts', 'Music', 'Tech', 'Food & Drink', 'Outdoors', 'Nightlife', 'Social']
+const CATEGORIES = ['All', 'Social', 'Music', 'Fitness & Running', 'Food & Drink', 'Tech & Startups', 'Arts & Creativity', 'Outdoors & Adventure', 'Wellness', 'Gaming', 'Nightlife']
 
 const INTEREST_TO_COMMUNITY_CAT: Record<string, string> = {
-  'fitness': 'Fitness', 'running': 'Fitness', 'gym': 'Fitness', 'yoga': 'Fitness',
-  'pilates': 'Fitness', 'cycling': 'Fitness', 'swimming': 'Fitness', 'hiking': 'Outdoors',
-  'rock climbing': 'Fitness', 'martial arts': 'Fitness', 'boxing': 'Fitness',
-  'crossfit': 'Fitness', 'dancing': 'Fitness', 'sports': 'Fitness', 'football': 'Fitness',
-  'basketball': 'Fitness', 'soccer': 'Fitness', 'tennis': 'Fitness', 'golf': 'Fitness',
-  'volleyball': 'Fitness', 'skiing': 'Outdoors', 'snowboarding': 'Outdoors',
-  'surfing': 'Outdoors', 'kayaking': 'Outdoors',
-  'startups': 'Startups', 'entrepreneurship': 'Startups', 'product': 'Startups',
-  'investing': 'Startups', 'business': 'Startups', 'marketing': 'Startups',
-  'venture capital': 'Startups', 'founder': 'Startups',
-  'art': 'Arts', 'painting': 'Arts', 'drawing': 'Arts', 'ceramics': 'Arts',
-  'fashion': 'Arts', 'design': 'Arts', 'photography': 'Arts', 'film': 'Arts',
-  'theatre': 'Arts', 'comedy': 'Arts', 'writing': 'Arts', 'poetry': 'Arts',
-  'books': 'Arts', 'literature': 'Arts', 'architecture': 'Arts',
+  'fitness': 'Fitness & Running', 'running': 'Fitness & Running', 'gym': 'Fitness & Running',
+  'yoga': 'Wellness', 'pilates': 'Wellness', 'cycling': 'Fitness & Running', 'swimming': 'Fitness & Running',
+  'hiking': 'Outdoors & Adventure', 'rock climbing': 'Fitness & Running', 'martial arts': 'Fitness & Running',
+  'boxing': 'Fitness & Running', 'crossfit': 'Fitness & Running', 'dancing': 'Arts & Creativity',
+  'sports': 'Fitness & Running', 'football': 'Fitness & Running', 'basketball': 'Fitness & Running',
+  'soccer': 'Fitness & Running', 'tennis': 'Fitness & Running', 'golf': 'Fitness & Running',
+  'volleyball': 'Fitness & Running', 'skiing': 'Outdoors & Adventure', 'snowboarding': 'Outdoors & Adventure',
+  'surfing': 'Outdoors & Adventure', 'kayaking': 'Outdoors & Adventure',
+  'startups': 'Tech & Startups', 'entrepreneurship': 'Tech & Startups', 'product': 'Tech & Startups',
+  'investing': 'Tech & Startups', 'business': 'Tech & Startups', 'marketing': 'Tech & Startups',
+  'venture capital': 'Tech & Startups', 'founder': 'Tech & Startups',
+  'art': 'Arts & Creativity', 'painting': 'Arts & Creativity', 'drawing': 'Arts & Creativity',
+  'ceramics': 'Arts & Creativity', 'fashion': 'Arts & Creativity', 'design': 'Arts & Creativity',
+  'photography': 'Arts & Creativity', 'film': 'Arts & Creativity', 'theatre': 'Arts & Creativity',
+  'comedy': 'Arts & Creativity', 'writing': 'Arts & Creativity', 'poetry': 'Arts & Creativity',
+  'books': 'Arts & Creativity', 'literature': 'Arts & Creativity', 'architecture': 'Arts & Creativity',
   'music': 'Music', 'concerts': 'Music', 'dj': 'Music', 'electronic': 'Music',
   'hip hop': 'Music', 'jazz': 'Music', 'classical': 'Music', 'indie': 'Music',
   'rock': 'Music', 'r&b': 'Music', 'pop': 'Music', 'rap': 'Music', 'karaoke': 'Music',
-  'tech': 'Tech', 'coding': 'Tech', 'ai': 'Tech', 'crypto': 'Tech',
-  'web3': 'Tech', 'gaming': 'Tech', 'ux': 'Tech', 'science': 'Tech',
+  'tech': 'Tech & Startups', 'coding': 'Tech & Startups', 'ai': 'Tech & Startups', 'crypto': 'Tech & Startups',
+  'web3': 'Tech & Startups', 'gaming': 'Gaming', 'ux': 'Tech & Startups', 'science': 'Tech & Startups',
   'food': 'Food & Drink', 'coffee': 'Food & Drink', 'wine': 'Food & Drink',
   'beer': 'Food & Drink', 'cocktails': 'Food & Drink', 'cooking': 'Food & Drink',
   'baking': 'Food & Drink', 'brunch': 'Food & Drink', 'restaurants': 'Food & Drink',
   'vegan': 'Food & Drink', 'tea': 'Food & Drink', 'whiskey': 'Food & Drink',
-  'outdoors': 'Outdoors', 'camping': 'Outdoors', 'travel': 'Outdoors',
-  'adventure': 'Outdoors', 'nature': 'Outdoors', 'birdwatching': 'Outdoors',
-  'gardening': 'Outdoors',
+  'outdoors': 'Outdoors & Adventure', 'camping': 'Outdoors & Adventure', 'travel': 'Outdoors & Adventure',
+  'adventure': 'Outdoors & Adventure', 'nature': 'Outdoors & Adventure', 'birdwatching': 'Outdoors & Adventure',
+  'gardening': 'Outdoors & Adventure',
 }
 
 export default function CommunitiesPage() {
@@ -46,6 +48,7 @@ export default function CommunitiesPage() {
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState('All')
   const [search, setSearch] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -100,15 +103,18 @@ export default function CommunitiesPage() {
     })
   )
 
+  const catMatches = (commCat: string, filterCat: string) =>
+    commCat === filterCat || commCat?.toLowerCase().includes(filterCat.toLowerCase()) || filterCat.toLowerCase().includes(commCat?.toLowerCase())
+
   const suggestedDiscover = discover.filter(c =>
-    suggestedCats.has(c.category) &&
+    [...suggestedCats].some(cat => catMatches(c.category, cat)) &&
     (!search || c.name.toLowerCase().includes(search.toLowerCase()))
   )
 
   const filteredDiscover = discover.filter(c => {
-    const matchesCategory = activeCategory === 'All' || c.category === activeCategory
+    const matchesCategory = activeCategory === 'All' || catMatches(c.category, activeCategory)
     const matchesSearch = !search || c.name.toLowerCase().includes(search.toLowerCase())
-    const notSuggested = activeCategory !== 'All' || !suggestedCats.has(c.category)
+    const notSuggested = activeCategory !== 'All' || ![...suggestedCats].some(cat => catMatches(c.category, cat))
     return matchesCategory && matchesSearch && (activeCategory !== 'All' || notSuggested)
   })
 
@@ -136,15 +142,20 @@ export default function CommunitiesPage() {
         </div>
         <p className="text-xs text-white/40">Groups built around shared interests</p>
 
-        <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mt-3">
+        <div className={`flex items-center gap-2 bg-[#1C241C] border rounded-2xl px-4 py-2.5 mt-3 transition-all ${searchFocused ? 'border-[#E8B84B]/35' : 'border-white/10'}`}>
           <span className="text-sm text-white/30">🔍</span>
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
             placeholder="Search communities..."
             className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none"
           />
+          {search && (
+            <button onClick={() => setSearch('')} className="text-xs text-white/30">✕</button>
+          )}
         </div>
       </div>
 

@@ -221,8 +221,14 @@ export default function SearchPage() {
     // Search communities
     if (q.trim()) {
       const sq = sanitize(q.trim())
-      const { data: commData } = await supabase.from('communities').select('*')
+      let commQuery = supabase.from('communities').select('*')
         .or('name.ilike.%' + sq + '%,description.ilike.%' + sq + '%').limit(10)
+      if (categoryToUse) commQuery = commQuery.ilike('category', '%' + sanitize(categoryToUse.split(' ')[0]) + '%')
+      const { data: commData } = await commQuery
+      if (commData) setCommunities(commData)
+    } else if (categoryToUse) {
+      const { data: commData } = await supabase.from('communities').select('*')
+        .ilike('category', '%' + sanitize(categoryToUse.split(' ')[0]) + '%').limit(10)
       if (commData) setCommunities(commData)
     } else { setCommunities([]) }
 

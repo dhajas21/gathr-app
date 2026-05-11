@@ -124,7 +124,7 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
     const ext = bannerFile.name.split('.').pop()?.toLowerCase() || 'jpg'
     const safeName = `${communityId}.${ext}`
     const { error } = await supabase.storage.from('community-banners').upload(safeName, bannerFile, { cacheControl: '3600', upsert: true })
-    if (error) return bannerUrl
+    if (error) { setUploadError('Banner upload failed — ' + (error.message || 'try a smaller image')); return bannerUrl }
     const { data: urlData } = supabase.storage.from('community-banners').getPublicUrl(safeName)
     return urlData?.publicUrl || bannerUrl
   }

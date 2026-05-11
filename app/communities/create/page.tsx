@@ -60,7 +60,7 @@ export default function CreateCommunityPage() {
     const ext = bannerFile.name.split('.').pop()?.toLowerCase() || 'jpg'
     const safeName = `${communityId}.${ext}`
     const { error } = await supabase.storage.from('community-banners').upload(safeName, bannerFile, { cacheControl: '3600', upsert: true })
-    if (error) return null
+    if (error) { setUploadError('Banner upload failed — ' + (error.message || 'try a smaller image')); return null }
     const { data: urlData } = supabase.storage.from('community-banners').getPublicUrl(safeName)
     return urlData?.publicUrl || null
   }
