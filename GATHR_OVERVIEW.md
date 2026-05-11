@@ -114,6 +114,7 @@ All tables are in the `public` schema with **Row Level Security (RLS)** enabled 
 | `waitlist` | Email addresses from the pre-launch waitlist |
 | `rate_limit_events` | Log of user actions for rate limiting. user_id, action, created_at |
 | `hidden_threads` | Tracks which DM threads a user has hidden from their inbox. `user_id` + `thread_id` composite PK. RLS ensures users only see and modify their own rows. Underlying messages are preserved for the other party. Persists across devices — no longer localStorage-based. |
+| `feedback` | In-app feedback submissions. `category` (bug/idea/praise/other), `message`, `page_path`, `user_agent`, `user_id`. RLS: insert as self, select own only. `rate_limit_feedback` trigger caps submissions at 5/hour/user. Sourced from Settings → Send Feedback. |
 | `event_drafts` | Auto-saved event-creation draft. One row per user, upserted on every form change. Cleared on successful publish. |
 | `friendships` | Legacy/reserved table (not currently used in UI) |
 
@@ -160,6 +161,7 @@ All count management and notifications are handled by Postgres triggers — not 
 | `rate_limit_community_posts` | community_posts BEFORE INSERT | Blocks if user posted >20 posts in last hour |
 | `rate_limit_community_chat` | community_chat_messages BEFORE INSERT | Blocks if user sent >100 chat messages in last hour |
 | `rate_limit_messages` | messages BEFORE INSERT | Blocks if user sent >200 DMs in last hour |
+| `rate_limit_feedback_trg` | feedback BEFORE INSERT | Blocks if user submitted >5 feedback messages in last hour |
 | `community_post_comment_count_trigger` | community_post_comments INSERT/DELETE | Maintains `community_posts.comment_count` (replaces fetching all comments to count them on every load) |
 | `guard_profile_protected_columns_trg` | profiles BEFORE UPDATE | Rejects user writes to billing (`gathr_plus_*`), safety (`safety_*`, `review_count`), and trigger-maintained counts (`hosted_count`, `attended_count`). Service-role bypasses |
 | `on_auth_user_created` | auth.users INSERT | Auto-creates a `profiles` row from `raw_user_meta_data` (name, city, avatar). Eliminates orphan-profile risk when email confirmation is pending |
@@ -181,7 +183,9 @@ Search and common filter paths are backed by indexes:
 
 **B-tree composite indexes** — these back the most common query patterns:
 - `events (city, start_datetime)` — home feed by city, sorted by start time
-- `events (visibility, start_datetime)` — public-event filter + sort
+- `events (city, start_datetime) WHERE visibility='public'` — **partial** version of the above; halves index size and speeds up the hot home-feed query (which always filters on `visibility='public'`)
+- `events (start_datetime) WHERE visibility='public'` — search/recommendations sort
+- `events (visibility, start_datetime)` — public-event filter + sort (still useful for admin/host queries that span visibility values)
 - `events (latitude, longitude)` partial index `WHERE latitude IS NOT NULL` — map page
 - `rsvps (event_id, user_id)` — attendee lookups + per-event RSVP check
 - `event_bookmarks (user_id, created_at DESC)` — bookmarks page
@@ -722,6 +726,7 @@ Before a public launch:
 - `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` + `SENTRY_PROJECT` — build-time source-map upload to Sentry. Without these Sentry still captures errors, but stack traces will be minified.
 - `NEXT_PUBLIC_POSTHOG_KEY` — PostHog project API key. Without this `track()` calls are no-ops.
 - `NEXT_PUBLIC_POSTHOG_HOST` — optional; defaults to `https://us.i.posthog.com`. Set to `https://eu.i.posthog.com` if your PostHog project is in the EU region.
+- `NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORM` — optional. Set to `"true"` only after upgrading Supabase to the Pro plan + enabling Image Transformations. Without it, images are served at full size from Storage (no resize/quality cap). With it, `optimizedImgSrc` rewrites to the `/render/image/public/` endpoint.
 
 **Supabase Auth settings** (Auth → Policies):
 - Set the password minimum to 12 characters to match the client-side requirement (otherwise users could bypass the UI and create 6-character passwords via API).
@@ -751,14 +756,25 @@ Once mobile apps exist, the platform-store rules force a split:
 
 The DB and trial code are already structured for this — `claim-gathr-plus-trial` and the future paid-subscription webhook both write to the same protected columns via service-role.
 
+**Known deferred items** (intentionally not done in the polish cycle — call them out so future contributors know they're intentional gaps, not oversights):
+- **Push notification triggers**: VAPID keys, edge function (`send-push`), and the user-facing Settings toggle are all wired. What's NOT wired: any DB trigger that *invokes* `send-push` on a new notification. This is a product decision (which notification types deserve a push — DMs feel intrusive, `after_event_match` feels right). When ready, add a Postgres trigger on `notifications INSERT` that calls `send-push` via `pg_net`.
+- **Event reminders**: needs `pg_cron` extension + a scheduled function that scans `rsvps × events` for events starting in the next hour. Deferred until push triggers above are decided.
+- **Sign in with Apple**: required by Apple Store rules when Google sign-in is present. Defer to the mobile build (needs Apple Developer Account, $99/yr).
+- **Stripe billing**: the `/gathr-plus` page shows "Billing Coming Soon" until you wire it. Pattern is identical to `claim-gathr-plus-trial` — a new edge function `gathr-plus-webhook` accepts Stripe signed events and updates `profiles.gathr_plus` via service-role.
+- **Mobile shake-to-feedback**: in-app feedback button lives in Settings now. A "shake device to report bug" gesture is a nice-to-have for the eventual mobile shell.
+- **Next.js + dependency security audit**: `npm audit` reports several Next.js advisories. Bumping requires regression testing; deferred. Don't run `npm audit fix --force` without testing — it would downgrade Next.js significantly.
+- **Supabase type generation**: `npx supabase gen types typescript --project-id adhahiqpiqwlvkykhbtf > lib/database.types.ts` would replace many `any` types throughout the app with proper schema types. Several-hour cleanup task.
+- **Supabase Image Transformations**: requires Pro plan ($25/mo). When upgraded, set `NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORM=true` in Vercel.
+
 **Observability** (wired, awaiting credentials):
-- **Sentry** (`@sentry/nextjs`) is installed. Server + edge init lives in `instrumentation.ts`; browser init in `instrumentation-client.ts`. `next.config.ts` is wrapped with `withSentryConfig` (only activates when `SENTRY_AUTH_TOKEN` is present, so dev builds without Sentry credentials still work). `components/ErrorBoundary.tsx` forwards every caught error to `Sentry.captureException` with the React component stack as context.
+- **Sentry** (`@sentry/nextjs`) is installed. Server + edge init lives in `instrumentation.ts`; browser init in `instrumentation-client.ts`. `next.config.ts` is wrapped with `withSentryConfig` (only activates when `SENTRY_AUTH_TOKEN` is present, so dev builds without Sentry credentials still work). `components/ErrorBoundary.tsx` forwards every caught error to `Sentry.captureException` with the React component stack as context. `AnalyticsProvider` calls `Sentry.setUser({ id, email })` on auth events so error reports are tied to a real person for support follow-up. Cleared on sign-out.
   - Required env vars: `NEXT_PUBLIC_SENTRY_DSN` (browser + server runtimes), `SENTRY_AUTH_TOKEN` (build-time source-map upload), `SENTRY_ORG`, `SENTRY_PROJECT`.
   - 10% trace sampling by default; replay on errors only (1.0), with `maskAllText` + `blockAllMedia` enabled for PII safety. Pings tunnel through `/monitoring` so adblockers don't strip them.
 - **PostHog** (`posthog-js`) is installed via `components/AnalyticsProvider.tsx` mounted in the root layout. It auto-identifies users on `SIGNED_IN`, resets on `SIGNED_OUT`, and captures manual `$pageview` events on every App Router transition.
   - Required env vars: `NEXT_PUBLIC_POSTHOG_KEY`, optionally `NEXT_PUBLIC_POSTHOG_HOST` (defaults to `https://us.i.posthog.com`).
   - `autocapture` is **disabled** by design — we send purposeful events via the exported `track(event, properties)` helper. Currently instrumented: `signup_completed`, `signup_started`, `event_created`, `event_rsvp_joined`, `event_rsvp_cancelled`, `gathr_plus_trial_claimed`, `community_joined`, `community_join_requested`. Add more in `track()` calls as features ship.
   - `person_profiles: 'identified_only'` so anonymous users don't bloat your person table.
+  - **No PII to PostHog**: the `identify()` call sends only the user UUID and `created_at` — email and any other personal field is kept out by design. (Sentry still receives email since support-driven error follow-up needs it.)
 
 ---
 
@@ -782,3 +798,20 @@ Tracking the major changes from the most recent audit pass so future code review
 - **New tables/columns**: `community_posts.comment_count` (trigger-maintained).
 - **Polish components**: `PasswordInput`, `OfflineBanner`, `UndoToast`, `FadeIn`. Bottom nav haptics.
 - **Observability wired**: Sentry (instrumentation files + `withSentryConfig` wrap + ErrorBoundary integration), PostHog (AnalyticsProvider + `track()` helper) — both no-op gracefully when their env vars are absent. First batch of events instrumented: signup, RSVP join/cancel, event create, community join, Gathr+ trial claim.
+
+### Polish/observability follow-up cycle
+
+- **Image rendering** (`lib/utils.ts`): the Supabase render endpoint requires Pro plan ($25/mo). On Free tier it returns 403 → every avatar/cover showed as a broken image. `optimizedImgSrc` now returns the raw object URL by default; new env var `NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORM=true` opts back into the render rewrite when upgraded.
+- **Unique upload paths**: avatar and event-cover uploads now write to `{userId}/{timestamp}.{ext}` instead of `{userId}.{ext}`. URL changes per upload → no cache-buster query string → CDN can cache. Old files deleted on re-upload (best-effort, doesn't block save).
+- **PostHog PII tightened**: `identify()` no longer sends email — only the user UUID. Sentry still gets `setUser({ id, email })` since error follow-up legitimately needs it.
+- **Google OAuth onboarding fix**: fresh-user heuristic now keys on `interests.length === 0` only (was also checking `!avatar_url`, but Google users come in with an avatar pre-set, which previously routed them straight to `/home` skipping `/setup`).
+- **Community realtime efficiency**: post-INSERT and chat-INSERT handlers skip the row hydration refetch when `payload.user_id === user?.id` (already inserted optimistically). Halves DB load for active senders.
+- **Hot-path DB indexes**: added `events_public_city_start_idx` and `events_public_start_idx` as **partial** indexes on `WHERE visibility='public'` — half the size, faster than the unfiltered composite.
+- **Notifications pagination**: `Load more` button with cursor on `created_at`. Page size 30. Replaces silent 50-row cap.
+- **Feedback table + Settings UI**: new `feedback` table with 5/hour rate-limit trigger. Settings → Send Feedback drops a bottom-sheet modal with category chips (bug/idea/praise/other), textarea, and auto-capture of page_path + user_agent.
+- **UI polish primitives applied**:
+  - FadeIn now wraps `/profile` and `/events/[id]` main containers (soft entry instead of skeleton snap)
+  - MysteryMatchCard locked avatars get a `mystery-shimmer-sweep` gold gradient pass every 3.6s
+  - Gathr+ trial countdown soft-pulses when `<24h` remain
+  - RSVP +1 ghost (`rsvp-ghost-up` keyframe) floats above the attendee count when others RSVP via realtime
+  - Bookmarks empty-state emoji uses `empty-float` keyframe — available as a reusable class for any empty state
