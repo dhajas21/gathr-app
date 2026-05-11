@@ -145,9 +145,12 @@ export default function SettingsPage() {
 
   if (loading) return (
     <div className="min-h-screen bg-[#0D110D] pb-28">
-      <div className="px-4 pt-14 pb-4 border-b border-white/10">
-        <div className="h-6 w-20 bg-white/[0.07] rounded-xl animate-pulse mb-1" />
-        <div className="h-3 w-36 bg-white/[0.05] rounded-xl animate-pulse" />
+      <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
+        <div className="w-9 h-9 bg-white/[0.07] rounded-xl animate-pulse flex-shrink-0" />
+        <div>
+          <div className="h-6 w-20 bg-white/[0.07] rounded-xl animate-pulse mb-1" />
+          <div className="h-3 w-36 bg-white/[0.05] rounded-xl animate-pulse" />
+        </div>
       </div>
       <div className="px-4 pt-4 space-y-3">
         <div className="h-20 w-full bg-white/[0.07] rounded-2xl animate-pulse" />
@@ -161,9 +164,15 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-28">
 
-      <div className="px-4 pt-14 pb-4 border-b border-white/10">
-        <h1 className="font-bold text-[#F0EDE6] text-xl">Settings</h1>
-        <p className="text-xs text-white/35 mt-0.5">Account, privacy & preferences</p>
+      <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
+        <button onClick={() => router.back()}
+          className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6] active:scale-95 transition-transform flex-shrink-0">
+          ←
+        </button>
+        <div>
+          <h1 className="font-bold text-[#F0EDE6] text-xl">Settings</h1>
+          <p className="text-xs text-white/35 mt-0.5">Account, privacy & preferences</p>
+        </div>
       </div>
 
       <div className="px-4 pt-4 space-y-3">

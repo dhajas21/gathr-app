@@ -17,7 +17,7 @@ const tourSlides = [
     title: 'Create an Event',
     highlight: 'In under 2 minutes',
     body: 'Hosting a run club, open mic, coffee chat, or dinner? Tap the gold + button. Pick from 40+ categories, set visibility to public, unlisted, or private, and choose a ticket type: Free, Paid, or Donation.',
-    tip: 'Your progress auto-saves as a draft — leave mid-way and it\'ll be waiting. Add a cover photo and interest tags so the right people find you. Paid and Donation events show pricing on the event card.',
+    tip: 'Your progress auto-saves as a draft — leave mid-way and it\'ll be waiting. If you have a draft and want to start something new, tap "Start Fresh (keep draft)" — your draft stays safe in your Profile Events tab until you\'re ready. Add a cover photo and interest tags so the right people find you.',
     bg: 'linear-gradient(135deg,#2A2010,#1A1408)',
   },
   {
@@ -57,7 +57,7 @@ const tourSlides = [
     title: 'Your Profile',
     highlight: 'Level up, earn badges, unlock perks',
     body: 'Hosting events, attending, making connections, and adding interests all earn XP. Level up through four tiers: Newcomer, Regular, Veteran, and Legend. Earn 28 achievements in bronze, silver, and gold — including Dual Mode for running both Social and Professional profiles at once.',
-    tip: 'Check your XP, level, and achievements in Profile → Stats. Pin your best badges to your public profile. Hit level 5 for a 48-hour Gathr+ preview — level 10 for 7 days.',
+    tip: 'Check your XP, level, and achievements in Profile → Stats. Pin your best badges to your public profile. Hit level 5 for a 48-hour Gathr+ preview — level 10 for 7 days. Manage your saved event draft from Profile → Events.',
     bg: 'linear-gradient(135deg,#2A2010,#1A1A08)',
   },
 ]

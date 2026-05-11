@@ -293,7 +293,7 @@ export default function CreateEventPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4 border-b border-white/10">
         <button
-          onClick={() => (step === 1 ? router.push('/home') : setStep(1))}
+          onClick={() => (step === 1 ? router.back() : setStep(1))}
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6] text-sm"
         >
           ←
@@ -573,10 +573,16 @@ export default function CreateEventPage() {
               Continue Draft
             </button>
             <button
-              onClick={() => userId && discardDraft(userId)}
-              className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/40 text-sm active:scale-[0.98] transition-transform"
+              onClick={() => setShowDraftModal(false)}
+              className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/50 text-sm active:scale-[0.98] transition-transform"
             >
-              Discard & Start Fresh
+              Start Fresh (keep draft)
+            </button>
+            <button
+              onClick={() => userId && discardDraft(userId)}
+              className="w-full mt-2 py-2 text-[11px] text-white/25 active:text-red-400 transition-colors"
+            >
+              Delete this draft
             </button>
           </div>
         </div>

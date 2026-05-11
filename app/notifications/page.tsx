@@ -261,8 +261,12 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
-      <div className="flex items-center justify-between px-4 pt-14 pb-3 border-b border-white/10">
-        <div>
+      <div className="flex items-center gap-3 px-4 pt-14 pb-3 border-b border-white/10">
+        <button onClick={() => router.back()}
+          className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6] active:scale-95 transition-transform flex-shrink-0">
+          ←
+        </button>
+        <div className="flex-1">
           <h1 className="font-bold text-[#F0EDE6] text-xl font-display">Activity</h1>
           {unreadCount > 0 && <p className="text-xs text-white/40 mt-0.5">{unreadCount} new</p>}
         </div>

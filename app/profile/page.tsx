@@ -72,7 +72,9 @@ export default function ProfilePage() {
   const [hostedEvents, setHostedEvents] = useState<any[]>([])
   const [attendedEvents, setAttendedEvents] = useState<any[]>([])
   const [connections, setConnections] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState(0)
+  const [activeTab, setActiveTab] = useState(() => {
+    try { return parseInt(sessionStorage.getItem('gathr_profile_tab') || '0') || 0 } catch { return 0 }
+  })
   const [loading, setLoading] = useState(true)
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [celebrateLevel, setCelebrateLevel] = useState(0)
@@ -240,6 +242,16 @@ export default function ProfilePage() {
     router.push('/auth')
   }
 
+  const handleDiscardDraft = async () => {
+    if (!user) return
+    await supabase.from('event_drafts').delete().eq('user_id', user.id)
+    const { data: files } = await supabase.storage.from('event-covers').list(`drafts/${user.id}`)
+    if (files && files.length > 0) {
+      await supabase.storage.from('event-covers').remove(files.map((f: any) => `drafts/${user.id}/${f.name}`))
+    }
+    setHasDraft(false)
+  }
+
 
   if (loading) return <ProfilePageSkeleton />
 
@@ -369,7 +381,7 @@ export default function ProfilePage() {
 
       <div className="flex border-b border-white/10">
         {tabs.map((tab, i) => (
-          <button key={tab} onClick={() => setActiveTab(i)}
+          <button key={tab} onClick={() => { setActiveTab(i); try { sessionStorage.setItem('gathr_profile_tab', String(i)) } catch {} }}
             className={'flex-1 py-2.5 text-xs text-center border-b-2 -mb-px transition-colors ' +
               (activeTab === i ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
             {tab}
@@ -449,17 +461,21 @@ export default function ProfilePage() {
         {activeTab === 1 && (
           <>
             {hasDraft && (
-              <button onClick={() => router.push('/create')}
-                className="w-full bg-[#1C1E10] border border-[#E8B84B]/25 rounded-2xl p-3.5 flex items-center justify-between active:scale-[0.98] transition-transform">
-                <div className="flex items-center gap-3">
+              <div className="w-full bg-[#1C1E10] border border-[#E8B84B]/25 rounded-2xl p-3.5 flex items-center gap-2">
+                <button onClick={() => router.push('/create')} className="flex items-center gap-3 flex-1 min-w-0 active:opacity-70 transition-opacity text-left">
                   <div className="w-9 h-9 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center text-base flex-shrink-0">✏️</div>
-                  <div className="text-left">
+                  <div>
                     <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium mb-0.5">Unsaved Draft</div>
                     <div className="text-sm text-[#F0EDE6]">Resume creating your event</div>
                   </div>
-                </div>
-                <span className="text-[#E8B84B]/50 text-lg">›</span>
-              </button>
+                </button>
+                <button
+                  onClick={handleDiscardDraft}
+                  className="w-8 h-8 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-center text-red-400/70 active:scale-95 transition-transform flex-shrink-0"
+                  title="Delete draft">
+                  🗑
+                </button>
+              </div>
             )}
             {hostedEvents.length > 0 && (
               <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">

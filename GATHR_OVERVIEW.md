@@ -427,7 +427,16 @@ The create page is a multi-step form: title → category → datetime → locati
 
 This is implemented with a debounced `useEffect` watching the form state.
 
-**Resume Draft shortcut:** The Profile page "Mine" tab shows a highlighted "Resume creating your event" banner card when a draft exists in `event_drafts`. Tapping it navigates to `/create` where the draft is auto-loaded.
+**Draft modal on re-entry:** When the user opens `/create` and a draft already exists, a bottom sheet appears with three options:
+- **Continue Draft** — loads saved draft into the form
+- **Start Fresh (keep draft)** — dismisses the modal and starts a blank form; the draft is *not* deleted. It remains accessible in Profile → Events tab until the user explicitly removes it or overwrites it via auto-save once they start filling in the new form.
+- **Delete this draft** — small text link that permanently deletes the draft row and its storage file (same as the trash button in Profile → Events)
+
+**Draft management from Profile:** The Profile page Events tab shows a highlighted "Unsaved Draft" card when a draft exists. It has two actions: tap the card body to resume in `/create`, or tap the 🗑 trash button on the right to delete the draft immediately without navigating away.
+
+**Drafts are only auto-deleted on successful event publish.** They are never deleted by navigation (back button, switching tabs, etc.). The user must either publish the event or explicitly delete the draft.
+
+**Resume Draft shortcut:** The Profile page Events tab shows a highlighted "Resume creating your event" banner card when a draft exists in `event_drafts`. Tapping it navigates to `/create` where the draft is auto-loaded.
 
 **Community event linking:** When the create page is opened with `?community=[uuid]`, the UUID is validated against a regex, stored in `fromCommunityId` state, and included as `community_id` in the event insert. After publish, the user is redirected to `/communities/[id]?tab=events` instead of the event detail page.
 
@@ -437,9 +446,11 @@ This is implemented with a debounced `useEffect` watching the form state.
 
 ## Settings — Key Behaviours
 
+**Back navigation:** Settings (`/settings`) and Notifications (`/notifications`) both have a `←` back button using `router.back()`. Settings is accessed from the profile page's sliders icon; Notifications from the home page's bell icon. Both return the user to exactly where they came from.
+
 **Password change:** Minimum 12 characters, enforced both client-side (button disabled + strength meter) and server-side (Supabase Auth rejects weak passwords). A 4-bar strength meter updates in real time scoring: length ≥ 8, length ≥ 12, case mix, number + symbol mix. The Update Password button stays disabled until length ≥ 12 and both fields match — so users can't submit a password that will be rejected.
 
-**City change (home feed):** Selecting a new city updates `profiles.city`, shows a 2.5-second pill toast, and immediately re-fetches events from the server for the new city. The local event cache is not reused — a fresh query runs so the full pool for the new city loads.
+**City change (home feed):** Selecting a new city updates `profiles.city`, shows a 2.5-second pill toast, and immediately re-fetches events from the server for the new city. The local event cache is not reused — a fresh query runs so the full pool for the new city loads. The city picker search input no longer auto-focuses on open (keyboard no longer jumps immediately).
 
 **Profile edit guards:** Save button is disabled while name is blank. Avatar upload failure surfaces a specific error message ("Photo upload failed — your other changes were saved") rather than silently keeping the old photo. Interest search clear re-focuses the input so the user keeps typing without tapping.
 

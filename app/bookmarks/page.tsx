@@ -45,7 +45,7 @@ export default function BookmarksPage() {
       <div className="category-gradient-card h-28 flex items-center justify-center text-4xl relative"
         style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
         {optimizedImgSrc(event.cover_url, 800)
-          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />
+          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
           : <span className="relative z-10">{catEmoji(event.category)}</span>
         }
         <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80" />

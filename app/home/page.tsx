@@ -347,7 +347,7 @@ export default function HomePage() {
             className="rounded-3xl overflow-hidden mb-4 cursor-pointer active:scale-[0.98] transition-transform border border-[#E8B84B]/20">
             <div className="category-gradient-card h-36 flex items-center justify-center text-5xl relative"
               style={{ background: CAT_GRADIENT[featuredEvent.category] || CAT_GRADIENT['Social'] }}>
-              {optimizedImgSrc((featuredEvent as any).cover_url, 800) && <img src={optimizedImgSrc((featuredEvent as any).cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />}
+              {optimizedImgSrc((featuredEvent as any).cover_url, 800) && <img src={optimizedImgSrc((featuredEvent as any).cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
               <span className="relative z-10">{CAT_EMOJI[featuredEvent.category] || '🎉'}</span>
               <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
               <div className="absolute top-3 left-3">
@@ -433,7 +433,7 @@ export default function HomePage() {
                   className={'bg-[#1C241C] rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/25' : 'border-white/10')}>
                   <div className="category-gradient-card h-28 flex items-center justify-center text-4xl relative"
                     style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
-                    {optimizedImgSrc((event as any).cover_url, 800) && <img src={optimizedImgSrc((event as any).cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />}
+                    {optimizedImgSrc((event as any).cover_url, 800) && <img src={optimizedImgSrc((event as any).cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
                     <span className="relative z-10">{CAT_EMOJI[event.category] || '🎉'}</span>
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80"></div>
                     <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
@@ -501,7 +501,7 @@ export default function HomePage() {
             <div className="flex items-center gap-2 bg-[#0D110D] border border-white/10 rounded-2xl px-4 py-2.5 mb-3 flex-shrink-0">
               <span className="text-sm text-white/30">🔍</span>
               <input type="text" value={citySearch} onChange={e => setCitySearch(e.target.value)}
-                placeholder="Search or type a city..." autoFocus
+                placeholder="Search or type a city..."
                 className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none" />
               {citySearch && <button onClick={() => setCitySearch('')} className="text-xs text-white/30">✕</button>}
             </div>
