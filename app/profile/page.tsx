@@ -127,8 +127,13 @@ export default function ProfilePage() {
       const uniqueHostedCats = new Set(hostedEvents.map((e: any) => e.category)).size
       const allAch = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, levelVal, uniqueAttendedCats, uniqueHostedCats, communityCount, ownedCommunityCount, bookmarkCount)
       const seenRaw = localStorage.getItem('gathr_seen_achievements')
-      const seen: string[] | null = seenRaw ? JSON.parse(seenRaw) : null
-      if (seen !== null) {
+      if (!seenRaw) {
+        // First ever visit: silently baseline all currently unlocked achievements so we only
+        // celebrate ones earned AFTER this point, not everything they've already done.
+        const baseline = allAch.filter(a => a.val >= a.req).map(a => a.title)
+        localStorage.setItem('gathr_seen_achievements', JSON.stringify(baseline))
+      } else {
+        const seen: string[] = JSON.parse(seenRaw)
         const fresh = allAch.filter(a => a.val >= a.req && !seen.includes(a.title))
         if (fresh.length > 0) {
           setNewAchievements(fresh)
