@@ -55,11 +55,50 @@ export default function HomePage() {
       setUser(session.user)
       fetchAll(session.user.id)
     })
+
+    // Refresh when the user returns to the tab / app from background.
+    // Catches "edited interests on another tab" and "came back from background" cases.
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session && !cancelled) fetchAll(session.user.id)
+      })
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
+    // Refresh on auth events (e.g. user signs in on another tab, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return
+      if (event === 'SIGNED_IN' && session) fetchAll(session.user.id)
+      if (event === 'SIGNED_OUT') router.push('/auth')
+    })
+
     return () => {
       cancelled = true
+      document.removeEventListener('visibilitychange', onVisible)
+      subscription.unsubscribe()
       if (cityToastTimerRef.current) clearTimeout(cityToastTimerRef.current)
     }
   }, [router])
+
+  // Realtime subscription on the user's own profile row — when interests / city
+  // / mode change from ANYWHERE (this tab, another tab, another device), the
+  // home feed receives the update instantly without waiting for refocus.
+  useEffect(() => {
+    if (!user?.id) return
+    const channel = supabase
+      .channel('profile-self-' + user.id)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: 'id=eq.' + user.id,
+      }, (payload) => {
+        setProfile((prev: any) => prev ? { ...prev, ...payload.new } : payload.new)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user?.id])
 
   useEffect(() => {
     if (!user?.id || !profile?.city) return
