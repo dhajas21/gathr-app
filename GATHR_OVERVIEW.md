@@ -113,6 +113,8 @@ All tables are in the `public` schema with **Row Level Security (RLS)** enabled 
 | `push_subscriptions` | Web push notification subscriptions (VAPID) |
 | `waitlist` | Email addresses from the pre-launch waitlist |
 | `rate_limit_events` | Log of user actions for rate limiting. user_id, action, created_at |
+| `hidden_threads` | Tracks which DM threads a user has hidden from their inbox. `user_id` + `thread_id` composite PK. RLS ensures users only see and modify their own rows. Underlying messages are preserved for the other party. Persists across devices — no longer localStorage-based. |
+| `event_drafts` | Auto-saved event-creation draft. One row per user, upserted on every form change. Cleared on successful publish. |
 | `friendships` | Legacy/reserved table (not currently used in UI) |
 
 ### Key Column Details on `profiles`
@@ -276,7 +278,7 @@ The `is_private` column is a **computed/generated column**: `GENERATED ALWAYS AS
 
 **Community chat:** Real-time group chat within each community tab. Messages are stored in `community_chat_messages` and loaded via Supabase Realtime `postgres_changes` subscriptions on both INSERT (new messages) and DELETE (moderator removals propagate in real time). Owners and admins see an ✕ button on every message; members only see it on their own.
 
-**Community settings (owner dashboard):** Available at `/communities/[id]/settings`. Owners can: edit community details, manage join requests, **promote members to admin / demote admins to member**, **remove members**, and delete the community.
+**Community settings (owner dashboard):** Available at `/communities/[id]/settings`. Owners can: edit community details, manage join requests, **promote members to admin / demote admins to member**, **remove members**, and delete the community. Community deletion is cascading — it cleans up all post comments and chat messages first, then posts, then members, then the community record itself, so no orphan rows are left behind.
 
 **Create event from community:** Navigating to `/create?community=[id]` (e.g. via the community Events tab's "Create Event" button) pre-wires the new event's `community_id`. After publish the user is redirected back to the community's Events tab.
 
@@ -489,6 +491,12 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 | Edge function fails | Called with `.catch(() => {})` — silent failure, doesn't affect the user |
 | Typing indicator channel leak | Cleaned up in `useEffect` return (unmount) |
 | After-event match check fires every session | Guarded with `sessionStorage.getItem('gathr_match_check')` — runs max once per browser session |
+| DB-sourced URL in `<img src>` could load arbitrary content | `safeImgSrc()` allowlist applied to every DB-sourced avatar and cover URL attribute across all pages |
+| Non-UUID route param causes Supabase query error | `isValidUUID()` guard at the top of every dynamic-route `useEffect` before any DB call |
+| Community delete leaves orphan rows | Client explicitly deletes `community_post_comments` → `community_chat_messages` → `community_posts` → `community_members` → `communities` in order |
+| `onAuthStateChange` subscription leak on reset page | Subscription returned by Supabase is now unsubscribed in `useEffect` cleanup |
+| DM thread hidden state lost between devices | Moved from `localStorage` to `hidden_threads` table — persists across devices and sessions |
+| Account deletion blocked by auth layer | `delete-account` Edge Function uses service-role admin client to call `auth.admin.deleteUser()` — bypasses the user's own auth constraints |
 
 ---
 

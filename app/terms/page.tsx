@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 
 export default function TermsPage() {
   const router = useRouter()
-  const updated = 'May 10, 2026'
+  const updated = 'May 11, 2026'
 
   return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
