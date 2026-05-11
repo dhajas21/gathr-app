@@ -70,7 +70,7 @@ export default function PrivacyPage() {
           },
           {
             title: '13. Your Rights',
-            body: 'You have the right to access, correct, or delete your personal information at any time. You can update your profile in Settings. You can disable people matching and control your RSVP visibility in Settings → Privacy. To request full account deletion or a data export, contact us at the address below.',
+            body: 'You have the right to access, correct, or delete your personal information at any time. You can update your profile in Settings. You can disable people matching and control your RSVP visibility in Settings → Privacy. To delete your account, go to Settings → Danger Zone — deletion is immediate and permanent. For a data export, contact us at the address below.',
           },
           {
             title: '14. Children\'s Privacy',

@@ -335,7 +335,7 @@ Supabase Realtime uses `postgres_changes` subscriptions — it watches the Postg
 - `notifications/page.tsx` — subscribes to INSERT on `notifications` filtered by `user_id`, so new notifications appear without a refresh
 - `host/page.tsx` — subscribes to INSERT and DELETE on `rsvps` so RSVP counts on the host dashboard update as people join/leave events
 
-**DM inbox (delete conversation):** The DM inbox (`messages/page.tsx`) includes a `SwipeThread` component — swipe left on a thread to reveal two action buttons: Mark Read/Unread and Delete. Deletion is client-only (hides the thread from the list). Deleted thread IDs are stored in `localStorage` (`gathr_hidden_threads_[userId]`) and re-applied on load so the thread stays hidden across sessions. This avoids needing a DB schema change while still persisting the user's intent.
+**DM inbox (delete conversation):** The DM inbox (`messages/page.tsx`) includes a `SwipeThread` component — swipe left on a thread to reveal two action buttons: Mark Read/Unread and Delete. Deletion hides the thread from the user's list; the underlying messages are preserved for the other party. Hidden thread IDs are stored in the `hidden_threads` table (RLS-protected, `user_id` + `thread_id` primary key) and loaded on mount via `fetchData`, so threads stay hidden across devices and sessions.
 
 **Typing indicators** in DMs use Supabase **Presence** (not postgres_changes). Presence is a ephemeral pub/sub channel — each user broadcasts a `{ typing: true/false }` state, and others see it in real time via the `sync` event. It doesn't touch the database at all.
 
@@ -343,7 +343,18 @@ Supabase Realtime uses `postgres_changes` subscriptions — it watches the Postg
 
 ## Edge Functions
 
-Supabase Edge Functions run on Deno, serverside, close to the database. Currently one function is deployed:
+Supabase Edge Functions run on Deno, serverside, close to the database. Two functions are deployed:
+
+**`delete-account`** (JWT not pre-verified — function handles auth internally):
+- Called from Settings → Danger Zone when the user confirms account deletion
+- Verifies the caller's identity via `auth.getUser()` using the bearer token
+- Uses a service-role admin client to call `auth.admin.deleteUser(userId)` — this cascades to all linked data via FK constraints
+- Returns `{ success: true }` on success; the client then calls `supabase.auth.signOut()` and redirects to `/auth`
+
+**`claim-level-trial`** (JWT not pre-verified — function handles auth internally):
+- Called from the profile page when a level milestone is reached
+- Computes XP and level server-side from authoritative DB counts
+- Grants the appropriate Gathr+ preview trial (48h at level 5, 7-day at level 10) if not already claimed
 
 **`after-event-matches`** (JWT-verified):
 - Called once per session from the home page: `supabase.functions.invoke('after-event-matches')`
