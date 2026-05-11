@@ -185,12 +185,29 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   }
 
   const handleUnsend = async () => {
-    if (!longPressMsg) return
+    if (!longPressMsg || !user) return
     const msg = longPressMsg
     setLongPressMsg(null)
     setMessages(prev => prev.filter(m => m.id !== msg.id))
-    const { error } = await supabase.from('messages').delete().eq('id', msg.id)
-    if (error) setMessages(prev => [...prev, msg].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()))
+    const { error } = await supabase.from('messages').delete().eq('id', msg.id).eq('sender_id', user.id)
+    if (error) {
+      setMessages(prev => [...prev, msg].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()))
+      return
+    }
+    // Clean up storage attachment if this was an image or file message
+    const t = msg.text || ''
+    const storagePrefix = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '') + '/storage/v1/object/public/chat-attachments/'
+    let attachmentPath: string | null = null
+    if (t.startsWith('[image]')) {
+      const url = t.slice(7)
+      if (url.startsWith(storagePrefix)) attachmentPath = url.slice(storagePrefix.length)
+    } else {
+      const fileMatch = t.match(/^\[file:.+?\](.+)$/)
+      if (fileMatch && fileMatch[1].startsWith(storagePrefix)) attachmentPath = fileMatch[1].slice(storagePrefix.length)
+    }
+    if (attachmentPath) {
+      await supabase.storage.from('chat-attachments').remove([attachmentPath])
+    }
   }
 
   const scrollToBottom = () => {
@@ -372,7 +389,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     <div className="h-screen bg-[#0D110D] flex flex-col">
 
       <div className="flex items-center gap-3 px-4 pt-14 pb-3 border-b border-white/10 flex-shrink-0">
-        <button onClick={() => router.push('/messages')}
+        <button onClick={() => router.back()}
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
           {'←'}
         </button>
