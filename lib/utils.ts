@@ -17,14 +17,22 @@ export function safeImgSrc(url: string | null | undefined): string | null {
 }
 
 /**
- * Like safeImgSrc but rewrites Supabase Storage object URLs to the render/image
- * endpoint so the CDN serves a resized, quality-capped JPEG/WebP instead of
- * the raw original.  Non-Supabase URLs (e.g. Google profile photos) are
- * returned unchanged.
+ * Returns an image URL safe to render.
  *
- * @param width  Target width in CSS pixels — double for 2× retina (e.g. 64 for a w-8 avatar)
- * @param quality JPEG/WebP quality 1–100, default 80
+ * If `NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORM` is set to `"true"` (requires the
+ * Supabase Pro plan with Image Transformations enabled), Supabase Storage
+ * object URLs are rewritten to the `/render/image/` endpoint so the CDN
+ * serves a resized, quality-capped JPEG/WebP. On the free tier the render
+ * endpoint returns 403 ("feature not enabled"), so by default we return the
+ * raw object URL untouched.
+ *
+ * Non-Supabase URLs (e.g. Google profile photos) are always returned as-is.
+ *
+ * @param width  Target width in CSS pixels — double for 2× retina (e.g. 64 for a w-8 avatar). Only honoured when transforms are enabled.
+ * @param quality JPEG/WebP quality 1–100, default 80. Only honoured when transforms are enabled.
  */
+const TRANSFORM_ENABLED = process.env.NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORM === 'true'
+
 export function optimizedImgSrc(
   url: string | null | undefined,
   width: number,
@@ -32,6 +40,7 @@ export function optimizedImgSrc(
 ): string | null {
   const safe = safeImgSrc(url)
   if (!safe) return null
+  if (!TRANSFORM_ENABLED) return safe
   if (!safe.includes('/storage/v1/object/public/')) return safe
   const renderUrl = safe.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
   const sep = renderUrl.includes('?') ? '&' : '?'
