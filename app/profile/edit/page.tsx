@@ -25,6 +25,7 @@ export default function EditProfilePage() {
   const [interestSearch, setInterestSearch] = useState('')
   const [rsvpVisibility, setRsvpVisibility] = useState('public')
   const fileRef = useRef<HTMLInputElement>(null)
+  const interestInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function EditProfilePage() {
     const ext = avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg'
     const safeName = userId + '.' + ext
     const { error } = await supabase.storage.from('profile-photos').upload(safeName, avatarFile, { cacheControl: '3600', upsert: true })
-    if (error) return avatarUrl
+    if (error) { setUploadError('Photo upload failed — your other changes were saved.'); return avatarUrl }
     const { data: urlData } = supabase.storage.from('profile-photos').getPublicUrl(safeName)
     return urlData?.publicUrl ? urlData.publicUrl + '?t=' + Date.now() : avatarUrl
   }
@@ -222,10 +223,10 @@ export default function EditProfilePage() {
           <label className="text-xs text-white/50 mb-2 block">Interests <span className="text-white/25">({interests.length})</span></label>
           <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-3">
             <span className="text-sm text-white/30">🔍</span>
-            <input type="text" value={interestSearch} onChange={e => setInterestSearch(e.target.value)}
+            <input ref={interestInputRef} type="text" value={interestSearch} onChange={e => setInterestSearch(e.target.value)}
               placeholder="Search interests..."
               className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none" />
-            {interestSearch && <button onClick={() => setInterestSearch('')} className="text-[10px] text-white/30">✕</button>}
+            {interestSearch && <button onClick={() => { setInterestSearch(''); interestInputRef.current?.focus() }} className="text-[10px] text-white/30">✕</button>}
           </div>
           {interests.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
@@ -262,7 +263,7 @@ export default function EditProfilePage() {
             {saveError}
           </div>
         )}
-        <button onClick={handleSave} disabled={saving}
+        <button onClick={handleSave} disabled={saving || !name.trim()}
           className="w-full bg-[#E8B84B] text-[#0D110D] rounded-2xl py-4 font-bold text-sm disabled:opacity-50 mt-2 active:scale-95 transition-transform"
           style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
           {saving ? 'Saving...' : 'Save Changes'}

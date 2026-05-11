@@ -105,13 +105,15 @@ export default function NotificationsPage() {
   const handleDeclineConnection = async (notif: any) => {
     if (!user || actionLoading) return
     setActionLoading(notif.id + '_decline')
-    await supabase
+    const { error } = await supabase
       .from('connections')
       .delete()
       .eq('requester_id', notif.actor_id)
       .eq('addressee_id', user.id)
-    await markRead(notif.id)
-    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true, _declined: true } : n))
+    if (!error) {
+      await markRead(notif.id)
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true, _declined: true } : n))
+    }
     setActionLoading(null)
   }
 

@@ -37,6 +37,7 @@ export default function HomePage() {
   const [geoGranted, setGeoGranted] = useState(false)
   const [bookmarkedEventIds, setBookmarkedEventIds] = useState<string[]>([])
   const [friendRsvpEventIds, setFriendRsvpEventIds] = useState<string[]>([])
+  const [cityToast, setCityToast] = useState('')
   const router = useRouter()
 
   const { refreshing, pullProgress, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
@@ -146,6 +147,9 @@ export default function HomePage() {
     if (!user) return
     await supabase.from('profiles').update({ city: newCity }).eq('id', user.id)
     setProfile((prev: any) => prev ? { ...prev, city: newCity } : prev)
+    setCityToast(newCity)
+    setTimeout(() => setCityToast(''), 2500)
+    fetchAll(user.id)
   }
 
   useEffect(() => {
@@ -241,6 +245,11 @@ export default function HomePage() {
         <div className="fixed top-0 left-0 right-0 h-0.5 z-[100]" style={{ background: 'rgba(232,184,75,0.25)' }}>
           <div className={'h-full bg-[#E8B84B] ' + (refreshing ? 'animate-pulse w-full' : 'transition-none')}
             style={!refreshing ? { width: pullProgress * 100 + '%' } : undefined} />
+        </div>
+      )}
+      {cityToast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[90] bg-[#1C241C] border border-[#E8B84B]/25 text-[#E8B84B] text-xs font-semibold px-4 py-2 rounded-full shadow-lg pointer-events-none">
+          📍 {cityToast}
         </div>
       )}
       <div className="px-4 pt-14 pb-0 bg-[#0D110D]">
