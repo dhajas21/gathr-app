@@ -87,13 +87,10 @@ export const EVENT_CATEGORIES = [
 ]
 
 export const ALL_CITIES = [
-  'Bellingham', 'Bellevue', 'Seattle', 'Tacoma', 'Olympia', 'Spokane',
-  'Vancouver', 'Victoria', 'Surrey', 'Burnaby',
+  'Bellingham', 'Seattle', 'Bellevue', 'Tacoma', 'Olympia', 'Spokane',
   'Portland', 'Eugene', 'Salem',
+  'Vancouver', 'Victoria', 'Surrey', 'Burnaby',
   'San Francisco', 'Los Angeles', 'San Diego', 'Sacramento',
-  'New York', 'Brooklyn', 'Chicago', 'Austin', 'Denver',
-  'Miami', 'Atlanta', 'Nashville', 'Boston', 'Philadelphia',
-  'Minneapolis', 'Detroit', 'Phoenix', 'Las Vegas', 'Honolulu',
 ]
 
 export const CAT_GRADIENT: Record<string, string> = {
