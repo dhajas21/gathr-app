@@ -150,15 +150,15 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
   const handleDelete = async () => {
     if (!communityId) return
     setDeleting(true)
-    const { data: posts } = await supabase.from('community_posts').select('id').eq('community_id', communityId)
-    const postIds = (posts || []).map((p: any) => p.id)
-    if (postIds.length > 0) {
-      await supabase.from('community_post_comments').delete().in('post_id', postIds)
+    // Atomic delete_community RPC handles cascade in a single transaction
+    const { error } = await supabase.rpc('delete_community', { p_community_id: communityId })
+    if (error) {
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+      // Surface a generic message; underlying RPC enforces owner-only access
+      alert('Failed to delete community. Please try again.')
+      return
     }
-    await supabase.from('community_chat_messages').delete().eq('community_id', communityId)
-    await supabase.from('community_posts').delete().eq('community_id', communityId)
-    await supabase.from('community_members').delete().eq('community_id', communityId)
-    await supabase.from('communities').delete().eq('id', communityId)
     router.push('/communities')
   }
 

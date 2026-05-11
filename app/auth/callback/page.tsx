@@ -15,9 +15,11 @@ export default function AuthCallbackPage() {
         return
       }
 
+      // Profile is auto-created by the handle_new_auth_user DB trigger.
+      // Wait briefly for the trigger to commit, then check if user has finished /setup yet.
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, interests, avatar_url')
         .eq('id', session.user.id)
         .maybeSingle()
 
@@ -26,23 +28,10 @@ export default function AuthCallbackPage() {
         return
       }
 
-      if (!profile) {
-        const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Gathr User'
-        const { error: insertError } = await supabase.from('profiles').insert({
-          id: session.user.id,
-          name,
-          city: 'Bellingham',
-          profile_mode: 'both',
-          hosted_count: 0,
-          attended_count: 0,
-          interests: [],
-          avatar_url: session.user.user_metadata?.avatar_url ?? null,
-        })
-        if (insertError) { setError('Failed to create your profile. Please try again.'); return }
-        router.push('/setup')
-      } else {
-        router.push('/home')
-      }
+      // New Google users land in /setup; returning users go straight home.
+      // Heuristic: if they've never set interests AND have no avatar, they haven't done setup.
+      const isFreshUser = !profile || ((profile.interests?.length ?? 0) === 0 && !profile.avatar_url)
+      router.push(isFreshUser ? '/setup' : '/home')
     })
   }, [router])
 

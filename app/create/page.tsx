@@ -33,7 +33,6 @@ export default function CreateEventPage() {
   const [capacity, setCapacity] = useState('')
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
-  const [geocoding, setGeocoding] = useState(false)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [privacy, setPrivacy] = useState('public')
@@ -182,21 +181,6 @@ export default function CreateEventPage() {
     reader.readAsDataURL(file)
   }
 
-  const geocodeAddress = async (addr: string, venue: string, c: string) => {
-    const query = [addr || venue, c].filter(Boolean).join(', ')
-    if (!query) return
-    setGeocoding(true)
-    try {
-      const res = await fetch(
-        'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query),
-        { headers: { 'User-Agent': 'GathrApp/1.0' } }
-      )
-      const data = await res.json()
-      if (data[0]) { setLat(parseFloat(data[0].lat)); setLng(parseFloat(data[0].lon)) }
-    } catch {}
-    setGeocoding(false)
-  }
-
   const addTag = () => {
     const t = tagInput.trim().toLowerCase()
     if (t && !tags.includes(t) && tags.length < 10) { setTags([...tags, t]); setTagInput('') }
@@ -270,6 +254,11 @@ export default function CreateEventPage() {
     if (insertError) {
       setError(insertError.message)
       return
+    }
+
+    // Fire-and-forget server-side geocoding for the new event (saves lat/lng to DB)
+    if (insertedEvent?.id) {
+      supabase.functions.invoke('geocode-event', { body: { event_id: insertedEvent.id } }).catch(() => {})
     }
 
     // Clean up the draft now that we've published
@@ -405,14 +394,8 @@ export default function CreateEventPage() {
             <div>
               <label className={labelClass}>Address</label>
               <input className={inputClass} placeholder="470 Bayview Dr, Bellingham WA" value={address} onChange={e => setAddress(e.target.value)} maxLength={200} />
-              {geocoding && (
-                <p className="text-[10px] text-[#E8B84B]/60 mt-1.5 flex items-center gap-1.5">
-                  <span className="inline-block w-2 h-2 rounded-full bg-[#E8B84B]/50 animate-pulse" />
-                  Looking up location…
-                </p>
-              )}
-              {!geocoding && lat && address && (
-                <p className="text-[10px] text-[#7EC87E]/70 mt-1.5">✓ Location confirmed</p>
+              {address && (
+                <p className="text-[10px] text-white/30 mt-1.5">📍 We'll pin this on the map after you publish</p>
               )}
             </div>
 
@@ -510,14 +493,11 @@ export default function CreateEventPage() {
         )}
         {step === 1 ? (
           <button
-            onClick={async () => {
-              if (address && !lat) await geocodeAddress(address, venueName, city)
-              setStep(2)
-            }}
-            disabled={!title || !category || !date || !startTime || !venueName || geocoding}
+            onClick={() => setStep(2)}
+            disabled={!title || !category || !date || !startTime || !venueName}
             className="w-full bg-[#E8B84B] text-[#0D110D] rounded-2xl py-4 font-bold text-sm disabled:opacity-40 active:scale-95 transition-transform"
           >
-            {geocoding ? 'Looking up location...' : 'Next — The Details →'}
+            Next — The Details →
           </button>
         ) : (
           <div className="flex gap-3">

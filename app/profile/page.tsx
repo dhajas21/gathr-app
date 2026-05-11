@@ -7,6 +7,7 @@ import confetti from 'canvas-confetti'
 import BottomNav from '@/components/BottomNav'
 import { ProfilePageSkeleton } from '@/components/Skeleton'
 import ThemeToggle from '@/components/ThemeToggle'
+import UndoToast from '@/components/UndoToast'
 import { optimizedImgSrc, formatDateLong } from '@/lib/utils'
 import { catEmoji } from '@/lib/categoryEmoji'
 
@@ -87,6 +88,7 @@ export default function ProfilePage() {
   const [bookmarkCount, setBookmarkCount] = useState(0)
   const [pinnedBadges, setPinnedBadges] = useState<string[]>([])
   const [hasDraft, setHasDraft] = useState(false)
+  const [showDraftUndo, setShowDraftUndo] = useState(false)
   const confettiTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const router = useRouter()
 
@@ -246,15 +248,23 @@ export default function ProfilePage() {
     router.push('/auth')
   }
 
-  const handleDiscardDraft = async () => {
+  const handleDiscardDraft = () => {
+    // Optimistic hide; the actual delete happens when the undo toast commits
+    if (!user) return
+    setHasDraft(false)
+    setShowDraftUndo(true)
+  }
+
+  const commitDraftDelete = async () => {
     if (!user) return
     await supabase.from('event_drafts').delete().eq('user_id', user.id)
     const { data: files } = await supabase.storage.from('event-covers').list(`drafts/${user.id}`)
     if (files && files.length > 0) {
       await supabase.storage.from('event-covers').remove(files.map((f: any) => `drafts/${user.id}/${f.name}`))
     }
-    setHasDraft(false)
   }
+
+  const undoDraftDelete = () => { setHasDraft(true) }
 
 
   if (loading) return <ProfilePageSkeleton />
@@ -769,6 +779,14 @@ export default function ProfilePage() {
           </div>
         )
       })()}
+
+      <UndoToast
+        open={showDraftUndo}
+        message="Draft deleted"
+        onUndo={() => undoDraftDelete()}
+        onCommit={() => { commitDraftDelete() }}
+        onClose={() => setShowDraftUndo(false)}
+      />
 
       <BottomNav />
     </div>

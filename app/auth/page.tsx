@@ -30,25 +30,21 @@ export default function AuthPage() {
     if (!name || !email || !password) { setError('Please fill in all fields'); return }
     if (password.length < 12) { setError('Password must be at least 12 characters'); return }
     setLoading(true); setError('')
-    const { data, error: authError } = await supabase.auth.signUp({ email: email.trim(), password })
+    // Pass name + city into raw_user_meta_data so the DB trigger (handle_new_auth_user)
+    // picks them up when auto-creating the profile row.
+    const { data, error: authError } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { name: name.trim(), city } },
+    })
     if (authError) { setError(authError.message); setLoading(false); return }
     if (data.session) {
-      // Email confirmation disabled — session is immediately available
-      await supabase.from('profiles').upsert({
-        id: data.user!.id, name: name.trim(), city,
-        profile_mode: 'both', hosted_count: 0, attended_count: 0, interests: [],
-      })
+      // Email confirmation disabled — session immediately available, profile already created by trigger
       router.push('/setup')
     } else if (data.user) {
-      // Email confirmation required — create the profile now (user exists) but
-      // tell them to check their inbox before they can sign in
-      await supabase.from('profiles').upsert({
-        id: data.user.id, name: name.trim(), city,
-        profile_mode: 'both', hosted_count: 0, attended_count: 0, interests: [],
-      })
+      // Email confirmation required — profile gets created when they confirm
       setError('')
       setLoading(false)
-      // Re-use the resetSent state to show a "check your email" message
       setResetSent(true)
     }
   }
