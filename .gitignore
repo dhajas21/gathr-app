@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 supabase/.temp/
+
+# Internal docs — kept local only, not pushed to GitHub
+GATHR_OVERVIEW.md
+GATHR_PLAYBOOK.md

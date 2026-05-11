@@ -16,6 +16,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [discoverable, setDiscoverable] = useState(true)
   const [matchingEnabled, setMatchingEnabled] = useState(true)
+  const [notifyOnRsvp, setNotifyOnRsvp] = useState(true)
+  const [savingNotifyOnRsvp, setSavingNotifyOnRsvp] = useState(false)
   const [profileMode, setProfileMode] = useState('both')
   const [savingMode, setSavingMode] = useState(false)
   const [savingDiscoverable, setSavingDiscoverable] = useState(false)
@@ -48,12 +50,13 @@ export default function SettingsPage() {
       setUser(session.user)
       ;(async () => {
         try {
-          const { data } = await supabase.from('profiles').select('name, avatar_url, profile_mode, is_discoverable, matching_enabled, city, gathr_plus, gathr_plus_expires_at').eq('id', session.user.id).single()
+          const { data } = await supabase.from('profiles').select('name, avatar_url, profile_mode, is_discoverable, matching_enabled, notify_on_rsvp, city, gathr_plus, gathr_plus_expires_at').eq('id', session.user.id).maybeSingle()
           if (data) {
             setProfile(data)
             setProfileMode(data.profile_mode || 'both')
             setDiscoverable(data.is_discoverable !== false)
             setMatchingEnabled(data.matching_enabled !== false)
+            setNotifyOnRsvp((data as any).notify_on_rsvp !== false)
             const trialActive = data.gathr_plus_expires_at ? new Date(data.gathr_plus_expires_at) > new Date() : false
             setGathrPlus(data.gathr_plus === true || trialActive)
             setGathrPlusExpiresAt(trialActive && !data.gathr_plus ? data.gathr_plus_expires_at : null)
@@ -130,6 +133,16 @@ export default function SettingsPage() {
     const { error } = await supabase.from('profiles').update({ is_discoverable: next }).eq('id', user.id)
     if (error) setDiscoverable(!next)
     setSavingDiscoverable(false)
+  }
+
+  const handleToggleNotifyOnRsvp = async () => {
+    if (savingNotifyOnRsvp || !user) return
+    setSavingNotifyOnRsvp(true)
+    const next = !notifyOnRsvp
+    setNotifyOnRsvp(next)
+    const { error } = await supabase.from('profiles').update({ notify_on_rsvp: next }).eq('id', user.id)
+    if (error) setNotifyOnRsvp(!next)
+    setSavingNotifyOnRsvp(false)
   }
 
   const handleToggleMatching = async () => {
@@ -467,6 +480,22 @@ export default function SettingsPage() {
             </div>
             <div className={'w-11 h-6 rounded-full transition-all flex-shrink-0 relative ' + (pushStatus === 'active' ? 'bg-[#7EC87E]' : 'bg-white/15')}>
               <div className={'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ' + (pushStatus === 'active' ? 'left-[22px]' : 'left-0.5')} />
+            </div>
+          </button>
+
+          <button
+            onClick={handleToggleNotifyOnRsvp}
+            disabled={savingNotifyOnRsvp}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] active:bg-white/[0.03] transition-colors"
+          >
+            <div className="text-left flex-1 pr-3">
+              <div className="text-sm text-[#F0EDE6]">Notify me when people RSVP</div>
+              <div className="text-[10px] text-white/35 mt-0.5">
+                Pushes once per event every 30 minutes — never spammy, even for popular events
+              </div>
+            </div>
+            <div className={'w-11 h-6 rounded-full transition-all flex-shrink-0 relative ' + (notifyOnRsvp ? 'bg-[#7EC87E]' : 'bg-white/15')}>
+              <div className={'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ' + (notifyOnRsvp ? 'left-[22px]' : 'left-0.5')} />
             </div>
           </button>
 
