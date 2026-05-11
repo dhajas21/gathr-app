@@ -148,7 +148,7 @@ export default function ProfilePage() {
       // re-show if the user navigates away without tapping the button.
     } catch {}
     return () => { confettiTimersRef.current.forEach(clearTimeout); confettiTimersRef.current = [] }
-  }, [loading, hostedEvents.length, attendedEvents.length, connections.length, communityCount, profile])
+  }, [loading, hostedEvents.length, attendedEvents.length, connections.length, communityCount, profile?.interests?.length, profile?.profile_mode, !!profile?.avatar_url, !!profile?.bio_social])
 
   useEffect(() => {
     if (activeTab !== 2) return

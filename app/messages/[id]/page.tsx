@@ -195,9 +195,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-      })
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
     })
   }
 

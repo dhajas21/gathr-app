@@ -10,7 +10,8 @@ import { safeImgSrc, isValidUUID, formatDate } from '@/lib/utils'
 interface Post {
   id: string
   user_id: string
-  text: string
+  text: string | null
+  image_url?: string | null
   like_count: number
   created_at: string
   profiles: { id: string; name: string; avatar_url: string | null }
@@ -66,8 +67,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const [commentingId, setCommentingId] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const postInputRef = useRef<HTMLTextAreaElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -98,7 +102,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       }, async (payload) => {
         const { data } = await supabase
           .from('community_posts')
-          .select('id, user_id, text, like_count, created_at, profiles(id, name, avatar_url)')
+          .select('id, user_id, text, image_url, like_count, created_at, profiles(id, name, avatar_url)')
           .eq('id', payload.new.id).single()
         if (data) setPosts(prev => {
           if (prev.some(p => p.id === (data as any).id)) return prev
@@ -179,7 +183,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         .eq('community_id', id).neq('role', 'pending')
         .order('joined_at', { ascending: true }).limit(50),
       supabase.from('events').select('id, title, cover_url, start_datetime').eq('community_id', id).order('start_datetime', { ascending: true }).limit(10),
-      supabase.from('community_posts').select('id, user_id, text, like_count, created_at, profiles(id, name, avatar_url)').eq('community_id', id).order('created_at', { ascending: false }).limit(30),
+      supabase.from('community_posts').select('id, user_id, text, image_url, like_count, created_at, profiles(id, name, avatar_url)').eq('community_id', id).order('created_at', { ascending: false }).limit(30),
       supabase.from('community_post_likes').select('post_id').eq('user_id', userId),
       supabase.from('community_posts').select('*', { count: 'exact', head: true }).eq('community_id', id),
     ])
@@ -283,16 +287,49 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     setDecliningIds(prev => { const n = new Set(prev); n.delete(userId); return n })
   }
 
+  const ALLOWED_IMG_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  const MAX_IMG_BYTES = 5 * 1024 * 1024
+
+  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !ALLOWED_IMG_TYPES.includes(file.type) || file.size > MAX_IMG_BYTES) return
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const clearImage = () => { setImageFile(null); setImagePreview(null) }
+
   const handlePost = async () => {
     const trimmed = postText.trim()
-    if (!trimmed || !user || posting) return
+    if ((!trimmed && !imageFile) || !user || posting) return
     setPosting(true)
     setPostText('')
+
+    let uploadedUrl: string | null = null
+    if (imageFile) {
+      const ext = imageFile.type === 'image/jpeg' ? 'jpg' : imageFile.type.split('/')[1]
+      const path = `${communityId}/${user.id}/${crypto.randomUUID()}.${ext}`
+      const { error: uploadErr } = await supabase.storage
+        .from('community-post-images')
+        .upload(path, imageFile, { upsert: false })
+      if (uploadErr) {
+        setPosting(false)
+        setPostText(trimmed)
+        return
+      }
+      uploadedUrl = supabase.storage.from('community-post-images').getPublicUrl(path).data.publicUrl
+      clearImage()
+    }
+
     const optimisticId = 'optimistic-' + Date.now()
     const optimistic: Post = {
       id: optimisticId,
       user_id: user.id,
-      text: trimmed,
+      text: trimmed || null,
+      image_url: uploadedUrl,
       like_count: 0,
       created_at: new Date().toISOString(),
       profiles: { id: user.id, name: user.user_metadata?.name || user.email || '', avatar_url: user.user_metadata?.avatar_url || null },
@@ -302,8 +339,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     setPostCount(prev => prev + 1)
     const { data, error } = await supabase
       .from('community_posts')
-      .insert({ community_id: communityId, user_id: user.id, text: trimmed })
-      .select('id, user_id, text, like_count, created_at, profiles(id, name, avatar_url)')
+      .insert({ community_id: communityId, user_id: user.id, text: trimmed || null, image_url: uploadedUrl })
+      .select('id, user_id, text, image_url, like_count, created_at, profiles(id, name, avatar_url)')
       .single()
     if (!error && data) {
       setPosts(prev => prev.map(p => p.id === optimisticId ? { ...(data as any), liked: false } : p))
@@ -311,6 +348,10 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       setPosts(prev => prev.filter(p => p.id !== optimisticId))
       setPostCount(prev => Math.max(0, prev - 1))
       setPostText(trimmed)
+      if (uploadedUrl) {
+        const path = uploadedUrl.split('/storage/v1/object/public/community-post-images/')[1]
+        if (path) await supabase.storage.from('community-post-images').remove([path])
+      }
     }
     setPosting(false)
   }
@@ -330,6 +371,10 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const handleDeletePost = async (postId: string) => {
     const post = posts.find(p => p.id === postId)
     if (!post || (post.user_id !== user?.id && memberRole !== 'owner' && memberRole !== 'admin')) return
+    if (post.image_url) {
+      const path = post.image_url.split('/storage/v1/object/public/community-post-images/')[1]
+      if (path) await supabase.storage.from('community-post-images').remove([decodeURIComponent(path)])
+    }
     await supabase.from('community_posts').delete().eq('id', postId)
     setPosts(prev => prev.filter(p => p.id !== postId))
     setPostCount(prev => Math.max(0, prev - 1))
@@ -470,7 +515,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     setLoadingMore(true)
     const { data } = await supabase
       .from('community_posts')
-      .select('id, user_id, text, like_count, created_at, profiles(id, name, avatar_url)')
+      .select('id, user_id, text, image_url, like_count, created_at, profiles(id, name, avatar_url)')
       .eq('community_id', communityId)
       .order('created_at', { ascending: false })
       .lt('created_at', oldestPost.created_at)
@@ -604,6 +649,15 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
 
             {isMember && (
               <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
+                {imagePreview && (
+                  <div className="relative mb-3">
+                    <img src={imagePreview} alt="" className="w-full max-h-52 object-cover rounded-xl" />
+                    <button onClick={clearImage}
+                      className="absolute top-2 right-2 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white text-xs active:scale-90">
+                      ✕
+                    </button>
+                  </div>
+                )}
                 <textarea
                   ref={postInputRef}
                   value={postText}
@@ -614,12 +668,25 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   className="w-full bg-transparent text-sm text-[#F0EDE6] placeholder-white/20 outline-none resize-none"
                 />
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
-                  <span className="text-[10px] text-white/20">{postText.length}/1000</span>
-                  <button onClick={handlePost} disabled={!postText.trim() || posting}
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => fileInputRef.current?.click()}
+                      className={'text-base transition-colors ' + (imageFile ? 'text-[#E8B84B]' : 'text-white/25 active:text-white/50')}>
+                      🖼
+                    </button>
+                    <span className="text-[10px] text-white/20">{postText.length}/1000</span>
+                  </div>
+                  <button onClick={handlePost} disabled={(!postText.trim() && !imageFile) || posting}
                     className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-4 py-1.5 rounded-xl disabled:opacity-30 active:scale-95 transition-transform">
                     {posting ? 'Posting...' : 'Post'}
                   </button>
                 </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleImagePick}
+                />
               </div>
             )}
 
@@ -654,7 +721,12 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm text-white/70 leading-relaxed mb-3">{post.text}</p>
+                  {post.text && <p className="text-sm text-white/70 leading-relaxed mb-3">{post.text}</p>}
+                  {safeImgSrc(post.image_url) && (
+                    <div className="mb-3 overflow-hidden rounded-xl">
+                      <img src={safeImgSrc(post.image_url)!} alt="" className="w-full max-h-64 object-cover" />
+                    </div>
+                  )}
                   {isMember ? (
                     <div className="flex items-center gap-4 pt-2 border-t border-white/10">
                       <button onClick={() => handleLike(post)}
