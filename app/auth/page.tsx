@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CITY_NAMES } from '@/lib/constants'
 import PasswordInput from '@/components/PasswordInput'
+import { track } from '@/components/AnalyticsProvider'
 
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -40,9 +41,11 @@ export default function AuthPage() {
     if (authError) { setError(authError.message); setLoading(false); return }
     if (data.session) {
       // Email confirmation disabled — session immediately available, profile already created by trigger
+      track('signup_completed', { method: 'email', confirmation_required: false })
       router.push('/setup')
     } else if (data.user) {
       // Email confirmation required — profile gets created when they confirm
+      track('signup_started', { method: 'email', confirmation_required: true })
       setError('')
       setLoading(false)
       setResetSent(true)

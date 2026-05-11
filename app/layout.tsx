@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next"
 import { Geist } from "next/font/google"
 import { Syne } from "next/font/google"
+import { Suspense } from "react"
 import "./globals.css"
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import OfflineBanner from "@/components/OfflineBanner"
+import AnalyticsProvider from "@/components/AnalyticsProvider"
 import { headers } from "next/headers"
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" })
@@ -37,7 +39,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-full antialiased bg-[#0D110D] text-[#F0EDE6]">
         <ServiceWorkerRegistrar />
         <OfflineBanner />
-        <ErrorBoundary>{children}</ErrorBoundary>
+        <Suspense fallback={null}>
+          <AnalyticsProvider>
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </AnalyticsProvider>
+        </Suspense>
       </body>
     </html>
   )

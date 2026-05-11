@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CITY_NAMES, getCityCoords, EVENT_CATEGORIES } from '@/lib/constants'
 import { isValidUUID } from '@/lib/utils'
+import { track } from '@/components/AnalyticsProvider'
 
 function formatDraftAge(d: Date) {
   const diff = Date.now() - d.getTime()
@@ -255,6 +256,15 @@ export default function CreateEventPage() {
       setError(insertError.message)
       return
     }
+
+    track('event_created', {
+      event_id: insertedEvent?.id,
+      category,
+      city,
+      ticket_type: ticketType,
+      visibility: privacy,
+      from_community: !!fromCommunityId,
+    })
 
     // Fire-and-forget server-side geocoding for the new event (saves lat/lng to DB)
     if (insertedEvent?.id) {

@@ -1,6 +1,7 @@
 'use client'
 
 import { Component, ReactNode } from 'react'
+import * as Sentry from '@sentry/nextjs'
 
 interface Props { children: ReactNode }
 interface State { hasError: boolean }
@@ -12,8 +13,15 @@ export default class ErrorBoundary extends Component<Props, State> {
     return { hasError: true }
   }
 
-  componentDidCatch(error: Error) {
+  componentDidCatch(error: Error, info: { componentStack?: string | null }) {
     console.error('[ErrorBoundary]', error)
+    // Forward to Sentry with the React component stack as extra context.
+    // Noop in environments without DSN configured.
+    Sentry.captureException(error, {
+      contexts: {
+        react: { componentStack: info.componentStack ?? null },
+      },
+    })
   }
 
   render() {

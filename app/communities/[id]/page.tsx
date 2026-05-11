@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { CommunityDetailSkeleton } from '@/components/Skeleton'
 import { optimizedImgSrc, isValidUUID, formatDate } from '@/lib/utils'
+import { track } from '@/components/AnalyticsProvider'
 
 interface Post {
   id: string
@@ -232,7 +233,10 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       const { error } = await supabase.from('community_members').insert({
         community_id: communityId, user_id: user.id, role: 'pending',
       })
-      if (!error) setIsPending(true)
+      if (!error) {
+        setIsPending(true)
+        track('community_join_requested', { community_id: communityId, private: true })
+      }
     } else {
       const { error } = await supabase.from('community_members').insert({
         community_id: communityId, user_id: user.id, role: 'member',
@@ -241,6 +245,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         setIsMember(true)
         setMemberRole('member')
         setCommunity((prev: any) => prev ? { ...prev, member_count: (prev.member_count || 0) + 1 } : prev)
+        track('community_joined', { community_id: communityId, private: false })
       }
     }
     setActionLoading(false)

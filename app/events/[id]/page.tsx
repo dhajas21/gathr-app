@@ -8,6 +8,7 @@ import { EventDetailSkeleton } from '@/components/Skeleton'
 import MysteryMatchCard from '@/components/MysteryMatchCard'
 import { CAT_EMOJI } from '@/lib/categoryEmoji'
 import { optimizedImgSrc, formatDateVerbose, formatTime, isValidUUID } from '@/lib/utils'
+import { track } from '@/components/AnalyticsProvider'
 import confetti from 'canvas-confetti'
 
 interface Event {
@@ -244,6 +245,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
     } else {
       try { confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#E8B84B', '#F0EDE6', '#7EC87E'] }) } catch {}
+      track('event_rsvp_joined', { event_id: event.id, category: event.category, city: event.city })
       const { data } = await supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', event.id).limit(12)
       if (data) setAttendees(data as any)
     }
@@ -264,6 +266,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       setTotalAttendees(prev => prev + 1)
       setAttendees(prev => [...prev, { user_id: user.id, profiles: null } as any])
       setEvent(prev => prev ? { ...prev, spots_left: Math.max(0, prev.spots_left - 1) } : prev)
+    } else {
+      track('event_rsvp_cancelled', { event_id: event.id, category: event.category })
     }
     setRsvpLoading(false)
   }

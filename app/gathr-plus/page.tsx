@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { track } from '@/components/AnalyticsProvider'
 
 const PERKS = [
   {
@@ -72,6 +73,7 @@ export default function GathrPlusPage() {
     setTrialSuccess(true)
     setActiveTrial(data.expires_at)
     setTrialUsed(true)
+    track('gathr_plus_trial_claimed', { days: data.days })
     redirectTimerRef.current = setTimeout(() => router.back(), 2400)
   }
 

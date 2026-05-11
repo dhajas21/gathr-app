@@ -690,6 +690,9 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 | Offline banner | `components/OfflineBanner.tsx` |
 | Undo toast | `components/UndoToast.tsx` |
 | Fade-in wrapper | `components/FadeIn.tsx` |
+| Analytics (PostHog) provider + `track()` helper | `components/AnalyticsProvider.tsx` |
+| Sentry server + edge init | `instrumentation.ts` |
+| Sentry browser init | `instrumentation-client.ts` |
 | Edge: after-event matches | Supabase Edge Function: `after-event-matches` |
 | Edge: claim Gathr+ trial | Supabase Edge Function: `claim-gathr-plus-trial` |
 | Edge: claim level-milestone trial | Supabase Edge Function: `claim-level-trial` |
@@ -714,17 +717,48 @@ Before a public launch:
 
 **Frontend env vars** (`.env.local` or Vercel project settings):
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — required.
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` — required for web push notifications; generate via `npx web-push generate-vapid-keys`. Without this the Settings → Push Notifications toggle stays inactive.
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` — required for web push notifications. **A keypair was generated for this project; the public key is the one users see in client JS, the private key goes into the Supabase Edge Function secret named `VAPID_PRIVATE_KEY`.** Generate a fresh pair via `npx web-push generate-vapid-keys` if you ever rotate. Without these the Settings → Push Notifications toggle stays inactive.
+- `NEXT_PUBLIC_SENTRY_DSN` — Sentry browser + server runtime DSN. Get from Sentry → Project → Client Keys (DSN). Without this Sentry init is a no-op (safe to ship without).
+- `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` + `SENTRY_PROJECT` — build-time source-map upload to Sentry. Without these Sentry still captures errors, but stack traces will be minified.
+- `NEXT_PUBLIC_POSTHOG_KEY` — PostHog project API key. Without this `track()` calls are no-ops.
+- `NEXT_PUBLIC_POSTHOG_HOST` — optional; defaults to `https://us.i.posthog.com`. Set to `https://eu.i.posthog.com` if your PostHog project is in the EU region.
 
 **Supabase Auth settings** (Auth → Policies):
 - Set the password minimum to 12 characters to match the client-side requirement (otherwise users could bypass the UI and create 6-character passwords via API).
 - Enable Sign in with Apple before submitting to the App Store (required when Google sign-in is available).
 
-**Billing** (not yet wired):
-- The Gathr+ page shows a "Billing Coming Soon" panel. Wire RevenueCat + Apple IAP + Google Play Billing + Stripe (web) before public launch. The webhook should call a yet-to-be-built edge function (`set-gathr-plus-active`) that updates `profiles.gathr_plus` via service-role.
+**Billing** (not yet wired — `/gathr-plus` shows a "Billing Coming Soon" panel until then):
 
-**Observability** (not yet wired):
-- Install Sentry (`@sentry/nextjs`) and PostHog (or Mixpanel) before public launch. The `ErrorBoundary` component is the integration point for Sentry's React error capture.
+Once mobile apps exist, the platform-store rules force a split:
+
+| Platform | Provider | Notes |
+|---|---|---|
+| Web (Vercel) | **Stripe** | Direct integration via Stripe Checkout or Elements. ~3% per charge. |
+| iOS native app | **Apple In-App Purchases (StoreKit)** | Mandatory by App Store rules for digital subscriptions. 30% (15% after year 1, or 15% under Small Business Program). |
+| Android native app | **Google Play Billing** | Mandatory by Play Store rules. 30% / 15% on same terms. |
+
+**Why you'll want RevenueCat as the abstraction layer:**
+- One SDK across all three platforms; one entitlement check inside the app
+- One outbound webhook to your backend regardless of where the user paid
+- Handles subscription lifecycle events (renewal, grace period, cancellation, refund) that you'd otherwise have to reconcile across three different APIs
+- Free tier covers up to $10K MTR; ~1% above that
+
+**Integration plan:**
+1. Build a new edge function `gathr-plus-webhook` (no JWT verification — accepts RevenueCat's signed webhook payloads; validate the signature server-side)
+2. The webhook sets `profiles.gathr_plus = true` and `gathr_plus_expires_at = next_billing_date` via service-role (frontend can't, thanks to the guard trigger)
+3. On cancellation/grace expiry, it sets `gathr_plus = false` and lets `gathr_plus_expires_at` lapse naturally
+4. Wire Stripe Checkout for the web path; wire RevenueCat's iOS + Android SDKs inside the native shells
+
+The DB and trial code are already structured for this — `claim-gathr-plus-trial` and the future paid-subscription webhook both write to the same protected columns via service-role.
+
+**Observability** (wired, awaiting credentials):
+- **Sentry** (`@sentry/nextjs`) is installed. Server + edge init lives in `instrumentation.ts`; browser init in `instrumentation-client.ts`. `next.config.ts` is wrapped with `withSentryConfig` (only activates when `SENTRY_AUTH_TOKEN` is present, so dev builds without Sentry credentials still work). `components/ErrorBoundary.tsx` forwards every caught error to `Sentry.captureException` with the React component stack as context.
+  - Required env vars: `NEXT_PUBLIC_SENTRY_DSN` (browser + server runtimes), `SENTRY_AUTH_TOKEN` (build-time source-map upload), `SENTRY_ORG`, `SENTRY_PROJECT`.
+  - 10% trace sampling by default; replay on errors only (1.0), with `maskAllText` + `blockAllMedia` enabled for PII safety. Pings tunnel through `/monitoring` so adblockers don't strip them.
+- **PostHog** (`posthog-js`) is installed via `components/AnalyticsProvider.tsx` mounted in the root layout. It auto-identifies users on `SIGNED_IN`, resets on `SIGNED_OUT`, and captures manual `$pageview` events on every App Router transition.
+  - Required env vars: `NEXT_PUBLIC_POSTHOG_KEY`, optionally `NEXT_PUBLIC_POSTHOG_HOST` (defaults to `https://us.i.posthog.com`).
+  - `autocapture` is **disabled** by design — we send purposeful events via the exported `track(event, properties)` helper. Currently instrumented: `signup_completed`, `signup_started`, `event_created`, `event_rsvp_joined`, `event_rsvp_cancelled`, `gathr_plus_trial_claimed`, `community_joined`, `community_join_requested`. Add more in `track()` calls as features ship.
+  - `person_profiles: 'identified_only'` so anonymous users don't bloat your person table.
 
 ---
 
@@ -747,3 +781,4 @@ Tracking the major changes from the most recent audit pass so future code review
 - **DB indexes**: pg_trgm on text fields used in search; btree composites on hot-path filters.
 - **New tables/columns**: `community_posts.comment_count` (trigger-maintained).
 - **Polish components**: `PasswordInput`, `OfflineBanner`, `UndoToast`, `FadeIn`. Bottom nav haptics.
+- **Observability wired**: Sentry (instrumentation files + `withSentryConfig` wrap + ErrorBoundary integration), PostHog (AnalyticsProvider + `track()` helper) — both no-op gracefully when their env vars are absent. First batch of events instrumented: signup, RSVP join/cancel, event create, community join, Gathr+ trial claim.
