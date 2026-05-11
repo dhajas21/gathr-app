@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
@@ -38,6 +38,7 @@ export default function HomePage() {
   const [bookmarkedEventIds, setBookmarkedEventIds] = useState<string[]>([])
   const [friendRsvpEventIds, setFriendRsvpEventIds] = useState<string[]>([])
   const [cityToast, setCityToast] = useState('')
+  const cityToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   const { refreshing, pullProgress, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
@@ -74,7 +75,11 @@ export default function HomePage() {
         })
         .subscribe()
     })
-    return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
+    return () => {
+      cancelled = true
+      if (channel) supabase.removeChannel(channel)
+      if (cityToastTimerRef.current) clearTimeout(cityToastTimerRef.current)
+    }
   }, [router])
 
   const requestGeolocation = () => {
@@ -95,11 +100,12 @@ export default function HomePage() {
   }
 
   const fetchAll = async (userId: string) => {
+    try {
     const [profileRes, eventsRes, rsvpRes, connRes, notifRes, bookmarkRes] = await Promise.all([
       supabase.from('profiles').select('name,city,interests,profile_mode,avatar_url').eq('id', userId).single(),
       supabase.from('events').select('id,title,category,start_datetime,end_datetime,location_name,city,spots_left,capacity,tags,visibility,is_featured,host_id,cover_url,latitude,longitude,ticket_type,ticket_price').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(50),
-      supabase.from('rsvps').select('event_id').eq('user_id', userId),
-      supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),
+      supabase.from('rsvps').select('event_id').eq('user_id', userId).limit(200),
+      supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted').limit(500),
       supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false),
       supabase.from('event_bookmarks').select('event_id').eq('user_id', userId),
     ])
@@ -121,10 +127,12 @@ export default function HomePage() {
     setEvents(allEvents)
     setSoonEvents(allEvents.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
     setFeaturedEvent(allEvents.find(e => e.is_featured) || null)
-    setLoading(false)
     if (!sessionStorage.getItem('gathr_match_check')) {
       sessionStorage.setItem('gathr_match_check', '1')
       supabase.functions.invoke('after-event-matches').catch((err) => console.error('after-event-matches:', err))
+    }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -145,10 +153,12 @@ export default function HomePage() {
   const handleCityChange = async (newCity: string) => {
     setShowCityPicker(false); setCitySearch('')
     if (!user) return
+    if (!newCity || newCity.trim().length > 100) return
     await supabase.from('profiles').update({ city: newCity }).eq('id', user.id)
     setProfile((prev: any) => prev ? { ...prev, city: newCity } : prev)
     setCityToast(newCity)
-    setTimeout(() => setCityToast(''), 2500)
+    if (cityToastTimerRef.current) clearTimeout(cityToastTimerRef.current)
+    cityToastTimerRef.current = setTimeout(() => setCityToast(''), 2500)
     fetchAll(user.id)
   }
 

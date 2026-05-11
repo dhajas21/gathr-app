@@ -45,7 +45,7 @@ export default function MapPage() {
     const withoutCoords = data.filter(e => !e.latitude || !e.longitude)
 
     setEvents(withCoords)
-    setLoading(false)
+    setLoading(false) // show map immediately; geocoding continues in background
 
     // Geocode events missing coordinates in the background
     if (withoutCoords.length > 0) {
@@ -63,7 +63,6 @@ export default function MapPage() {
           if (geodata[0]) {
             const lat = parseFloat(geodata[0].lat)
             const lng = parseFloat(geodata[0].lon)
-            await supabase.from('events').update({ latitude: lat, longitude: lng }).eq('id', event.id)
             setEvents(prev => [...prev, { ...event, latitude: lat, longitude: lng }])
           }
         } catch {}

@@ -73,6 +73,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [inviteCopied, setInviteCopied] = useState(false)
   const [copied, setCopied] = useState(false)
   const commentInputRef = useRef<HTMLInputElement>(null)
+  const inviteCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -146,10 +148,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     return () => {
       supabase.removeChannel(commentChannel)
       supabase.removeChannel(rsvpChannel)
+      if (inviteCopiedTimerRef.current) clearTimeout(inviteCopiedTimerRef.current)
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
     }
   }, [eventId])
 
   const fetchEvent = async (id: string, userId: string) => {
+    try {
     const { data: eventData } = await supabase
       .from('events')
       .select('*')
@@ -173,7 +178,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       const inviteParam = new URLSearchParams(window.location.search).get('invite')
       if (inviteParam !== eventData.invite_code) {
         setBlocked(true)
-        setLoading(false)
         return
       }
     }
@@ -187,7 +191,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (countRes.count !== null) setTotalAttendees(countRes.count)
     if (commentsRes.data) setComments(commentsRes.data as any)
     if (bookmarkRes.data) setBookmarked(true)
-    if (eventData.invite_code) setInviteCode(eventData.invite_code)
+    if (eventData.invite_code && userId === eventData.host_id) setInviteCode(eventData.invite_code)
 
     try {
       const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
@@ -197,13 +201,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(updated))
     } catch {}
 
-    setLoading(false)
-
     const endTime = new Date(eventData.end_datetime).getTime()
     const nowMs = Date.now()
     if (rsvpRes.data && endTime > nowMs - 48 * 3600000) {
       fetchMatches(id, userId)
     }
+  } finally {
+    setLoading(false)
+  }
   }
 
   const handleRsvp = async () => {
@@ -268,6 +273,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       .select('user_id')
       .eq('event_id', evtId)
       .neq('user_id', userId)
+      .limit(100)
 
     if (!rsvpData || rsvpData.length === 0) return
 
@@ -365,6 +371,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const handlePostComment = async () => {
     const trimmed = commentText.trim()
     if (!trimmed || !user || !eventId || postingComment) return
+    if (trimmed.length > 500) return
     setPostingComment(true)
     setCommentText('')
     const { data: newComment, error } = await supabase
@@ -381,15 +388,16 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const handleDeleteComment = async (commentId: string) => {
-    await supabase.from('event_comments').delete().eq('id', commentId)
-    setComments(prev => prev.filter(c => c.id !== commentId))
+    const { error } = await supabase.from('event_comments').delete().eq('id', commentId)
+    if (!error) setComments(prev => prev.filter(c => c.id !== commentId))
   }
 
   const handleCopyInvite = async () => {
     const url = window.location.origin + '/events/' + event?.id + '?invite=' + inviteCode
     await navigator.clipboard.writeText(url)
     setInviteCopied(true)
-    setTimeout(() => setInviteCopied(false), 2000)
+    if (inviteCopiedTimerRef.current) clearTimeout(inviteCopiedTimerRef.current)
+    inviteCopiedTimerRef.current = setTimeout(() => setInviteCopied(false), 2000)
   }
 
   const handleShare = async () => {
@@ -400,7 +408,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     } else {
       await navigator.clipboard.writeText(url)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000)
     }
   }
 

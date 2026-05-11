@@ -27,27 +27,29 @@ export default function MessagesPage() {
       .neq('role', 'pending')
     if (!memberships || memberships.length === 0) { setCommunityChats([]); return }
 
-    // Fetch last message per community in parallel (capped at 20 to bound request count)
     const capped = memberships.slice(0, 20)
-    const lastMsgResults = await Promise.all(
-      capped.map((m: any) =>
-        supabase
-          .from('community_chat_messages')
-          .select('community_id, user_id, text, created_at, profiles(name)')
-          .eq('community_id', m.community_id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      )
-    )
+    const communityIds = capped.map((m: any) => m.community_id)
+
+    // Single batch query instead of N parallel queries — pick latest per community client-side
+    const { data: recentMessages } = await supabase
+      .from('community_chat_messages')
+      .select('community_id, user_id, text, created_at, profiles(name)')
+      .in('community_id', communityIds)
+      .order('created_at', { ascending: false })
+      .limit(communityIds.length * 5)
+
+    const lastMsgMap: Record<string, any> = {}
+    for (const msg of recentMessages || []) {
+      if (!lastMsgMap[msg.community_id]) lastMsgMap[msg.community_id] = msg
+    }
 
     const chats = capped
-      .map((m: any, i: number) => ({
+      .map((m: any) => ({
         communityId: m.community_id,
         community: m.community,
-        lastMessage: lastMsgResults[i].data || null,
+        lastMessage: lastMsgMap[m.community_id] || null,
       }))
-      .filter((m: any) => m.community && m.lastMessage) // only show communities with chat activity
+      .filter((m: any) => m.community && m.lastMessage)
 
     setCommunityChats(chats)
   }
@@ -155,6 +157,7 @@ export default function MessagesPage() {
   }
 
   const fetchData = async (userId: string) => {
+    try {
     const [connRes, msgRes, unreadRes, acceptedRes] = await Promise.all([
       supabase
         .from('connections')
@@ -200,8 +203,9 @@ export default function MessagesPage() {
     }
 
     if (msgRes.data) setThreads(await buildThreads(msgRes.data, userId))
-
-    setLoading(false)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const fetchThreads = async (userId: string) => {

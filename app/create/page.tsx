@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CITY_NAMES, getCityCoords, EVENT_CATEGORIES } from '@/lib/constants'
 
+function formatDraftAge(d: Date) {
+  const diff = Date.now() - d.getTime()
+  if (diff < 60000) return 'just now'
+  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago'
+  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago'
+  return Math.floor(diff / 86400000) + 'd ago'
+}
+
 export default function CreateEventPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
@@ -33,6 +41,7 @@ export default function CreateEventPage() {
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const coverRef = useRef<HTMLInputElement>(null)
+  const draftToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Community context (when navigated from a community page)
   const [fromCommunityId, setFromCommunityId] = useState<string | null>(null)
@@ -116,7 +125,10 @@ export default function CreateEventPage() {
           .from('event-covers')
           .getPublicUrl(`drafts/${userId}/cover.${ext}`)
         coverUrl = urlData?.publicUrl ?? null
-        if (coverUrl) setCoverPreview(coverUrl)
+        if (coverUrl) {
+          setCoverPreview(coverUrl)
+          setCoverFile(null) // prevent re-upload on subsequent auto-saves
+        }
       }
     }
 
@@ -136,7 +148,8 @@ export default function CreateEventPage() {
     if (!silent) {
       setDraftSaving(false)
       setDraftToast(true)
-      setTimeout(() => setDraftToast(false), 2500)
+      if (draftToastTimerRef.current) clearTimeout(draftToastTimerRef.current)
+      draftToastTimerRef.current = setTimeout(() => setDraftToast(false), 2500)
     }
   }, [userId, title, category, description, date, startTime, endTime, venueName, address, city, capacity, tags, privacy, ticketType, ticketPrice, coverFile, coverPreview, lat, lng])
 
@@ -144,12 +157,19 @@ export default function CreateEventPage() {
   useEffect(() => {
     if (!userId || !title) return
     const interval = setInterval(() => saveDraft(true), 30000)
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      if (draftToastTimerRef.current) clearTimeout(draftToastTimerRef.current)
+    }
   }, [userId, title, saveDraft])
 
   const deleteDraft = async () => {
     if (!userId) return
     await supabase.from('event_drafts').delete().eq('user_id', userId)
+    const { data: files } = await supabase.storage.from('event-covers').list(`drafts/${userId}`)
+    if (files && files.length > 0) {
+      await supabase.storage.from('event-covers').remove(files.map(f => `drafts/${userId}/${f.name}`))
+    }
   }
 
   const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -254,14 +274,6 @@ export default function CreateEventPage() {
     } else {
       router.push('/events/' + insertedEvent!.id)
     }
-  }
-
-  const formatDraftAge = (d: Date) => {
-    const diff = Date.now() - d.getTime()
-    if (diff < 60000) return 'just now'
-    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago'
-    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago'
-    return Math.floor(diff / 86400000) + 'd ago'
   }
 
   const draftProgress = () => {

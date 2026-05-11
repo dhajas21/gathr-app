@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC_PREFIXES = ['/onboarding', '/auth', '/tour', '/privacy', '/terms', '/waitlist']
 
-const SUPABASE_HOST = 'adhahiqpiqwlvkykhbtf.supabase.co'
+const SUPABASE_HOST = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname
 
 function buildCsp(nonce: string): string {
   return [

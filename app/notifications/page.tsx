@@ -25,7 +25,7 @@ export default function NotificationsPage() {
       fetchNotifications(session.user.id)
 
       channel = supabase
-        .channel('notifications-realtime')
+        .channel('notifications-' + session.user.id)
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'notifications',
           filter: 'user_id=eq.' + session.user.id,
@@ -40,29 +40,32 @@ export default function NotificationsPage() {
   }, [router])
 
   const fetchNotifications = async (userId: string) => {
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(50)
+    try {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50)
 
-    if (data) {
-      setNotifications(data)
-      const actorIds = [...new Set(data.map((n: any) => n.actor_id).filter(Boolean))]
-      if (actorIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, name, avatar_url')
-          .in('id', actorIds)
-        if (profiles) {
-          const map: Record<string, any> = {}
-          profiles.forEach(p => { map[p.id] = p })
-          setActorProfiles(map)
+      if (data) {
+        setNotifications(data)
+        const actorIds = [...new Set(data.map((n: any) => n.actor_id).filter(Boolean))]
+        if (actorIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, name, avatar_url')
+            .in('id', actorIds)
+          if (profiles) {
+            const map: Record<string, any> = {}
+            profiles.forEach(p => { map[p.id] = p })
+            setActorProfiles(map)
+          }
         }
       }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const fetchActorProfile = async (actorId: string) => {
