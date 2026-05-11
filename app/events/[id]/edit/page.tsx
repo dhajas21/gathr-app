@@ -115,18 +115,25 @@ const addTag = () => {
 
     let finalCoverUrl = coverUrl
     if (coverFile) {
-      // Delete old cover before uploading new one to avoid orphaned files
-      if (coverUrl) {
-        const marker = '/object/public/event-covers/'
-        const oldPath = coverUrl.includes(marker) ? coverUrl.split(marker)[1]?.split('?')[0] : null
-        if (oldPath) await supabase.storage.from('event-covers').remove([oldPath])
-      }
       const ext = coverFile.name.split('.').pop()?.toLowerCase() || 'jpg'
-      const path = eventId + '/cover.' + ext
-      const { error: uploadErr } = await supabase.storage.from('event-covers').upload(path, coverFile, { upsert: true })
+      const path = `${eventId}/${Date.now()}.${ext}`
+      const { error: uploadErr } = await supabase.storage.from('event-covers').upload(path, coverFile, { cacheControl: '3600' })
       if (!uploadErr) {
         const { data: urlData } = supabase.storage.from('event-covers').getPublicUrl(path)
-        finalCoverUrl = urlData?.publicUrl ? urlData.publicUrl + '?t=' + Date.now() : coverUrl
+        if (urlData?.publicUrl) {
+          finalCoverUrl = urlData.publicUrl
+          // Delete the previous cover (best-effort)
+          if (coverUrl) {
+            const marker = '/object/public/event-covers/'
+            const idx = coverUrl.indexOf(marker)
+            if (idx !== -1) {
+              const oldPath = coverUrl.slice(idx + marker.length).split('?')[0]
+              if (oldPath && oldPath !== path) {
+                supabase.storage.from('event-covers').remove([oldPath]).then(() => {}).catch(() => {})
+              }
+            }
+          }
+        }
       }
     }
 

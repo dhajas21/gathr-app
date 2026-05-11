@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
+import * as Sentry from '@sentry/nextjs'
 import { supabase } from '@/lib/supabase'
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY
@@ -37,23 +38,28 @@ export default function AnalyticsProvider({ children }: { children: React.ReactN
   useEffect(() => { initPostHog() }, [])
 
   // Identify the user when a session exists; reset on sign-out
+  // Sends the user ID (no PII) to PostHog; sends ID + email to Sentry so error
+  // reports can be tied to a person for support follow-up.
   useEffect(() => {
-    if (!POSTHOG_KEY) return
     const sync = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
-        posthog.identify(session.user.id, {
-          email: session.user.email,
-          created_at: session.user.created_at,
-        })
+        if (POSTHOG_KEY) {
+          posthog.identify(session.user.id, { created_at: session.user.created_at })
+        }
+        Sentry.setUser({ id: session.user.id, email: session.user.email ?? undefined })
       } else {
-        posthog.reset()
+        if (POSTHOG_KEY) posthog.reset()
+        Sentry.setUser(null)
       }
     }
     sync()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') sync()
-      if (event === 'SIGNED_OUT') posthog.reset()
+      if (event === 'SIGNED_OUT') {
+        if (POSTHOG_KEY) posthog.reset()
+        Sentry.setUser(null)
+      }
     })
     return () => { subscription.unsubscribe() }
   }, [])

@@ -38,7 +38,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     const from = searchParams?.get('from')
     if (from && isValidUUID(from)) {
       fromEventIdRef.current = from
-      supabase.from('events').select('title').eq('id', from).single()
+      supabase.from('events').select('title').eq('id', from).maybeSingle()
         .then(({ data }) => { if (data) setFromEventName(data.title) })
     }
     params.then(({ id }) => {
@@ -140,7 +140,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         const eventCtxId = ordered.find((m: any) => m.event_id)?.event_id
         if (eventCtxId) {
           fromEventIdRef.current = eventCtxId
-          supabase.from('events').select('title').eq('id', eventCtxId).single()
+          supabase.from('events').select('title').eq('id', eventCtxId).maybeSingle()
             .then(({ data: ev }) => { if (ev) setFromEventName(ev.title) })
         }
       }

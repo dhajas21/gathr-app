@@ -15,11 +15,15 @@ export default function AuthCallbackPage() {
         return
       }
 
-      // Profile is auto-created by the handle_new_auth_user DB trigger.
-      // Wait briefly for the trigger to commit, then check if user has finished /setup yet.
+      // Profile is auto-created by the handle_new_auth_user DB trigger from
+      // raw_user_meta_data. We use the interests array as the durable
+      // "have they done setup?" marker — neither email nor Google signup
+      // populates it, so it's reliably zero-length until /setup is finished.
+      // (Previously we also checked avatar_url, but Google users come in with
+      // an avatar pre-set, which incorrectly routed them past /setup.)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, interests, avatar_url')
+        .select('id, interests')
         .eq('id', session.user.id)
         .maybeSingle()
 
@@ -28,9 +32,7 @@ export default function AuthCallbackPage() {
         return
       }
 
-      // New Google users land in /setup; returning users go straight home.
-      // Heuristic: if they've never set interests AND have no avatar, they haven't done setup.
-      const isFreshUser = !profile || ((profile.interests?.length ?? 0) === 0 && !profile.avatar_url)
+      const isFreshUser = !profile || (profile.interests?.length ?? 0) === 0
       router.push(isFreshUser ? '/setup' : '/home')
     })
   }, [router])

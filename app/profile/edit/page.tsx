@@ -66,14 +66,30 @@ export default function EditProfilePage() {
     if (fileRef.current) fileRef.current.value = ''
   }
 
+  // Unique-path strategy: every upload gets a fresh filename so the URL itself
+  // changes → no cache-buster needed → CDN can cache aggressively. We delete
+  // the old file (if any) to avoid storage bloat.
   const uploadAvatar = async (): Promise<string | null> => {
     if (!avatarFile || !userId) return avatarUrl
     const ext = avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const safeName = userId + '.' + ext
-    const { error } = await supabase.storage.from('profile-photos').upload(safeName, avatarFile, { cacheControl: '3600', upsert: true })
+    const newPath = `${userId}/${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('profile-photos').upload(newPath, avatarFile, { cacheControl: '3600' })
     if (error) { setUploadError('Photo upload failed — your other changes were saved.'); return avatarUrl }
-    const { data: urlData } = supabase.storage.from('profile-photos').getPublicUrl(safeName)
-    return urlData?.publicUrl ? urlData.publicUrl + '?t=' + Date.now() : avatarUrl
+
+    // Clean up the previous file (best-effort; failure doesn't block the save)
+    if (avatarUrl) {
+      const marker = '/object/public/profile-photos/'
+      const idx = avatarUrl.indexOf(marker)
+      if (idx !== -1) {
+        const oldPath = avatarUrl.slice(idx + marker.length).split('?')[0]
+        if (oldPath && oldPath !== newPath) {
+          supabase.storage.from('profile-photos').remove([oldPath]).then(() => {}).catch(() => {})
+        }
+      }
+    }
+
+    const { data: urlData } = supabase.storage.from('profile-photos').getPublicUrl(newPath)
+    return urlData?.publicUrl ?? avatarUrl
   }
 
   const toggleInterest = (interest: string) => {

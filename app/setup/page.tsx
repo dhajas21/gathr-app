@@ -70,10 +70,11 @@ export default function SetupPage() {
     let avatarUrl: string | null = null
     if (avatarFile) {
       const ext = avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg'
-      const { error } = await supabase.storage.from('profile-photos').upload(user.id + '.' + ext, avatarFile, { upsert: true })
+      const path = `${user.id}/${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('profile-photos').upload(path, avatarFile, { cacheControl: '3600' })
       if (!error) {
-        const { data: urlData } = supabase.storage.from('profile-photos').getPublicUrl(user.id + '.' + ext)
-        if (urlData?.publicUrl) avatarUrl = urlData.publicUrl + '?t=' + Date.now()
+        const { data: urlData } = supabase.storage.from('profile-photos').getPublicUrl(path)
+        if (urlData?.publicUrl) avatarUrl = urlData.publicUrl
       }
     }
     setSaveStep('profile')
