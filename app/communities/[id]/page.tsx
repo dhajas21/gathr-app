@@ -610,8 +610,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                         <button onClick={() => router.push('/profile/' + profile?.id)}
                           className="text-sm font-semibold text-[#F0EDE6]">{profile?.name || 'Unknown'}</button>
                         <span className="text-[9px] text-white/25">{formatTime(post.created_at)}</span>
-                        {isOwn && (
-                          <button onClick={() => handleDeletePost(post.id)} className="ml-auto text-[9px] text-white/20">✕</button>
+                        {(isOwn || isOwnerOrAdmin) && (
+                          <button onClick={() => handleDeletePost(post.id)} className="ml-auto text-[9px] text-white/20 active:text-[#E85B5B]">✕</button>
                         )}
                       </div>
                     </div>
