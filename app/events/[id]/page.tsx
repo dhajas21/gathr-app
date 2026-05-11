@@ -984,7 +984,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Cancel RSVP confirm sheet */}
       {showCancelRsvp && (
-        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end justify-center" onClick={() => setShowCancelRsvp(false)}>
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end justify-center" onClick={() => !rsvpLoading && setShowCancelRsvp(false)}>
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4"></div>
             <div className="text-center mb-5">
@@ -993,10 +993,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <p className="text-xs text-white/40">Your spot will be released back to the event.</p>
             </div>
             <button onClick={handleConfirmCancelRsvp}
-              className="w-full py-3.5 rounded-2xl bg-[#3A1E1E] border border-red-500/20 text-red-400 font-bold text-sm mb-3">
-              Yes, Cancel RSVP
+              disabled={rsvpLoading}
+              className="w-full py-3.5 rounded-2xl bg-[#3A1E1E] border border-red-500/20 text-red-400 font-bold text-sm mb-3 disabled:opacity-50">
+              {rsvpLoading ? 'Cancelling…' : 'Yes, Cancel RSVP'}
             </button>
             <button onClick={() => setShowCancelRsvp(false)}
+              disabled={rsvpLoading}
               className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm">
               Keep My Spot
             </button>

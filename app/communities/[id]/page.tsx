@@ -178,7 +178,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     setCommunity(commData)
 
     const [memberCheck, membersData, eventsData, postsData, likesData, postCountData] = await Promise.all([
-      supabase.from('community_members').select('role').eq('community_id', id).eq('user_id', userId).single(),
+      supabase.from('community_members').select('role').eq('community_id', id).eq('user_id', userId).maybeSingle(),
       supabase.from('community_members')
         .select('*, profile:profiles!community_members_user_id_fkey(id, name, bio_social, avatar_url)')
         .eq('community_id', id).neq('role', 'pending')
@@ -249,18 +249,20 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const handleCancelRequest = async () => {
     if (!user || actionLoading) return
     setActionLoading(true)
-    await supabase.from('community_members').delete().eq('community_id', communityId).eq('user_id', user.id)
-    setIsPending(false)
+    const { error } = await supabase.from('community_members').delete().eq('community_id', communityId).eq('user_id', user.id)
+    if (!error) setIsPending(false)
     setActionLoading(false)
   }
 
   const handleLeave = async () => {
     if (!user || actionLoading || memberRole === 'owner') return
     setActionLoading(true)
-    await supabase.from('community_members').delete().eq('community_id', communityId).eq('user_id', user.id)
-    setIsMember(false)
-    setMemberRole(null)
-    setCommunity((prev: any) => prev ? { ...prev, member_count: Math.max(0, (prev.member_count || 1) - 1) } : prev)
+    const { error } = await supabase.from('community_members').delete().eq('community_id', communityId).eq('user_id', user.id)
+    if (!error) {
+      setIsMember(false)
+      setMemberRole(null)
+      setCommunity((prev: any) => prev ? { ...prev, member_count: Math.max(0, (prev.member_count || 1) - 1) } : prev)
+    }
     setActionLoading(false)
   }
 

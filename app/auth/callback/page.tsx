@@ -19,9 +19,9 @@ export default function AuthCallbackPage() {
         .from('profiles')
         .select('id')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
 
-      if (profileError && profileError.code !== 'PGRST116') {
+      if (profileError) {
         setError('Failed to load your profile. Please try again.')
         return
       }

@@ -26,7 +26,12 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [privacy, setPrivacy] = useState('public')
-const [coverUrl, setCoverUrl] = useState<string | null>(null)
+  const [ticketType, setTicketType] = useState<'free' | 'paid' | 'donation'>('free')
+  const [ticketPrice, setTicketPrice] = useState('')
+  const [lat, setLat] = useState<number | null>(null)
+  const [lng, setLng] = useState<number | null>(null)
+  const [showCoordOverride, setShowCoordOverride] = useState(false)
+  const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const coverRef = useRef<HTMLInputElement>(null)
@@ -58,6 +63,10 @@ const [coverUrl, setCoverUrl] = useState<string | null>(null)
       setCapacity(data.capacity ? String(data.capacity) : '')
       setTags(data.tags || [])
       setPrivacy(data.visibility || 'public')
+      setTicketType(data.ticket_type || 'free')
+      setTicketPrice(data.ticket_price ? String(data.ticket_price) : '')
+      setLat(data.latitude ?? null)
+      setLng(data.longitude ?? null)
 
       const start = new Date(data.start_datetime)
       const end = new Date(data.end_datetime)
@@ -94,6 +103,13 @@ const addTag = () => {
       setError('Please fill in all required fields')
       return
     }
+    if (ticketType === 'paid') {
+      const price = parseFloat(ticketPrice)
+      if (!ticketPrice || !isFinite(price) || price <= 0 || price > 10000) {
+        setError('Enter a valid ticket price (between $0.01 and $10,000)')
+        return
+      }
+    }
     setSaving(true)
     setError('')
 
@@ -123,25 +139,7 @@ const addTag = () => {
     }
     const cap = parseInt(capacity) || 0
 
-    // Geocode on save if address or city is provided
-    try {
-      const geoQuery = [address.trim() || venueName.trim(), city.trim()].filter(Boolean).join(', ')
-      if (geoQuery) {
-        const res = await fetch(
-          'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(geoQuery),
-          { headers: { 'User-Agent': 'GathrApp/1.0' } }
-        )
-        const geodata = await res.json()
-        if (geodata[0]) {
-          await supabase.from('events').update({
-            latitude: parseFloat(geodata[0].lat),
-            longitude: parseFloat(geodata[0].lon),
-          }).eq('id', eventId)
-        }
-      }
-    } catch {}
-
-    const { error: updateError } = await supabase.from('events').update({
+    const updatePayload: any = {
       title: title.trim(),
       category,
       description: description.trim(),
@@ -154,12 +152,24 @@ const addTag = () => {
       tags,
       visibility: privacy,
       cover_url: finalCoverUrl,
-    }).eq('id', eventId)
+      ticket_type: ticketType,
+      ticket_price: ticketType === 'paid' && ticketPrice ? parseFloat(ticketPrice) : null,
+    }
+    if (showCoordOverride && lat !== null && lng !== null) {
+      updatePayload.latitude = lat
+      updatePayload.longitude = lng
+    }
+
+    const { error: updateError } = await supabase.from('events').update(updatePayload).eq('id', eventId)
 
     if (updateError) {
-      setError(updateError.message)
+      setError('Failed to save changes. Please try again.')
       setSaving(false)
       return
+    }
+    // Server-side geocoding handles lat/lng — fire-and-forget invocation
+    if (!showCoordOverride) {
+      supabase.functions.invoke('geocode-event', { body: { event_id: eventId } }).catch(() => {})
     }
 
     router.push('/events/' + eventId)
@@ -306,6 +316,62 @@ const addTag = () => {
               </div>
             ))}
           </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>Tickets</label>
+          <div className="space-y-2">
+            {[
+              { value: 'free', label: 'Free', desc: 'No cost to attend' },
+              { value: 'paid', label: 'Paid', desc: 'Set a price per ticket' },
+              { value: 'donation', label: 'Donation', desc: 'Pay what you want' },
+            ].map(opt => (
+              <div key={opt.value} onClick={() => setTicketType(opt.value as 'free' | 'paid' | 'donation')}
+                className={'flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ' + (ticketType === opt.value ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
+                <div className={'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ' + (ticketType === opt.value ? 'border-[#E8B84B]' : 'border-white/20')}>
+                  {ticketType === opt.value && <div className="w-2 h-2 rounded-full bg-[#E8B84B]" />}
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-[#F0EDE6]">{opt.label}</div>
+                  <div className="text-xs text-white/40">{opt.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {ticketType === 'paid' && (
+            <div className="mt-3 relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
+              <input type="number" className={inputClass + ' pl-8'} placeholder="0.00" value={ticketPrice} onChange={e => setTicketPrice(e.target.value)} min={0} step={0.01} />
+            </div>
+          )}
+        </div>
+
+        <div>
+          <button onClick={() => setShowCoordOverride(v => !v)}
+            className="w-full text-left flex items-center justify-between bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3">
+            <div>
+              <div className="text-sm text-[#F0EDE6]">Advanced: Override map coordinates</div>
+              <div className="text-[10px] text-white/35 mt-0.5">{lat !== null && lng !== null ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : 'Auto-detected from address'}</div>
+            </div>
+            <span className="text-white/30 text-sm">{showCoordOverride ? '↑' : '›'}</span>
+          </button>
+          {showCoordOverride && (
+            <div className="mt-3 space-y-2">
+              <p className="text-[10px] text-white/35">Use these if auto-geocoding gets the wrong location. Decimal degrees only.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Latitude</label>
+                  <input type="number" className={inputClass} placeholder="48.7519" value={lat ?? ''}
+                    onChange={e => setLat(e.target.value === '' ? null : parseFloat(e.target.value))} step="any" />
+                </div>
+                <div>
+                  <label className={labelClass}>Longitude</label>
+                  <input type="number" className={inputClass} placeholder="-122.4787" value={lng ?? ''}
+                    onChange={e => setLng(e.target.value === '' ? null : parseFloat(e.target.value))} step="any" />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {error && <p className="text-[#E85B5B] text-xs bg-[#E85B5B]/10 border border-[#E85B5B]/20 rounded-2xl px-4 py-3">{error}</p>}

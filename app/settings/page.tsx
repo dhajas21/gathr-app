@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import ThemeToggle from '@/components/ThemeToggle'
+import PasswordInput from '@/components/PasswordInput'
 import { useTheme } from '@/hooks/useTheme'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { optimizedImgSrc } from '@/lib/utils'
 
 export default function SettingsPage() {
@@ -27,6 +29,7 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [gathrPlus, setGathrPlus] = useState(false)
   const [gathrPlusExpiresAt, setGathrPlusExpiresAt] = useState<string | null>(null)
   const passwordSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -139,6 +142,7 @@ export default function SettingsPage() {
   }
 
   const { theme, toggleTheme } = useTheme()
+  const { status: pushStatus, enable: enablePush, disable: disablePush } = usePushNotifications(user?.id ?? null)
 
   const isSocial = profileMode === 'social' || profileMode === 'both'
   const isProfessional = profileMode === 'professional' || profileMode === 'both'
@@ -277,13 +281,12 @@ export default function SettingsPage() {
 
           {showPasswordSection && (
             <div className="px-4 pb-4 space-y-2.5 border-t border-white/[0.06] pt-3">
-              <input
+              <PasswordInput
                 className={inputClass}
-                type="password"
                 placeholder="New password (min. 12 characters)"
                 value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                maxLength={72}
+                onChange={setNewPassword}
+                autoComplete="new-password"
               />
               {newPassword.length > 0 && (() => {
                 const score = [
@@ -312,14 +315,13 @@ export default function SettingsPage() {
                   </div>
                 )
               })()}
-              <input
+              <PasswordInput
                 className={inputClass}
-                type="password"
                 placeholder="Confirm new password"
                 value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
+                onChange={setConfirmPassword}
                 onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
-                maxLength={72}
+                autoComplete="new-password"
               />
               {passwordError && (
                 <div className="text-xs text-[#E85B5B] bg-[#E85B5B]/8 border border-[#E85B5B]/20 rounded-xl px-3 py-2">
@@ -406,6 +408,26 @@ export default function SettingsPage() {
           </button>
 
           <button
+            onClick={() => pushStatus === 'active' ? disablePush() : enablePush()}
+            disabled={pushStatus === 'unsupported' || pushStatus === 'denied' || pushStatus === 'pending'}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] active:bg-white/[0.03] transition-colors disabled:opacity-60"
+          >
+            <div className="text-left flex-1 pr-3">
+              <div className="text-sm text-[#F0EDE6]">Push Notifications</div>
+              <div className="text-[10px] text-white/35 mt-0.5">
+                {pushStatus === 'unsupported' ? 'Not supported on this browser'
+                  : pushStatus === 'denied' ? 'Blocked — enable in your browser settings'
+                  : pushStatus === 'pending' ? 'Asking for permission…'
+                  : pushStatus === 'active' ? 'Event reminders, matches & messages'
+                  : 'Get notified when matches and messages arrive'}
+              </div>
+            </div>
+            <div className={'w-11 h-6 rounded-full transition-all flex-shrink-0 relative ' + (pushStatus === 'active' ? 'bg-[#7EC87E]' : 'bg-white/15')}>
+              <div className={'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ' + (pushStatus === 'active' ? 'left-[22px]' : 'left-0.5')} />
+            </div>
+          </button>
+
+          <button
             onClick={() => router.push('/profile/edit')}
             className="w-full flex items-center justify-between px-4 py-3.5 active:bg-white/[0.03] transition-colors"
           >
@@ -467,15 +489,28 @@ export default function SettingsPage() {
       </div>
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => !deletingAccount && setShowDeleteConfirm(false)}>
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => !deletingAccount && (setShowDeleteConfirm(false), setDeleteConfirmText(''))}>
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
-            <div className="text-center mb-6">
+            <div className="text-center mb-5">
               <div className="text-3xl mb-3">⚠️</div>
               <h3 className="text-base font-bold text-[#F0EDE6] mb-2">Delete your account?</h3>
-              <p className="text-xs text-white/40 leading-relaxed">
-                This will permanently delete your profile, events, connections, and messages. This cannot be undone.
+              <p className="text-xs text-white/40 leading-relaxed mb-4">
+                This will permanently delete your profile, events, connections, messages, and Gathr+ status. This cannot be undone.
               </p>
+              <p className="text-[10px] text-white/35 mb-2">
+                Type <span className="font-bold text-white/60">DELETE</span> to confirm:
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="w-full text-center bg-[#0D110D] border border-white/15 rounded-xl px-4 py-2.5 text-sm text-[#F0EDE6] placeholder-white/20 outline-none focus:border-red-500/40 tracking-widest"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+              />
             </div>
             {deleteError && (
               <div className="text-xs text-[#E85B5B] bg-[#E85B5B]/8 border border-[#E85B5B]/20 rounded-xl px-3 py-2 mb-4 text-center">
@@ -485,13 +520,13 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <button
                 onClick={handleDeleteAccount}
-                disabled={deletingAccount}
-                className="w-full py-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-50"
+                disabled={deletingAccount || deleteConfirmText.trim().toUpperCase() !== 'DELETE'}
+                className="w-full py-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-40"
               >
                 {deletingAccount ? 'Deleting…' : 'Yes, Delete My Account'}
               </button>
               <button
-                onClick={() => setShowDeleteConfirm(false)}
+                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
                 disabled={deletingAccount}
                 className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm"
               >

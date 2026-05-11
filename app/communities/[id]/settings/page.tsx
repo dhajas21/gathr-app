@@ -79,25 +79,25 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
 
   const handlePromote = async (userId: string) => {
     setUpdatingMemberId(userId)
-    await supabase.from('community_members').update({ role: 'admin' })
+    const { error } = await supabase.from('community_members').update({ role: 'admin' })
       .eq('community_id', communityId).eq('user_id', userId)
-    setMembers(prev => prev.map(m => m.user_id === userId ? { ...m, role: 'admin' } : m))
+    if (!error) setMembers(prev => prev.map(m => m.user_id === userId ? { ...m, role: 'admin' } : m))
     setUpdatingMemberId(null)
   }
 
   const handleDemote = async (userId: string) => {
     setUpdatingMemberId(userId)
-    await supabase.from('community_members').update({ role: 'member' })
+    const { error } = await supabase.from('community_members').update({ role: 'member' })
       .eq('community_id', communityId).eq('user_id', userId)
-    setMembers(prev => prev.map(m => m.user_id === userId ? { ...m, role: 'member' } : m))
+    if (!error) setMembers(prev => prev.map(m => m.user_id === userId ? { ...m, role: 'member' } : m))
     setUpdatingMemberId(null)
   }
 
   const handleRemoveMember = async (userId: string) => {
     setUpdatingMemberId(userId)
-    await supabase.from('community_members').delete()
+    const { error } = await supabase.from('community_members').delete()
       .eq('community_id', communityId).eq('user_id', userId)
-    setMembers(prev => prev.filter(m => m.user_id !== userId))
+    if (!error) setMembers(prev => prev.filter(m => m.user_id !== userId))
     setUpdatingMemberId(null)
   }
 

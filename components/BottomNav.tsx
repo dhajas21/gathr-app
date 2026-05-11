@@ -33,6 +33,12 @@ const ProfileIcon = () => (
   </svg>
 )
 
+const nav = (router: ReturnType<typeof useRouter>, href: string, currentPath: string | null) => {
+  if (currentPath === href) return
+  try { (navigator as any).vibrate?.(8) } catch {}
+  router.push(href)
+}
+
 export default function BottomNav() {
   const router = useRouter()
   const path = usePathname()
@@ -93,17 +99,17 @@ export default function BottomNav() {
       <div className="h-6 bg-gradient-to-t from-[#0D110D] to-transparent pointer-events-none" />
       <div className="bg-[#0A0E0A]/92 backdrop-blur-2xl border-t border-white/[0.07] flex items-center px-1 pb-8 pt-2.5">
 
-        <button onClick={() => { if (path !== '/home') router.push('/home') }} className={tabClass('/home')}>
+        <button onClick={() => nav(router, '/home', path)} className={tabClass('/home')}>
           <HomeIcon />
           <span className="text-[9px] font-semibold tracking-wider uppercase">Home</span>
         </button>
 
-        <button onClick={() => { if (path !== '/communities') router.push('/communities') }} className={tabClass('/communities')}>
+        <button onClick={() => nav(router, '/communities', path)} className={tabClass('/communities')}>
           <CommunitiesIcon />
           <span className="text-[9px] font-semibold tracking-wider uppercase">Groups</span>
         </button>
 
-        <button onClick={() => router.push('/create')} className="flex-1 flex flex-col items-center -mt-3">
+        <button onClick={() => { try { (navigator as any).vibrate?.(12) } catch {}; router.push('/create') }} className="flex-1 flex flex-col items-center -mt-3">
           <div className="w-12 h-12 rounded-[18px] bg-[#E8B84B] flex items-center justify-center active:scale-95 transition-transform"
             style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.35), 0 0 0 1px rgba(232,184,75,0.2)' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D110D" strokeWidth="2.5" strokeLinecap="round">
@@ -112,7 +118,7 @@ export default function BottomNav() {
           </div>
         </button>
 
-        <button onClick={() => { if (path !== '/messages') router.push('/messages') }} className={tabClass('/messages')}>
+        <button onClick={() => nav(router, '/messages', path)} className={tabClass('/messages')}>
           <div className="relative">
             <MessageIcon />
             <Badge count={unreadMessages} />
@@ -120,7 +126,7 @@ export default function BottomNav() {
           <span className="text-[9px] font-semibold tracking-wider uppercase">Messages</span>
         </button>
 
-        <button onClick={() => { if (path !== '/profile') router.push('/profile') }} className={tabClass('/profile')}>
+        <button onClick={() => nav(router, '/profile', path)} className={tabClass('/profile')}>
           <div className="relative">
             <ProfileIcon />
             <Badge count={unreadNotifs} />

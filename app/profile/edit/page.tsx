@@ -78,7 +78,7 @@ export default function EditProfilePage() {
 
   const toggleInterest = (interest: string) => {
     setInterests(prev =>
-      prev.includes(interest) ? prev.filter(i => i !== interest) : [...prev, interest]
+      prev.includes(interest) ? prev.filter(i => i !== interest) : prev.length < 10 ? [...prev, interest] : prev
     )
   }
 
@@ -86,8 +86,18 @@ export default function EditProfilePage() {
     setSaving(true)
     setSaveError('')
     let finalAvatarUrl = avatarUrl
-    if (avatarFile) finalAvatarUrl = await uploadAvatar()
-    else if (!avatarPreview && avatarUrl) finalAvatarUrl = null
+    if (avatarFile) {
+      finalAvatarUrl = await uploadAvatar()
+    } else if (!avatarPreview && avatarUrl) {
+      // User removed their avatar — also delete the storage file so it doesn't orphan
+      const marker = '/object/public/profile-photos/'
+      const idx = avatarUrl.indexOf(marker)
+      if (idx !== -1) {
+        const storagePath = avatarUrl.slice(idx + marker.length).split('?')[0]
+        if (storagePath) await supabase.storage.from('profile-photos').remove([storagePath])
+      }
+      finalAvatarUrl = null
+    }
     const { error } = await supabase.from('profiles').update({
       name: name.trim(), bio_social: bio.trim(), city, interests, profile_mode: mode, avatar_url: finalAvatarUrl, rsvp_visibility: rsvpVisibility,
     }).eq('id', userId)
@@ -220,7 +230,7 @@ export default function EditProfilePage() {
         </div>
 
         <div>
-          <label className="text-xs text-white/50 mb-2 block">Interests <span className="text-white/25">({interests.length})</span></label>
+          <label className="text-xs text-white/50 mb-2 block">Interests <span className="text-white/25">({interests.length}/10)</span></label>
           <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-3">
             <span className="text-sm text-white/30">🔍</span>
             <input ref={interestInputRef} type="text" value={interestSearch} onChange={e => setInterestSearch(e.target.value)}

@@ -23,6 +23,7 @@ export default function SetupPage() {
   const [saving, setSaving] = useState(false)
   const [saveStep, setSaveStep] = useState<'photo' | 'profile' | null>(null)
   const [saveError, setSaveError] = useState('')
+  const [photoError, setPhotoError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -30,7 +31,7 @@ export default function SetupPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
-      supabase.from('profiles').select('name, city').eq('id', session.user.id).single()
+      supabase.from('profiles').select('name, city').eq('id', session.user.id).maybeSingle()
         .then(({ data }) => {
           if (data?.name) setName(data.name)
           if (data?.city) setCity(data.city)
@@ -39,10 +40,17 @@ export default function SetupPage() {
   }, [router])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoError('')
     const file = e.target.files?.[0]
     if (!file) return
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return
-    if (file.size > 2 * 1024 * 1024) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setPhotoError('Please use a JPG, PNG, or WebP image.')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoError('Image must be under 2 MB.')
+      return
+    }
     setAvatarFile(file)
     const reader = new FileReader()
     reader.onload = (ev) => setAvatarPreview(ev.target?.result as string)
@@ -133,6 +141,11 @@ export default function SetupPage() {
               )}
               <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-[#E8B84B] rounded-full flex items-center justify-center text-sm border-2 border-[#0D110D]">📷</div>
             </button>
+            {photoError && (
+              <div className="text-xs text-[#E85B5B] bg-[#E85B5B]/8 border border-[#E85B5B]/20 rounded-xl px-3 py-2 mb-3 max-w-[280px] text-center">
+                {photoError}
+              </div>
+            )}
             <div className="w-full space-y-3">
               <div>
                 <label className="text-xs text-white/40 mb-1.5 block">Your name</label>

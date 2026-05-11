@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
@@ -9,10 +9,9 @@ import { formatDateLong, formatTime, optimizedImgSrc } from '@/lib/utils'
 import { catEmoji } from '@/lib/categoryEmoji'
 
 export default function HostDashboardPage() {
-  const [user, setUser] = useState<any>(null)
   const [events, setEvents] = useState<any[]>([])
   const [rsvpCounts, setRsvpCounts] = useState<Record<string, number>>({})
-  const [ticketRevenue] = useState<Record<string, number>>({})
+  const eventIdsRef = useRef<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'insights'>(() => {
     try { return (sessionStorage.getItem('gathr_host_tab') as 'overview' | 'events' | 'insights') || 'overview' } catch { return 'overview' }
   })
@@ -26,17 +25,18 @@ export default function HostDashboardPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return
       if (!session) { router.push('/auth'); return }
-      setUser(session.user)
       fetchData(session.user.id)
 
       channel = supabase
         .channel('host-rsvps')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rsvps' }, (payload) => {
           const eventId = (payload.new as any).event_id
+          if (!eventIdsRef.current.has(eventId)) return
           setRsvpCounts(prev => ({ ...prev, [eventId]: (prev[eventId] || 0) + 1 }))
         })
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'rsvps' }, (payload) => {
           const eventId = (payload.old as any).event_id
+          if (!eventIdsRef.current.has(eventId)) return
           setRsvpCounts(prev => ({ ...prev, [eventId]: Math.max(0, (prev[eventId] || 0) - 1) }))
         })
         .subscribe()
@@ -56,6 +56,7 @@ export default function HostDashboardPage() {
 
       if (!data) return
       setEvents(data)
+      eventIdsRef.current = new Set(data.map((e: any) => e.id as string))
 
       if (data.length > 0) {
         const ids = data.map((e: any) => e.id)
@@ -75,7 +76,6 @@ export default function HostDashboardPage() {
   const upcoming = events.filter(e => e.start_datetime >= now)
   const past = events.filter(e => e.start_datetime < now)
   const totalRsvps = Object.values(rsvpCounts).reduce((a, b) => a + b, 0)
-  const totalRevenue = Object.values(ticketRevenue).reduce((a, b) => a + b, 0)
 
   const bestEvent = [...events].sort((a, b) => (rsvpCounts[b.id] || 0) - (rsvpCounts[a.id] || 0))[0]
   const avgAttendance = past.length > 0
@@ -139,8 +139,8 @@ export default function HostDashboardPage() {
               {[
                 { num: upcoming.length, label: 'Upcoming', icon: '📅', color: 'text-[#7EC87E]' },
                 { num: totalRsvps, label: 'Total RSVPs', icon: '👥', color: 'text-[#E8B84B]' },
-                { num: totalRevenue > 0 ? '$' + totalRevenue.toFixed(0) : '—', label: 'Revenue', icon: '💰', color: 'text-[#E8B84B]' },
                 { num: avgAttendance || '—', label: 'Avg attendance', icon: '📊', color: 'text-[#7EC87E]' },
+                { num: events.length, label: 'Events', icon: '📅', color: 'text-[#E8B84B]' },
               ].map(stat => (
                 <div key={stat.label} className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
                   <div className="flex items-center justify-between mb-2">
@@ -234,7 +234,7 @@ export default function HostDashboardPage() {
                       )}
                       {event.ticket_type && event.ticket_type !== 'free' && (
                         <div className="mt-2 flex items-center gap-1.5">
-                          <span className="text-[10px] text-[#E8B84B]">🎟 {event.ticket_type === 'paid' && event.ticket_price ? '$' + event.ticket_price + ' · ' : ''}{ticketRevenue[event.id] ? '$' + ticketRevenue[event.id].toFixed(0) + ' collected' : 'No sales yet'}</span>
+                          <span className="text-[10px] text-[#E8B84B]">🎟 {event.ticket_type === 'paid' && event.ticket_price ? '$' + event.ticket_price : event.ticket_type === 'donation' ? 'Donation' : 'Paid'}</span>
                         </div>
                       )}
                       <div className="flex gap-2 mt-3">
@@ -320,7 +320,6 @@ export default function HostDashboardPage() {
                 <div className="space-y-2">
                   {past.map(event => {
                     const count = rsvpCounts[event.id] || 0
-                    const rev = ticketRevenue[event.id] || 0
                     return (
                       <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                         className="bg-[#1C241C] border border-white/10 rounded-2xl p-3 flex items-center gap-3 cursor-pointer active:opacity-70">
@@ -334,7 +333,6 @@ export default function HostDashboardPage() {
                         <div className="text-right flex-shrink-0">
                           <div className="text-sm font-bold text-white/40">{count}</div>
                           <div className="text-[9px] text-white/20">attended</div>
-                          {rev > 0 && <div className="text-[9px] text-[#E8B84B] mt-0.5">${rev.toFixed(0)}</div>}
                         </div>
                       </div>
                     )
@@ -376,7 +374,6 @@ export default function HostDashboardPage() {
                   { label: 'Total RSVPs', val: totalRsvps },
                   { label: 'Avg per event', val: events.length > 0 ? Math.round(totalRsvps / events.length) : 0 },
                   { label: 'Avg past attendance', val: avgAttendance || '—' },
-                  { label: 'Total revenue', val: totalRevenue > 0 ? '$' + totalRevenue.toFixed(2) : '$0.00' },
                 ].map(item => (
                   <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/[0.06] last:border-0">
                     <span className="text-xs text-white/50">{item.label}</span>

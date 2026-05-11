@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CITY_NAMES } from '@/lib/constants'
+import PasswordInput from '@/components/PasswordInput'
 
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -123,7 +124,8 @@ export default function AuthPage() {
                 <p className="text-sm text-white/35 mb-7">We'll send a link to your email. Check your spam if it doesn't arrive in a minute.</p>
                 <div className="space-y-3">
                   <input className={inputClass} placeholder="Email address" type="email" value={email}
-                    onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} maxLength={100} autoFocus />
+                    onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} maxLength={100}
+                    autoComplete="email" inputMode="email" autoFocus />
                   {error && <ErrorBox message={error} />}
                   <CTA onClick={handleSubmit} loading={loading} label="Send Reset Link" />
                 </div>
@@ -160,13 +162,19 @@ export default function AuthPage() {
             <div className="space-y-2.5">
               {isSignUp && (
                 <input className={inputClass} placeholder="Full name" value={name}
-                  onChange={e => setName(e.target.value)} maxLength={50}/>
+                  onChange={e => setName(e.target.value)} maxLength={50}
+                  autoComplete="name"/>
               )}
               <input className={inputClass} placeholder="Email" type="email" value={email}
-                onChange={e => setEmail(e.target.value)} maxLength={100}/>
-              <input className={inputClass} placeholder="Password" type="password" value={password}
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSubmit()} maxLength={72}/>
+                onChange={e => setEmail(e.target.value)} maxLength={100}
+                autoComplete="email" inputMode="email"/>
+              <PasswordInput
+                className={inputClass}
+                placeholder="Password"
+                value={password}
+                onChange={setPassword}
+                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}/>
               {isSignUp && (
                 <select className={inputClass + ' appearance-none'} value={city} onChange={e => setCity(e.target.value)}>
                   {CITY_NAMES.map(c => <option key={c} value={c}>{c}</option>)}

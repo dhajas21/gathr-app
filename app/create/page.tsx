@@ -71,7 +71,7 @@ export default function CreateEventPage() {
       .from('event_drafts')
       .select('*')
       .eq('user_id', uid)
-      .single()
+      .maybeSingle()
     if (data && (data.title || data.category || data.venue_name)) {
       setPendingDraft(data)
       setShowDraftModal(true)

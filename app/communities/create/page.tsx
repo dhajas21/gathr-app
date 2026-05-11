@@ -70,6 +70,7 @@ export default function CreateCommunityPage() {
     if (name.trim().length < 3) return
     setLoading(true)
 
+    // member_count starts at 0; the community_member_count_trigger bumps it to 1 when the owner row is inserted
     const { data: community, error } = await supabase.from('communities').insert({
       name: name.trim(),
       description: description.trim() || null,
@@ -77,10 +78,28 @@ export default function CreateCommunityPage() {
       visibility,
       is_private: visibility === 'private',
       created_by: user.id,
-      member_count: 1,
+      member_count: 0,
     }).select().single()
 
-    if (error || !community) { setLoading(false); return }
+    if (error || !community) {
+      setUploadError(error?.message || 'Failed to create community')
+      setLoading(false)
+      return
+    }
+
+    // Insert owner row — trigger handles member_count
+    const { error: memberError } = await supabase.from('community_members').insert({
+      community_id: community.id,
+      user_id: user.id,
+      role: 'owner',
+    })
+    if (memberError) {
+      // Roll back the community row so we don't orphan it
+      await supabase.from('communities').delete().eq('id', community.id)
+      setUploadError('Failed to register you as the owner. Try again.')
+      setLoading(false)
+      return
+    }
 
     if (bannerFile) {
       const bannerUrl = await uploadBanner(community.id)
@@ -88,12 +107,6 @@ export default function CreateCommunityPage() {
         await supabase.from('communities').update({ banner_url: bannerUrl }).eq('id', community.id)
       }
     }
-
-    await supabase.from('community_members').insert({
-      community_id: community.id,
-      user_id: user.id,
-      role: 'owner',
-    })
 
     router.push(`/communities/${community.id}`)
     setLoading(false)

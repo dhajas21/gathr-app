@@ -271,10 +271,10 @@ export default function SearchPage() {
   const handleConnect = async (e: React.MouseEvent, personId: string) => {
     e.stopPropagation()
     if (!user || connectionStatuses[personId]) return
-    const { data } = await supabase.from('connections').insert({
+    const { data, error } = await supabase.from('connections').insert({
       requester_id: user.id, addressee_id: personId,
     }).select().single()
-    if (data) {
+    if (!error && data) {
       setConnectionStatuses(prev => ({ ...prev, [personId]: 'pending' }))
     }
   }

@@ -14,7 +14,6 @@ export default function MapPage() {
   const [events, setEvents] = useState<any[]>([])
   const [selected, setSelected] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [geocoding, setGeocoding] = useState(false)
   const [userCity, setUserCity] = useState<string | null>(null)
   const router = useRouter()
 
@@ -23,53 +22,28 @@ export default function MapPage() {
       if (!session) { router.push('/auth'); return }
       fetchEvents(session.user.id)
     })
-  }, [])
+  }, [router])
 
   const fetchEvents = async (userId: string) => {
-    const { data: profileData } = await supabase.from('profiles').select('city').eq('id', userId).single()
+    const { data: profileData } = await supabase.from('profiles').select('city').eq('id', userId).maybeSingle()
     const city = profileData?.city || null
     setUserCity(city)
 
+    // Only fetch events that already have coords — geocoding happens server-side at event create/edit
     let query = supabase
       .from('events')
       .select('id, title, category, location_name, city, start_datetime, latitude, longitude, spots_left, capacity, cover_url')
       .eq('visibility', 'public')
       .gte('start_datetime', new Date().toISOString())
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null)
       .order('start_datetime', { ascending: true })
-      .limit(50)
+      .limit(100)
     if (city) query = (query as any).eq('city', city)
     const { data } = await query
 
-    if (!data) { setLoading(false); return }
-
-    const withCoords = data.filter(e => e.latitude && e.longitude)
-    const withoutCoords = data.filter(e => !e.latitude || !e.longitude)
-
-    setEvents(withCoords)
-    setLoading(false) // show map immediately; geocoding continues in background
-
-    // Geocode events missing coordinates in the background
-    if (withoutCoords.length > 0) {
-      setGeocoding(true)
-      for (const event of withoutCoords) {
-        const query = [event.location_name, event.city].filter(Boolean).join(', ')
-        if (!query) continue
-        try {
-          await new Promise(r => setTimeout(r, 1100)) // Nominatim rate limit: 1 req/s
-          const res = await fetch(
-            'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query),
-            { headers: { 'User-Agent': 'GathrApp/1.0' } }
-          )
-          const geodata = await res.json()
-          if (geodata[0]) {
-            const lat = parseFloat(geodata[0].lat)
-            const lng = parseFloat(geodata[0].lon)
-            setEvents(prev => [...prev, { ...event, latitude: lat, longitude: lng }])
-          }
-        } catch {}
-      }
-      setGeocoding(false)
-    }
+    setEvents(data ?? [])
+    setLoading(false)
   }
 
 
@@ -93,7 +67,6 @@ export default function MapPage() {
           <h1 className="font-bold text-[#F0EDE6] text-xl">{userCity || 'Map'}</h1>
           <p className="text-xs text-white/40 mt-0.5">
             {events.length} event{events.length !== 1 ? 's' : ''} near you
-            {geocoding && <span className="text-[#E8B84B]/60"> · locating...</span>}
           </p>
         </div>
         <button onClick={() => router.push('/home')}
@@ -103,16 +76,11 @@ export default function MapPage() {
       </div>
 
       <div className="flex-1 relative" style={{ height: 'calc(100vh - 200px)' }}>
-        {events.length === 0 && !geocoding ? (
+        {events.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 px-4">
             <div className="text-4xl">🗺️</div>
             <p className="text-white/40 text-sm text-center">No events with locations yet</p>
             <p className="text-white/25 text-xs text-center max-w-[240px]">Create an event with an address to see it appear on the map.</p>
-          </div>
-        ) : events.length === 0 && geocoding ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 px-4">
-            <div className="text-4xl animate-pulse">🗺️</div>
-            <p className="text-white/40 text-sm text-center">Finding event locations...</p>
           </div>
         ) : (
           <MapView events={events} onSelect={setSelected} />

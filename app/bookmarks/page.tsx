@@ -25,10 +25,19 @@ export default function BookmarksPage() {
     try {
       const { data } = await supabase
         .from('event_bookmarks')
-        .select('event_id, events(*)')
+        .select('event_id, events(id, title, category, start_datetime, location_name, city, cover_url, spots_left, capacity, visibility)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-      if (data) setEvents(data.map((b: any) => b.events).filter(Boolean))
+        .limit(200)
+      if (data) {
+        const events = data.map((b: any) => b.events).filter(Boolean)
+        setEvents(events)
+        // Lazy cleanup: if any bookmark rows point to deleted events, scrub them
+        const orphanIds = data.filter((b: any) => !b.events).map((b: any) => b.event_id)
+        if (orphanIds.length > 0) {
+          supabase.from('event_bookmarks').delete().eq('user_id', userId).in('event_id', orphanIds).then(() => {})
+        }
+      }
     } finally {
       setLoading(false)
     }

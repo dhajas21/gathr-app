@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import PasswordInput from '@/components/PasswordInput'
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -11,13 +12,17 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
   const [ready, setReady] = useState(false)
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setReady(true)
     })
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
+    }
   }, [])
 
   const handleReset = async () => {
@@ -42,7 +47,7 @@ export default function ResetPasswordPage() {
     }
 
     setDone(true)
-    setTimeout(() => router.push('/home'), 2000)
+    redirectTimerRef.current = setTimeout(() => router.push('/home'), 2000)
   }
 
   const inputClass = 'w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm'
@@ -73,22 +78,20 @@ export default function ResetPasswordPage() {
           <p className="text-xs text-white/40 mb-5">Choose something you'll remember.</p>
 
           <div className="space-y-3">
-            <input
+            <PasswordInput
               className={inputClass}
               placeholder="New password"
-              type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
-              maxLength={72}
+              onChange={setPassword}
+              autoComplete="new-password"
             />
-            <input
+            <PasswordInput
               className={inputClass}
               placeholder="Confirm new password"
-              type="password"
               value={confirm}
-              onChange={e => setConfirm(e.target.value)}
+              onChange={setConfirm}
               onKeyDown={e => e.key === 'Enter' && handleReset()}
-              maxLength={72}
+              autoComplete="new-password"
             />
 
             {error && (
