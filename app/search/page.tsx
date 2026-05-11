@@ -187,7 +187,7 @@ export default function SearchPage() {
     const sanitize = (s: string) => s.replace(/[(),%_\\.:'"`]/g, '').trim()
 
     // Search events
-    let eventQuery = supabase.from('events').select('*').eq('visibility', 'public')
+    let eventQuery = supabase.from('events').select('id, title, category, start_datetime, location_name, cover_url, spots_left, capacity, tags, city').eq('visibility', 'public')
       .order('start_datetime', { ascending: true }).limit(30)
     if (categoryToUse) eventQuery = eventQuery.eq('category', categoryToUse)
     if (vibe.searchTerms) { const t = sanitize(vibe.searchTerms); if (t) eventQuery = eventQuery.or('title.ilike.%' + t + '%,description.ilike.%' + t + '%,location_name.ilike.%' + t + '%') }
@@ -200,7 +200,7 @@ export default function SearchPage() {
     // Search by tag
     if (q.trim()) {
       const tag = q.trim().replace(/^#/, '').toLowerCase()
-      const { data: tagData } = await supabase.from('events').select('*').eq('visibility', 'public')
+      const { data: tagData } = await supabase.from('events').select('id, title, category, start_datetime, location_name, cover_url, spots_left, capacity, tags, city').eq('visibility', 'public')
         .contains('tags', [tag]).order('start_datetime', { ascending: true }).limit(20)
       setTagResults(tagData || [])
     } else {
@@ -236,13 +236,13 @@ export default function SearchPage() {
     // Search communities
     if (q.trim()) {
       const sq = sanitize(q.trim())
-      let commQuery = supabase.from('communities').select('*')
+      let commQuery = supabase.from('communities').select('id, name, category, banner_gradient, icon, member_count')
         .or('name.ilike.%' + sq + '%,description.ilike.%' + sq + '%').limit(10)
       if (categoryToUse) commQuery = commQuery.ilike('category', '%' + sanitize(categoryToUse.split(' ')[0]) + '%')
       const { data: commData } = await commQuery
       if (commData) setCommunities(commData)
     } else if (categoryToUse) {
-      const { data: commData } = await supabase.from('communities').select('*')
+      const { data: commData } = await supabase.from('communities').select('id, name, category, banner_gradient, icon, member_count')
         .ilike('category', '%' + sanitize(categoryToUse.split(' ')[0]) + '%').limit(10)
       if (commData) setCommunities(commData)
     } else { setCommunities([]) }
