@@ -204,7 +204,21 @@ XP is earned through various actions and stored on `profiles.xp`. Level is deriv
 - **Veteran** — upper tier
 - **Legend** — top tier
 
-**32 achievements** across bronze, silver, and gold — covering categories like: events attended, events hosted, communities joined or founded, connections made, events bookmarked, safety tier earned, category variety, and more.
+**32 achievements** across bronze, silver, and gold:
+
+| Category | Achievements |
+|---|---|
+| Hosting | First Event, Rising Host, Host with the Most, Community Builder |
+| Attending | First Steps, Scene Regular, Event Veteran, Gathr Legend |
+| Connections | First Connection, Networker, Social Butterfly, Connector |
+| Interests | Explorer (5), Passionate (10) |
+| Category variety | Curious (3 cats attended), Scene Explorer (5), Renaissance Person (8), Versatile Host (3 cats hosted) |
+| Communities | Group Member, Community Regular, Town Square (5), Community Founder |
+| Bookmarks | First Save, Curator (5 saved) |
+| Profile | Avatar, Storyteller, Dual Mode |
+| Level | On Fire (L5), Power User (L10) |
+| Safety | Trusted Member (Verified tier), Community Pillar (Trusted tier) |
+| Combo | All-Rounder (host + attend + connect ≥ 5 each) |
 
 **Badges** are shown in the Stats tab of your profile. You can pin up to 3 badges to your public profile. An achievement celebration modal (with confetti via canvas-confetti) appears when you cross a milestone.
 
@@ -396,6 +410,18 @@ This is implemented with a debounced `useEffect` watching the form state.
 
 **Community event linking:** When the create page is opened with `?community=[uuid]`, the UUID is validated against a regex, stored in `fromCommunityId` state, and included as `community_id` in the event insert. After publish, the user is redirected to `/communities/[id]?tab=events` instead of the event detail page.
 
+**Geocoding feedback:** While the Nominatim lookup runs after the user blurs the address field, the field shows a pulsing "Looking up location…" indicator. On success it shows a green "✓ Location confirmed". The Next step button is disabled and shows "Looking up location…" while geocoding is in flight.
+
+---
+
+## Settings — Key Behaviours
+
+**Password change:** Minimum 12 characters, enforced both client-side (button disabled + strength meter) and server-side (Supabase Auth rejects weak passwords). A 4-bar strength meter updates in real time scoring: length ≥ 8, length ≥ 12, case mix, number + symbol mix. The Update Password button stays disabled until length ≥ 12 and both fields match — so users can't submit a password that will be rejected.
+
+**City change (home feed):** Selecting a new city updates `profiles.city`, shows a 2.5-second pill toast, and immediately re-fetches events from the server for the new city. The local event cache is not reused — a fresh query runs so the full pool for the new city loads.
+
+**Profile edit guards:** Save button is disabled while name is blank. Avatar upload failure surfaces a specific error message ("Photo upload failed — your other changes were saved") rather than silently keeping the old photo. Interest search clear re-focuses the input so the user keeps typing without tapping.
+
 ---
 
 ## Key Code Patterns
@@ -445,6 +471,9 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 | Privilege escalation via member role UPDATE | RLS `WITH CHECK (role IN ('member','admin'))` — can't self-promote to owner |
 | Private community posts leaking to non-members | RLS SELECT policy requires membership for private communities |
 | Malicious file uploads bypassing frontend | Bucket-level MIME type enforcement in Supabase Storage |
+| Weak password accepted | Client disables submit until ≥ 12 chars + passwords match; Supabase Auth enforces server-side |
+| Avatar upload failure leaves stale preview | Error surfaced to user; DB update proceeds with old URL — no silent mismatch |
+| Delete/decline actions double-firing | All destructive buttons check error response before mutating local state |
 | Client-side RSVP state gets stale | Realtime subscription or optimistic update + rollback |
 | Edge function fails | Called with `.catch(() => {})` — silent failure, doesn't affect the user |
 | Typing indicator channel leak | Cleaned up in `useEffect` return (unmount) |
