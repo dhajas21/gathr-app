@@ -58,7 +58,7 @@ export default function TermsPage() {
           },
           {
             title: '10. User Content',
-            body: 'You retain ownership of content you post on Gathr (photos, event descriptions, comments, reviews, etc.). By posting content, you grant Gathr a non-exclusive, royalty-free licence to display and distribute that content within the platform. You represent that you have the rights to any content you post and that it does not violate any third-party rights.',
+            body: 'You retain ownership of content you post on Gathr (photos, event descriptions, community posts, comments, reviews, chat messages, etc.). By posting content, you grant Gathr a non-exclusive, royalty-free licence to display and distribute that content within the platform. You represent that you have the rights to any content you post and that it does not violate any third-party rights.\n\nImage Uploads: You may upload images to your profile, event covers, community banners, community posts, and chat conversations. Uploaded images must not contain nudity, illegal content, graphic violence, or content that violates any applicable law. We enforce file type and size limits server-side. Images are stored on our CDN and visible to other users. You are solely responsible for ensuring you have the right to share any image you upload.\n\nContent Removal: We reserve the right to remove any content that violates these Terms without notice. Community owners and admins may remove posts and messages within their communities.',
           },
           {
             title: '11. Privacy',

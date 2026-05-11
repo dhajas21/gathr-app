@@ -344,7 +344,7 @@ export default function MessagesPage() {
           {connections.map(conn => (
             <div key={conn.id} className="flex items-center gap-3 mb-2 last:mb-0">
               {optimizedImgSrc(conn.requester?.avatar_url, 96) ? (
-                <img src={optimizedImgSrc(conn.requester.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                <img src={optimizedImgSrc(conn.requester.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
               ) : (
                 <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">🧑</div>
               )}
@@ -381,7 +381,7 @@ export default function MessagesPage() {
                   className="flex flex-col items-center gap-1 flex-shrink-0 active:scale-95 transition-transform">
                   <div className="relative">
                     {optimizedImgSrc(conn.otherProfile?.avatar_url, 96) ? (
-                      <img src={optimizedImgSrc(conn.otherProfile.avatar_url, 96)!} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10" />
+                      <img src={optimizedImgSrc(conn.otherProfile.avatar_url, 96)!} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10"  loading="lazy" />
                     ) : (
                       <div className="w-12 h-12 bg-[#1E3A1E] border border-white/10 rounded-xl flex items-center justify-center text-lg">
                         {conn.otherProfile?.name?.charAt(0) || '🧑'}
@@ -449,7 +449,7 @@ export default function MessagesPage() {
                     className="w-full flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] transition-transform"
                   >
                     {optimizedImgSrc(conn.otherProfile?.avatar_url, 96) ? (
-                      <img src={optimizedImgSrc(conn.otherProfile.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                      <img src={optimizedImgSrc(conn.otherProfile.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
                     ) : (
                       <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0">🧑</div>
                     )}
@@ -556,7 +556,7 @@ export default function MessagesPage() {
                       }}
                       className="w-full flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] transition-transform">
                       {optimizedImgSrc(conn.otherProfile?.avatar_url, 96) ? (
-                        <img src={optimizedImgSrc(conn.otherProfile.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                        <img src={optimizedImgSrc(conn.otherProfile.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
                       ) : (
                         <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0">🧑</div>
                       )}
@@ -673,7 +673,7 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, onDel
 
         <div className="relative flex-shrink-0">
           {optimizedImgSrc(thread.otherProfile?.avatar_url, 96) ? (
-            <img src={optimizedImgSrc(thread.otherProfile.avatar_url, 96)!} alt="" className="w-11 h-11 rounded-xl object-cover" />
+            <img src={optimizedImgSrc(thread.otherProfile.avatar_url, 96)!} alt="" className="w-11 h-11 rounded-xl object-cover"  loading="lazy" />
           ) : (
             <div className="w-11 h-11 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg border border-white/10">
               {thread.otherProfile?.name?.charAt(0) || '🧑'}

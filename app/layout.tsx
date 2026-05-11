@@ -3,6 +3,7 @@ import { Geist } from "next/font/google"
 import { Syne } from "next/font/google"
 import "./globals.css"
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar"
+import ErrorBoundary from "@/components/ErrorBoundary"
 import { headers } from "next/headers"
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" })
@@ -34,7 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="min-h-full antialiased bg-[#0D110D] text-[#F0EDE6]">
         <ServiceWorkerRegistrar />
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </body>
     </html>
   )

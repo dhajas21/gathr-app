@@ -24,8 +24,8 @@ const tourSlides = [
     icon: '👥',
     title: 'Groups & Communities',
     highlight: 'Find your people',
-    body: 'Join communities built around shared interests — running crews, coffee clubs, tech meetups, and more. Members post to a shared feed, reply to posts with comments, and every community has its own real-time group chat. Owners and admins can pin events, moderate posts, and remove chat messages.',
-    tip: 'Tap Groups in the bottom nav to browse and join. Create an event from inside a community to link it directly to that group. Owners can promote members to admin in Community Settings.',
+    body: 'Join communities built around shared interests — running crews, coffee clubs, tech meetups, and more. Members post text and photos to a shared feed, reply with comments, and every community has its own real-time group chat. Tap any post image to expand it full-screen.',
+    tip: 'Tap Groups in the bottom nav to browse and join. Create an event from inside a community to link it directly to that group. Owners can promote members to admin in Community Settings and moderate all content.',
     bg: 'linear-gradient(135deg,#1A2A1E,#0E1A14)',
   },
   {

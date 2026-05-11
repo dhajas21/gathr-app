@@ -179,7 +179,7 @@ export default function NotificationsPage() {
         {/* Avatar */}
         <div className="flex-shrink-0 relative">
           {optimizedImgSrc(actor?.avatar_url, 96) ? (
-            <img src={optimizedImgSrc(actor.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10" />
+            <img src={optimizedImgSrc(actor.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10"  loading="lazy" />
           ) : (
             <div className="w-10 h-10 bg-[#1E2E1E] rounded-xl flex items-center justify-center text-lg border border-white/10">
               {actor?.name?.charAt(0) || getTypeIcon(notif.type)}

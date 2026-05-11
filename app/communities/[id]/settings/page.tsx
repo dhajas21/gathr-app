@@ -304,7 +304,7 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
                 return (
                   <div key={member.user_id} className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-3.5 py-3">
                     {optimizedImgSrc(member.profile?.avatar_url, 96) ? (
-                      <img src={optimizedImgSrc(member.profile.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                      <img src={optimizedImgSrc(member.profile.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
                     ) : (
                       <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                         {member.profile?.name?.charAt(0) || '🧑'}

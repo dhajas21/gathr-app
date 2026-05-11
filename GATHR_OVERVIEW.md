@@ -345,7 +345,7 @@ Supabase Realtime uses `postgres_changes` subscriptions — it watches the Postg
 
 ## Edge Functions
 
-Supabase Edge Functions run on Deno, serverside, close to the database. Two functions are deployed:
+Supabase Edge Functions run on Deno, serverside, close to the database. Three functions are deployed:
 
 **`delete-account`** (JWT not pre-verified — function handles auth internally):
 - Called from Settings → Danger Zone when the user confirms account deletion
@@ -464,7 +464,11 @@ if (error) setBookmarked(prev => !prev) // rollback
 
 **`'use client'` everywhere:** Every page is a client component because all pages need live user data. This is intentional for a mobile-first PWA-style app — there are no meaningful server-rendered pages.
 
-**Image optimization via Supabase render endpoint:** All Supabase Storage image URLs are passed through `optimizedImgSrc(url, width, quality?)` in `lib/utils.ts`. This rewrites the URL from `/storage/v1/object/public/` to `/storage/v1/render/image/public/?width=N&quality=N`, which serves a CDN-resized image at the exact dimensions needed. Non-Supabase URLs (Google profile photos, etc.) pass through the `safeImgSrc` allowlist unchanged. Width sizing: 900px for full-page banners/covers, 800px for event card covers, 700px for community post images, 128px for profile hero avatars, 96px for standard avatars, 64px for small mutual-connection thumbnails.
+**Image optimization via Supabase render endpoint:** All Supabase Storage image URLs are passed through `optimizedImgSrc(url, width, quality?)` in `lib/utils.ts`. This rewrites the URL from `/storage/v1/object/public/` to `/storage/v1/render/image/public/?width=N&quality=N`, which serves a CDN-resized image at the exact dimensions needed. Non-Supabase URLs (Google profile photos, etc.) pass through the `safeImgSrc` allowlist unchanged. Width sizing: 900px for full-page banners/covers, 800px for event card covers, 700px for community post images, 128px for profile hero avatars, 96px for standard avatars, 64px for small mutual-connection thumbnails. All DB-sourced `<img>` tags also carry `loading="lazy"` for deferred loading on long feeds.
+
+**Error boundary:** `components/ErrorBoundary.tsx` is a React class component that wraps the root layout in `app/layout.tsx`. If any page throws an unhandled render error, it catches it and shows a full-screen fallback with a Reload button rather than a blank white screen.
+
+**Community post image lightbox:** Tapping a community post image opens a full-screen overlay (`lightboxUrl` state in `communities/[id]/page.tsx`) showing the image at 900px render quality. Tapping anywhere or the × button dismisses it.
 
 ---
 

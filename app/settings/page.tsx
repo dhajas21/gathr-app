@@ -173,7 +173,7 @@ export default function SettingsPage() {
           className="bg-[#1C241C] border border-white/10 rounded-2xl p-4 flex items-center gap-3 cursor-pointer active:opacity-75 transition-opacity"
         >
           {optimizedImgSrc(profile?.avatar_url, 96) ? (
-            <img src={optimizedImgSrc(profile.avatar_url, 96)!} alt="" className="w-12 h-12 rounded-2xl object-cover border border-[#E8B84B]/20 flex-shrink-0" />
+            <img src={optimizedImgSrc(profile.avatar_url, 96)!} alt="" className="w-12 h-12 rounded-2xl object-cover border border-[#E8B84B]/20 flex-shrink-0"  loading="lazy" />
           ) : (
             <div className="w-12 h-12 bg-[#1E3A1E] rounded-2xl flex items-center justify-center text-xl border border-[#E8B84B]/20 flex-shrink-0">
               🧑

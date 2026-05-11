@@ -493,7 +493,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       <div className="relative h-52 flex items-center justify-center text-6xl flex-shrink-0"
         style={{background: 'var(--gradient-event-hero)'}}>
         {optimizedImgSrc((event as any).cover_url, 900) && (
-          <img src={optimizedImgSrc((event as any).cover_url, 900)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img src={optimizedImgSrc((event as any).cover_url, 900)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
@@ -597,7 +597,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     className="flex flex-col items-center gap-1"
                   >
                     {optimizedImgSrc(profile.avatar_url, 96) ? (
-                      <img src={optimizedImgSrc(profile.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10" />
+                      <img src={optimizedImgSrc(profile.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10"  loading="lazy" />
                     ) : (
                       <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base border border-white/10">
                         {profile.name?.charAt(0) || '?'}
@@ -791,7 +791,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             onClick={() => router.push('/profile/' + host.id)}
           >
             {optimizedImgSrc(host.avatar_url, 96) ? (
-              <img src={optimizedImgSrc(host.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-[#E8B84B]/20" />
+              <img src={optimizedImgSrc(host.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-[#E8B84B]/20"  loading="lazy" />
             ) : (
               <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0 border border-[#E8B84B]/20">
                 🧑‍💻
@@ -833,7 +833,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 return (
                   <div key={comment.id} className={'flex gap-2.5 ' + (isCommentHost ? 'rounded-xl border border-[#E8B84B]/15 bg-[#E8B84B]/5 p-2' : '')}>
                     {optimizedImgSrc(profile?.avatar_url, 96) ? (
-                      <img src={optimizedImgSrc(profile?.avatar_url, 96)!} alt="" className="w-7 h-7 rounded-lg object-cover flex-shrink-0 mt-0.5" />
+                      <img src={optimizedImgSrc(profile?.avatar_url, 96)!} alt="" className="w-7 h-7 rounded-lg object-cover flex-shrink-0 mt-0.5"  loading="lazy" />
                     ) : (
                       <div className="w-7 h-7 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-xs flex-shrink-0 mt-0.5">
                         {profile?.name?.charAt(0) || '?'}

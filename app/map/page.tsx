@@ -126,7 +126,7 @@ export default function MapPage() {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0 overflow-hidden relative">
                 {optimizedImgSrc(selected.cover_url, 800)
-                  ? <img src={optimizedImgSrc(selected.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  ? <img src={optimizedImgSrc(selected.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />
                   : catEmoji(selected.category)
                 }
               </div>

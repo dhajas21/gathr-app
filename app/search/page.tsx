@@ -291,7 +291,7 @@ export default function SearchPage() {
       className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ background: '#1E2E1E' }}>
         {optimizedImgSrc(event.cover_url, 800)
-          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />
           : catEmoji(event.category)
         }
       </div>
@@ -415,7 +415,7 @@ export default function SearchPage() {
                       className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ background: '#1E2E1E' }}>
                         {optimizedImgSrc(event.cover_url, 800)
-                          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />
                           : catEmoji(event.category)
                         }
                       </div>
@@ -541,7 +541,7 @@ export default function SearchPage() {
                     <div key={person.id} onClick={() => router.push('/profile/' + person.id)}
                       className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
                       {optimizedImgSrc(person.avatar_url, 96) ? (
-                        <img src={optimizedImgSrc(person.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                        <img src={optimizedImgSrc(person.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
                       ) : (
                         <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                           {person.name?.charAt(0) || '🧑'}

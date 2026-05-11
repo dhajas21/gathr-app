@@ -170,7 +170,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
         </div>
         <div className="px-4 pb-4">
           {optimizedImgSrc(profile.avatar_url, 128) ? (
-            <img src={optimizedImgSrc(profile.avatar_url, 128)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3" />
+            <img src={optimizedImgSrc(profile.avatar_url, 128)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3"  loading="lazy" />
           ) : (
             <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-2xl mb-3">🧑</div>
           )}
@@ -248,7 +248,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
               {mutualProfiles.map(p => (
                 <button key={p.id} onClick={() => router.push('/profile/' + p.id)} className="flex items-center gap-1.5 active:opacity-70">
                   {optimizedImgSrc(p.avatar_url, 64) ? (
-                    <img src={optimizedImgSrc(p.avatar_url, 64)!} alt="" className="w-6 h-6 rounded-lg object-cover" />
+                    <img src={optimizedImgSrc(p.avatar_url, 64)!} alt="" className="w-6 h-6 rounded-lg object-cover"  loading="lazy" />
                   ) : (
                     <div className="w-6 h-6 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-[10px]">🧑</div>
                   )}
