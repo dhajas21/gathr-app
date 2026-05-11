@@ -12,8 +12,11 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([])
   const [actorProfiles, setActorProfiles] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const fetchedActorIds = useRef<Set<string>>(new Set())
+  const PAGE_SIZE = 30
   const router = useRouter()
 
   useEffect(() => {
@@ -41,6 +44,22 @@ export default function NotificationsPage() {
     return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
   }, [router])
 
+  const hydrateActors = async (rows: any[]) => {
+    const newActorIds = [...new Set(rows.map((n: any) => n.actor_id).filter(Boolean))]
+      .filter(id => !fetchedActorIds.current.has(id as string)) as string[]
+    if (newActorIds.length === 0) return
+    newActorIds.forEach(id => fetchedActorIds.current.add(id))
+    const { data: profiles } = await supabase
+      .from('profiles').select('id, name, avatar_url').in('id', newActorIds)
+    if (profiles) {
+      setActorProfiles(prev => {
+        const next = { ...prev }
+        profiles.forEach(p => { next[p.id] = p })
+        return next
+      })
+    }
+  }
+
   const fetchNotifications = async (userId: string) => {
     try {
       const { data } = await supabase
@@ -48,27 +67,34 @@ export default function NotificationsPage() {
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(50)
-
+        .limit(PAGE_SIZE)
       if (data) {
         setNotifications(data)
-        const actorIds = [...new Set(data.map((n: any) => n.actor_id).filter(Boolean))] as string[]
-        if (actorIds.length > 0) {
-          actorIds.forEach(id => fetchedActorIds.current.add(id))
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, name, avatar_url')
-            .in('id', actorIds)
-          if (profiles) {
-            const map: Record<string, any> = {}
-            profiles.forEach(p => { map[p.id] = p })
-            setActorProfiles(map)
-          }
-        }
+        setHasMore(data.length === PAGE_SIZE)
+        await hydrateActors(data)
       }
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadMore = async () => {
+    if (!user || loadingMore || notifications.length === 0) return
+    setLoadingMore(true)
+    const oldestCreatedAt = notifications[notifications.length - 1].created_at
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .lt('created_at', oldestCreatedAt)
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE)
+    if (data) {
+      setNotifications(prev => [...prev, ...data])
+      setHasMore(data.length === PAGE_SIZE)
+      await hydrateActors(data)
+    }
+    setLoadingMore(false)
   }
 
   const fetchActorProfile = async (actorId: string) => {
@@ -289,6 +315,14 @@ export default function NotificationsPage() {
           {renderSection('Today', today)}
           {renderSection('This week', thisWeek)}
           {renderSection('Earlier', earlier)}
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full py-3 mt-2 mb-4 text-xs text-white/40 font-medium active:text-white/60 transition-colors disabled:opacity-40">
+              {loadingMore ? 'Loading…' : 'Load more'}
+            </button>
+          )}
         </div>
       )}
 
