@@ -54,7 +54,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
         fetchProfile(id, session.user.id)
       })
     })
-  }, [])
+  }, [params, router])
 
   const fetchProfile = async (id: string, userId: string) => {
     const [profileRes, hostedRes, connectionRes, myConnsRes, theirConnsRes, rsvpCountRes] = await Promise.all([
@@ -62,7 +62,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
       supabase.from('events').select('*').eq('host_id', id).eq('visibility', 'public').order('start_datetime', { ascending: false }).limit(10),
       supabase.from('connections').select('*')
         .or('and(requester_id.eq.' + userId + ',addressee_id.eq.' + id + '),and(requester_id.eq.' + id + ',addressee_id.eq.' + userId + ')')
-        .limit(1).single(),
+        .limit(1).maybeSingle(),
       supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),
       supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + id + ',addressee_id.eq.' + id).eq('status', 'accepted'),
       supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('user_id', id),

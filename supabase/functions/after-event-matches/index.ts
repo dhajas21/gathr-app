@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 const CORS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
@@ -78,7 +78,11 @@ Deno.serve(async (req) => {
       .filter(Boolean) as string[],
   )
 
-  // Step 4: for each qualifying event, check if there are co-attendees worth notifying about
+  // Step 4: batch-fetch all co-attendees for qualifying events in one query
+  const qualifyingEvents = myRsvps
+    .map((row: { event_id: string; events: unknown }) => row.events as { id: string; title: string; end_datetime: string })
+    .filter((event: { id: string }) => !notifiedEventIds.has(event.id))
+
   const toInsert: {
     user_id: string
     type: string
@@ -88,34 +92,39 @@ Deno.serve(async (req) => {
     read: boolean
   }[] = []
 
-  for (const row of myRsvps) {
-    const event = row.events as unknown as { id: string; title: string; end_datetime: string }
-    if (notifiedEventIds.has(event.id)) continue
+  if (qualifyingEvents.length > 0) {
+    const qualifyingEventIds = qualifyingEvents.map((e: { id: string }) => e.id)
 
-    // Other attendees with matching_enabled, excluding already-connected users
-    const { data: coAttendees, error: coErr } = await adminClient
+    const { data: allCoAttendees, error: coErr } = await adminClient
       .from('rsvps')
-      .select('user_id, profiles!inner(matching_enabled)')
-      .eq('event_id', event.id)
+      .select('event_id, user_id, profiles!inner(matching_enabled)')
+      .in('event_id', qualifyingEventIds)
       .neq('user_id', user.id)
       .eq('profiles.matching_enabled', true)
 
-    if (coErr || !coAttendees?.length) continue
+    if (!coErr && allCoAttendees) {
+      // Group by event_id client-side
+      const byEvent = new Map<string, string[]>()
+      for (const a of allCoAttendees as { event_id: string; user_id: string }[]) {
+        const list = byEvent.get(a.event_id) ?? []
+        list.push(a.user_id)
+        byEvent.set(a.event_id, list)
+      }
 
-    const matchCount = coAttendees.filter(
-      (a: { user_id: string }) => !connectedIds.has(a.user_id),
-    ).length
-
-    if (matchCount === 0) continue
-
-    toInsert.push({
-      user_id: user.id,
-      type: 'after_event_match',
-      title: 'New matches from your event',
-      body: `You attended "${event.title}" — ${matchCount} ${matchCount === 1 ? 'person' : 'people'} you haven\'t connected with yet.`,
-      link: `/events/${event.id}/survey`,
-      read: false,
-    })
+      for (const event of qualifyingEvents) {
+        const coAttendeeIds = byEvent.get(event.id) ?? []
+        const matchCount = coAttendeeIds.filter((uid: string) => !connectedIds.has(uid)).length
+        if (matchCount === 0) continue
+        toInsert.push({
+          user_id: user.id,
+          type: 'after_event_match',
+          title: 'New matches from your event',
+          body: `You attended "${event.title}" — ${matchCount} ${matchCount === 1 ? 'person' : 'people'} you haven\'t connected with yet.`,
+          link: `/events/${event.id}/survey`,
+          read: false,
+        })
+      }
+    }
   }
 
   if (toInsert.length) {

@@ -466,6 +466,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                   onTouchMove={() => {
                     if (longPressTimer.current) clearTimeout(longPressTimer.current)
                   }}
+                  onContextMenu={(e) => {
+                    if (!mine) return
+                    e.preventDefault()
+                    setLongPressMsg(msg)
+                  }}
                 >
                   {renderContent(msg)}
                 </div>

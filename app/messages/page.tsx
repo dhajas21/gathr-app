@@ -166,9 +166,10 @@ export default function MessagesPage() {
         .eq('status', 'pending'),
       supabase
         .from('messages')
-        .select('*')
+        .select('id, thread_id, sender_id, recipient_id, text, sent_at, read_at')
         .or('sender_id.eq.' + userId + ',recipient_id.eq.' + userId)
-        .order('sent_at', { ascending: false }),
+        .order('sent_at', { ascending: false })
+        .limit(500),
       supabase
         .from('messages')
         .select('thread_id')
@@ -215,9 +216,11 @@ export default function MessagesPage() {
 
   const fetchThreads = async (userId: string) => {
     const [msgRes, unreadRes] = await Promise.all([
-      supabase.from('messages').select('*')
+      supabase.from('messages')
+        .select('id, thread_id, sender_id, recipient_id, text, sent_at, read_at')
         .or('sender_id.eq.' + userId + ',recipient_id.eq.' + userId)
-        .order('sent_at', { ascending: false }),
+        .order('sent_at', { ascending: false })
+        .limit(500),
       supabase.from('messages').select('thread_id')
         .eq('recipient_id', userId).is('read_at', null),
     ])

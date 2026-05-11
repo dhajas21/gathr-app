@@ -224,6 +224,14 @@ export default function CreateEventPage() {
       return
     }
 
+    if (ticketType === 'paid') {
+      const price = parseFloat(ticketPrice)
+      if (!ticketPrice || !isFinite(price) || price <= 0 || price > 10000) {
+        setError('Enter a valid ticket price (between $0.01 and $10,000)')
+        return
+      }
+    }
+
     // Upload final cover (might already be a URL from draft)
     let coverUrl: string | null = coverFile ? null : coverPreview
     if (coverFile) {

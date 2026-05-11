@@ -202,7 +202,7 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
       <div className="flex items-center justify-between px-5 pt-14 pb-4">
         <button onClick={() => router.back()} className="text-white/30 text-sm">← Back</button>
         <div className="text-[10px] text-white/20">
-          {current + 1} of {reviewees.length}
+          {Math.max(1, pending.findIndex(r => r.id === reviewees[current]?.id) + 1)} of {pending.length}
         </div>
         <button onClick={handleSkip} className="text-[10px] text-white/30">Skip</button>
       </div>

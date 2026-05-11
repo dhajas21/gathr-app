@@ -26,7 +26,9 @@ export default function HomePage() {
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
   const [soonEvents, setSoonEvents] = useState<Event[]>([])
   const [featuredEvent, setFeaturedEvent] = useState<Event | null>(null)
-  const [activeTab, setActiveTab] = useState(0)
+  const [activeTab, setActiveTab] = useState(() => {
+    try { return parseInt(sessionStorage.getItem('gathr_home_tab') || '0') || 0 } catch { return 0 }
+  })
   const [loading, setLoading] = useState(true)
   const [rsvpEventIds, setRsvpEventIds] = useState<string[]>([])
   const [connectionIds, setConnectionIds] = useState<string[]>([])
@@ -46,41 +48,50 @@ export default function HomePage() {
   )
 
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | undefined
     let cancelled = false
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
       fetchAll(session.user.id)
-      channel = supabase
-        .channel('home-events')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, (payload) => {
-          const newEvent = payload.new as Event
-          if (newEvent.visibility !== 'public') return
-          if (new Date(newEvent.start_datetime) < new Date()) return
-          setEvents(prev => {
-            if (prev.some(e => e.id === newEvent.id)) return prev
-            const updated = [...prev, newEvent].sort(
-              (a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
-            )
-            setSoonEvents(updated.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
-            return updated
-          })
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events' }, (payload) => {
-          const updated = payload.new as Event
-          setEvents(prev => prev.map(e => e.id === updated.id ? { ...e, spots_left: updated.spots_left } : e))
-          setSoonEvents(prev => prev.map(e => e.id === updated.id ? { ...e, spots_left: updated.spots_left } : e))
-        })
-        .subscribe()
     })
     return () => {
       cancelled = true
-      if (channel) supabase.removeChannel(channel)
       if (cityToastTimerRef.current) clearTimeout(cityToastTimerRef.current)
     }
   }, [router])
+
+  useEffect(() => {
+    if (!user?.id || !profile?.city) return
+    const city = profile.city
+    const channel = supabase
+      .channel('home-events-' + user.id)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'events',
+        filter: 'city=eq.' + city,
+      }, (payload) => {
+        const newEvent = payload.new as Event
+        if (newEvent.visibility !== 'public') return
+        if (new Date(newEvent.start_datetime) < new Date()) return
+        setEvents(prev => {
+          if (prev.some(e => e.id === newEvent.id)) return prev
+          const updated = [...prev, newEvent].sort(
+            (a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
+          )
+          setSoonEvents(updated.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
+          return updated
+        })
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events' }, (payload) => {
+        const updated = payload.new as Event
+        setEvents(prev => prev.map(e => e.id === updated.id ? { ...e, spots_left: updated.spots_left } : e))
+        setSoonEvents(prev => prev.map(e => e.id === updated.id ? { ...e, spots_left: updated.spots_left } : e))
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user?.id, profile?.city])
 
   const requestGeolocation = () => {
     if (!navigator.geolocation) return
@@ -372,7 +383,7 @@ export default function HomePage() {
 
         <div className="flex border-b border-white/10 -mx-4 px-4 overflow-x-auto scrollbar-hide">
           {TABS.map((tab, i) => (
-            <button key={tab} onClick={() => setActiveTab(i)}
+            <button key={tab} onClick={() => { setActiveTab(i); try { sessionStorage.setItem('gathr_home_tab', String(i)) } catch {} }}
               className={'px-3 py-2.5 text-xs whitespace-nowrap border-b-2 -mb-px transition-colors ' + (activeTab === i ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
               {tab}
             </button>

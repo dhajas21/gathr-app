@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
@@ -29,6 +29,7 @@ export default function SettingsPage() {
   const [deleteError, setDeleteError] = useState('')
   const [gathrPlus, setGathrPlus] = useState(false)
   const [gathrPlusExpiresAt, setGathrPlusExpiresAt] = useState<string | null>(null)
+  const passwordSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function SettingsPage() {
         }
       })()
     })
+    return () => { if (passwordSuccessTimerRef.current) clearTimeout(passwordSuccessTimerRef.current) }
   }, [])
 
   const handleToggleMode = async (mode: 'social' | 'professional') => {
@@ -107,7 +109,7 @@ export default function SettingsPage() {
       setPasswordSuccess(true)
       setNewPassword('')
       setConfirmPassword('')
-      setTimeout(() => { setPasswordSuccess(false); setShowPasswordSection(false) }, 2000)
+      passwordSuccessTimerRef.current = setTimeout(() => { setPasswordSuccess(false); setShowPasswordSection(false) }, 2000)
     }
     setSavingPassword(false)
   }

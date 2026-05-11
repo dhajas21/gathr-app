@@ -8,6 +8,7 @@ import { EventDetailSkeleton } from '@/components/Skeleton'
 import MysteryMatchCard from '@/components/MysteryMatchCard'
 import { CAT_EMOJI } from '@/lib/categoryEmoji'
 import { optimizedImgSrc, formatDateVerbose, formatTime, isValidUUID } from '@/lib/utils'
+import confetti from 'canvas-confetti'
 
 interface Event {
   id: string
@@ -61,6 +62,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [showCalendarModal, setShowCalendarModal] = useState(false)
   const [bookmarked, setBookmarked] = useState(false)
   const [blocked, setBlocked] = useState(false)
+  const [hasReviewsPending, setHasReviewsPending] = useState(true)
+  const [showCancelRsvp, setShowCancelRsvp] = useState(false)
   const [matches, setMatches] = useState<any[]>([])
   const [matchConnStatuses, setMatchConnStatuses] = useState<Record<string, string>>({})
   const [matchConnLoading, setMatchConnLoading] = useState<string | null>(null)
@@ -161,24 +164,26 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
     if (!eventData) { router.push('/home'); return }
 
-    // Privacy gate — check before committing any data to state
+    // Privacy gate — evaluate before any further data is fetched
+    if (eventData.visibility === 'private' && eventData.host_id !== userId) {
+      const inviteParam = new URLSearchParams(window.location.search).get('invite')
+      const hasValidInvite = inviteParam === eventData.invite_code
+      if (!hasValidInvite) {
+        const { data: rsvpCheck } = await supabase
+          .from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).maybeSingle()
+        if (!rsvpCheck) { setBlocked(true); return }
+      }
+    }
+
     const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes, hostCountRes, bookmarkRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', eventData.host_id).single(),
-      supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).single(),
+      supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).maybeSingle(),
       supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', id).limit(12),
       supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('event_id', id),
       supabase.from('event_comments').select('id, user_id, text, created_at, profiles(id, name, avatar_url)').eq('event_id', id).order('created_at', { ascending: true }).limit(100),
       supabase.from('events').select('*', { count: 'exact', head: true }).eq('host_id', eventData.host_id),
-      supabase.from('event_bookmarks').select('id').eq('event_id', id).eq('user_id', userId).single(),
+      supabase.from('event_bookmarks').select('id').eq('event_id', id).eq('user_id', userId).maybeSingle(),
     ])
-
-    if (eventData.visibility === 'private' && eventData.host_id !== userId && !rsvpRes.data) {
-      const inviteParam = new URLSearchParams(window.location.search).get('invite')
-      if (inviteParam !== eventData.invite_code) {
-        setBlocked(true)
-        return
-      }
-    }
 
     // Access confirmed — commit to state
     setEvent(eventData)
@@ -204,6 +209,20 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (rsvpRes.data && endTime > nowMs - 48 * 3600000) {
       fetchMatches(id, userId)
     }
+
+    if (rsvpRes.data && endTime < nowMs) {
+      const otherCount = Math.max(0, (countRes.count ?? 0) - 1)
+      if (otherCount === 0) {
+        setHasReviewsPending(false)
+      } else {
+        const { count: reviewedCount } = await supabase
+          .from('user_reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('reviewer_id', userId)
+          .eq('event_id', id)
+        setHasReviewsPending(reviewedCount === null || reviewedCount < otherCount)
+      }
+    }
   } finally {
     setLoading(false)
   }
@@ -211,43 +230,40 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const handleRsvp = async () => {
     if (!user || !event) return
+    if (rsvped) { setShowCancelRsvp(true); return }
     setRsvpLoading(true)
-    if (rsvped) {
-      // Optimistic update
+    setRsvped(true)
+    setTotalAttendees(prev => prev + 1)
+    setEvent(prev => prev ? { ...prev, spots_left: Math.max(0, prev.spots_left - 1) } : prev)
+    const { error } = await supabase.from('rsvps').insert({
+      event_id: event.id, user_id: user.id, status: 'joined'
+    })
+    if (error) {
       setRsvped(false)
       setTotalAttendees(prev => Math.max(0, prev - 1))
-      setAttendees(prev => prev.filter(a => a.user_id !== user.id))
       setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
-      const { error } = await supabase.from('rsvps').delete()
-        .eq('event_id', event.id).eq('user_id', user.id)
-      if (error) {
-        // Roll back on failure
-        setRsvped(true)
-        setTotalAttendees(prev => prev + 1)
-        setAttendees(prev => [...prev, { user_id: user.id, profiles: null } as any])
-        setEvent(prev => prev ? { ...prev, spots_left: Math.max(0, prev.spots_left - 1) } : prev)
-      }
     } else {
-      // Optimistic update
+      try { confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#E8B84B', '#F0EDE6', '#7EC87E'] }) } catch {}
+      const { data } = await supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', event.id).limit(12)
+      if (data) setAttendees(data as any)
+    }
+    setRsvpLoading(false)
+  }
+
+  const handleConfirmCancelRsvp = async () => {
+    if (!user || !event) return
+    setShowCancelRsvp(false)
+    setRsvpLoading(true)
+    setRsvped(false)
+    setTotalAttendees(prev => Math.max(0, prev - 1))
+    setAttendees(prev => prev.filter(a => a.user_id !== user.id))
+    setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
+    const { error } = await supabase.from('rsvps').delete().eq('event_id', event.id).eq('user_id', user.id)
+    if (error) {
       setRsvped(true)
       setTotalAttendees(prev => prev + 1)
+      setAttendees(prev => [...prev, { user_id: user.id, profiles: null } as any])
       setEvent(prev => prev ? { ...prev, spots_left: Math.max(0, prev.spots_left - 1) } : prev)
-      const { error } = await supabase.from('rsvps').insert({
-        event_id: event.id, user_id: user.id, status: 'joined'
-      })
-      if (error) {
-        // Roll back on failure
-        setRsvped(false)
-        setTotalAttendees(prev => Math.max(0, prev - 1))
-        setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
-      } else {
-        const { data } = await supabase
-          .from('rsvps')
-          .select('user_id, profiles(id, name, avatar_url)')
-          .eq('event_id', event.id)
-          .limit(12)
-        if (data) setAttendees(data as any)
-      }
     }
     setRsvpLoading(false)
   }
@@ -343,11 +359,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const handleMatchConnect = async (personId: string) => {
     if (!user || matchConnLoading) return
     setMatchConnLoading(personId)
-    const { data } = await supabase.from('connections').insert({
+    const { data, error } = await supabase.from('connections').insert({
       requester_id: user.id,
       addressee_id: personId,
     }).select().single()
-    if (data) {
+    if (!error && data) {
       setMatchConnStatuses(prev => ({ ...prev, [personId]: 'pending' }))
     }
     setMatchConnLoading(null)
@@ -356,6 +372,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const handleDelete = async () => {
     if (!event || !user || user.id !== event.host_id) return
     setDeleting(true)
+    const coverUrl = (event as any).cover_url as string | undefined
     await Promise.all([
       supabase.from('rsvps').delete().eq('event_id', event.id),
       supabase.from('event_bookmarks').delete().eq('event_id', event.id),
@@ -363,6 +380,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       supabase.from('waves').delete().eq('event_id', event.id),
     ])
     await supabase.from('events').delete().eq('id', event.id)
+    if (coverUrl) {
+      const marker = '/event-covers/'
+      const idx = coverUrl.indexOf(marker)
+      if (idx !== -1) {
+        const storagePath = coverUrl.slice(idx + marker.length).split('?')[0]
+        await supabase.storage.from('event-covers').remove([storagePath])
+      }
+    }
     router.push('/home')
   }
 
@@ -732,7 +757,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         })()}
 
         {/* Post-event survey CTA */}
-        {rsvped && event && Date.now() > new Date(event.end_datetime).getTime() && (
+        {rsvped && event && hasReviewsPending && Date.now() > new Date(event.end_datetime).getTime() && (
           <div className="bg-[#1C241C] border border-[#7EC87E]/20 rounded-2xl p-3.5 mb-3 flex items-center gap-3">
             <div className="w-9 h-9 bg-[#7EC87E]/10 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
               ✦
@@ -953,6 +978,28 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel RSVP confirm sheet */}
+      {showCancelRsvp && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end justify-center" onClick={() => setShowCancelRsvp(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4"></div>
+            <div className="text-center mb-5">
+              <div className="text-3xl mb-3">🎟</div>
+              <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Cancel your RSVP?</h3>
+              <p className="text-xs text-white/40">Your spot will be released back to the event.</p>
+            </div>
+            <button onClick={handleConfirmCancelRsvp}
+              className="w-full py-3.5 rounded-2xl bg-[#3A1E1E] border border-red-500/20 text-red-400 font-bold text-sm mb-3">
+              Yes, Cancel RSVP
+            </button>
+            <button onClick={() => setShowCancelRsvp(false)}
+              className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm">
+              Keep My Spot
+            </button>
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
@@ -13,6 +13,7 @@ export default function NotificationsPage() {
   const [actorProfiles, setActorProfiles] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const fetchedActorIds = useRef<Set<string>>(new Set())
   const router = useRouter()
 
   useEffect(() => {
@@ -51,8 +52,9 @@ export default function NotificationsPage() {
 
       if (data) {
         setNotifications(data)
-        const actorIds = [...new Set(data.map((n: any) => n.actor_id).filter(Boolean))]
+        const actorIds = [...new Set(data.map((n: any) => n.actor_id).filter(Boolean))] as string[]
         if (actorIds.length > 0) {
+          actorIds.forEach(id => fetchedActorIds.current.add(id))
           const { data: profiles } = await supabase
             .from('profiles')
             .select('id, name, avatar_url')
@@ -70,7 +72,8 @@ export default function NotificationsPage() {
   }
 
   const fetchActorProfile = async (actorId: string) => {
-    if (!actorId || actorProfiles[actorId]) return
+    if (!actorId || fetchedActorIds.current.has(actorId)) return
+    fetchedActorIds.current.add(actorId)
     const { data } = await supabase.from('profiles').select('id, name, avatar_url').eq('id', actorId).single()
     if (data) setActorProfiles(prev => ({ ...prev, [data.id]: data }))
   }
