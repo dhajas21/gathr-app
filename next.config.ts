@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const supabaseHostname = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname
+
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -15,7 +17,7 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      { hostname: 'adhahiqpiqwlvkykhbtf.supabase.co' },
+      { hostname: supabaseHostname },
       { hostname: 'lh3.googleusercontent.com' },
     ],
   },

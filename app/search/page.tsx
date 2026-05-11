@@ -147,7 +147,7 @@ export default function SearchPage() {
     const { data: profileData } = await supabase.from('profiles').select('interests, city').eq('id', userId).single()
     if (!profileData) return
     const { data: allEvents } = await supabase
-      .from('events').select('*').eq('visibility', 'public')
+      .from('events').select('id, title, category, start_datetime, location_name, city, cover_url, spots_left, capacity, tags').eq('visibility', 'public')
       .gte('start_datetime', new Date().toISOString())
       .order('start_datetime', { ascending: true }).limit(50)
     if (!allEvents) return
@@ -265,7 +265,8 @@ export default function SearchPage() {
       }
     }, 400)
     return () => clearTimeout(timer)
-  }, [query, activeCategory])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, activeCategory, user])
 
   const handleConnect = async (e: React.MouseEvent, personId: string) => {
     e.stopPropagation()

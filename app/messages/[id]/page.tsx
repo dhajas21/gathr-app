@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { safeImgSrc } from '@/lib/utils'
+import { safeImgSrc, isValidUUID } from '@/lib/utils'
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 const THREAD_RE = new RegExp('^' + UUID + '_' + UUID + '$', 'i')
@@ -34,11 +34,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const userIdRef = useRef<string | null>(null)
   const router = useRouter()
 
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
   useEffect(() => {
     const from = searchParams?.get('from')
-    if (from && UUID_RE.test(from)) {
+    if (from && isValidUUID(from)) {
       fromEventIdRef.current = from
       supabase.from('events').select('title').eq('id', from).single()
         .then(({ data }) => { if (data) setFromEventName(data.title) })
@@ -196,9 +194,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   }
 
   const scrollToBottom = () => {
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-    }, 100)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+      })
+    })
   }
 
   const getRecipientId = () => {

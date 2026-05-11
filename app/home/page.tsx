@@ -118,7 +118,8 @@ export default function HomePage() {
       const friendIds = connRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id)
       setConnectionIds(friendIds)
       if (friendIds.length > 0) {
-        const { data: friendRsvps } = await supabase.from('rsvps').select('event_id').in('user_id', friendIds)
+        const oneWeekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
+        const { data: friendRsvps } = await supabase.from('rsvps').select('event_id').in('user_id', friendIds).gte('created_at', oneWeekAgo).limit(500)
         if (friendRsvps) setFriendRsvpEventIds(friendRsvps.map((r: any) => r.event_id))
       }
     }

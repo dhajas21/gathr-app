@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import ThemeToggle from '@/components/ThemeToggle'
 import { useTheme } from '@/hooks/useTheme'
+import { safeImgSrc } from '@/lib/utils'
 
 export default function SettingsPage() {
   const [user, setUser] = useState<any>(null)
@@ -24,6 +25,8 @@ export default function SettingsPage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const [gathrPlus, setGathrPlus] = useState(false)
   const [gathrPlusExpiresAt, setGathrPlusExpiresAt] = useState<string | null>(null)
   const router = useRouter()
@@ -32,8 +35,9 @@ export default function SettingsPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
-      supabase.from('profiles').select('name, avatar_url, profile_mode, is_discoverable, matching_enabled, city, gathr_plus, gathr_plus_expires_at').eq('id', session.user.id).single()
-        .then(({ data }) => {
+      ;(async () => {
+        try {
+          const { data } = await supabase.from('profiles').select('name, avatar_url, profile_mode, is_discoverable, matching_enabled, city, gathr_plus, gathr_plus_expires_at').eq('id', session.user.id).single()
           if (data) {
             setProfile(data)
             setProfileMode(data.profile_mode || 'both')
@@ -43,8 +47,12 @@ export default function SettingsPage() {
             setGathrPlus(data.gathr_plus === true || trialActive)
             setGathrPlusExpiresAt(trialActive && !data.gathr_plus ? data.gathr_plus_expires_at : null)
           }
+        } catch (e) {
+          console.error(e)
+        } finally {
           setLoading(false)
-        })
+        }
+      })()
     })
   }, [])
 
@@ -109,6 +117,25 @@ export default function SettingsPage() {
     router.push('/auth')
   }
 
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true)
+    setDeleteError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/delete-account`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Deletion failed')
+      await supabase.auth.signOut()
+      router.push('/auth')
+    } catch (e: any) {
+      setDeleteError(e.message || 'Something went wrong')
+      setDeletingAccount(false)
+    }
+  }
+
   const { theme, toggleTheme } = useTheme()
 
   const isSocial = profileMode === 'social' || profileMode === 'both'
@@ -145,8 +172,8 @@ export default function SettingsPage() {
           onClick={() => router.push('/profile/edit')}
           className="bg-[#1C241C] border border-white/10 rounded-2xl p-4 flex items-center gap-3 cursor-pointer active:opacity-75 transition-opacity"
         >
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-[#E8B84B]/20 flex-shrink-0" />
+          {safeImgSrc(profile?.avatar_url) ? (
+            <img src={safeImgSrc(profile.avatar_url)!} alt="" className="w-12 h-12 rounded-2xl object-cover border border-[#E8B84B]/20 flex-shrink-0" />
           ) : (
             <div className="w-12 h-12 bg-[#1E3A1E] rounded-2xl flex items-center justify-center text-xl border border-[#E8B84B]/20 flex-shrink-0">
               🧑
@@ -429,7 +456,7 @@ export default function SettingsPage() {
       </div>
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => setShowDeleteConfirm(false)}>
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => !deletingAccount && setShowDeleteConfirm(false)}>
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
             <div className="text-center mb-6">
@@ -439,16 +466,27 @@ export default function SettingsPage() {
                 This will permanently delete your profile, events, connections, and messages. This cannot be undone.
               </p>
             </div>
-            <p className="text-xs text-white/35 text-center mb-5">
-              To delete your account, email us at{' '}
-              <span className="text-[#E8B84B]">support@gathr.app</span>
-            </p>
-            <button
-              onClick={() => setShowDeleteConfirm(false)}
-              className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm"
-            >
-              Cancel
-            </button>
+            {deleteError && (
+              <div className="text-xs text-[#E85B5B] bg-[#E85B5B]/8 border border-[#E85B5B]/20 rounded-xl px-3 py-2 mb-4 text-center">
+                {deleteError}
+              </div>
+            )}
+            <div className="space-y-2">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                className="w-full py-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-50"
+              >
+                {deletingAccount ? 'Deleting…' : 'Yes, Delete My Account'}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deletingAccount}
+                className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

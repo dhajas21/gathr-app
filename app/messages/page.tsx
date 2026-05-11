@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { MessagesPageSkeleton } from '@/components/Skeleton'
+import { safeImgSrc } from '@/lib/utils'
 
 export default function MessagesPage() {
   const [user, setUser] = useState<any>(null)
@@ -17,6 +18,7 @@ export default function MessagesPage() {
   const [composeSearch, setComposeSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [hiddenThreadIds, setHiddenThreadIds] = useState<Set<string>>(new Set())
+  const hiddenThreadIdsRef = useRef<Set<string>>(new Set())
   const router = useRouter()
 
   const fetchCommunityChats = async (userId: string) => {
@@ -65,8 +67,6 @@ export default function MessagesPage() {
       if (!session) { router.push('/auth'); return }
       const uid = session.user.id
       setUser(session.user)
-      const stored = localStorage.getItem('gathr_hidden_threads_' + uid)
-      if (stored) { try { setHiddenThreadIds(new Set(JSON.parse(stored))) } catch {} }
       fetchData(uid)
       fetchCommunityChats(uid)
 
@@ -158,7 +158,7 @@ export default function MessagesPage() {
 
   const fetchData = async (userId: string) => {
     try {
-    const [connRes, msgRes, unreadRes, acceptedRes] = await Promise.all([
+    const [connRes, msgRes, unreadRes, acceptedRes, hiddenRes] = await Promise.all([
       supabase
         .from('connections')
         .select('*, requester:profiles!connections_requester_id_fkey(id, name, avatar_url)')
@@ -185,7 +185,12 @@ export default function MessagesPage() {
         `)
         .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId)
         .eq('status', 'accepted'),
+      supabase.from('hidden_threads').select('thread_id').eq('user_id', userId),
     ])
+
+    const hiddenIds = new Set((hiddenRes.data || []).map((r: any) => r.thread_id as string))
+    hiddenThreadIdsRef.current = hiddenIds
+    setHiddenThreadIds(hiddenIds)
 
     if (connRes.data) setConnections(connRes.data)
 
@@ -202,7 +207,7 @@ export default function MessagesPage() {
       setUnreadCounts(counts)
     }
 
-    if (msgRes.data) setThreads(await buildThreads(msgRes.data, userId))
+    if (msgRes.data) setThreads(await buildThreads(msgRes.data.filter((m: any) => !hiddenIds.has(m.thread_id)), userId))
     } finally {
       setLoading(false)
     }
@@ -223,7 +228,10 @@ export default function MessagesPage() {
       setUnreadCounts(counts)
     }
 
-    if (msgRes.data) setThreads(await buildThreads(msgRes.data, userId))
+    if (msgRes.data) {
+      const visible = msgRes.data.filter((m: any) => !hiddenThreadIdsRef.current.has(m.thread_id))
+      setThreads(await buildThreads(visible, userId))
+    }
   }
 
   const handleAccept = async (connectionId: string) => {
@@ -279,15 +287,15 @@ export default function MessagesPage() {
     }
   }
 
-  const deleteThread = (threadId: string) => {
+  const deleteThread = async (threadId: string) => {
     if (!user) return
-    setHiddenThreadIds(prev => {
-      const next = new Set(prev)
-      next.add(threadId)
-      try { localStorage.setItem('gathr_hidden_threads_' + user.id, JSON.stringify([...next])) } catch {}
-      return next
-    })
     setThreads(prev => prev.filter(t => t.thread_id !== threadId))
+    hiddenThreadIdsRef.current = new Set([...hiddenThreadIdsRef.current, threadId])
+    setHiddenThreadIds(new Set(hiddenThreadIdsRef.current))
+    await supabase.from('hidden_threads').upsert(
+      { user_id: user.id, thread_id: threadId },
+      { onConflict: 'user_id,thread_id' }
+    )
   }
 
   const formatTime = (dt: string) => {
@@ -335,8 +343,8 @@ export default function MessagesPage() {
           </div>
           {connections.map(conn => (
             <div key={conn.id} className="flex items-center gap-3 mb-2 last:mb-0">
-              {conn.requester?.avatar_url ? (
-                <img src={conn.requester.avatar_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+              {safeImgSrc(conn.requester?.avatar_url) ? (
+                <img src={safeImgSrc(conn.requester.avatar_url)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
               ) : (
                 <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">🧑</div>
               )}
@@ -372,8 +380,8 @@ export default function MessagesPage() {
                   onClick={() => router.push('/messages/' + threadId)}
                   className="flex flex-col items-center gap-1 flex-shrink-0 active:scale-95 transition-transform">
                   <div className="relative">
-                    {conn.otherProfile?.avatar_url ? (
-                      <img src={conn.otherProfile.avatar_url} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10" />
+                    {safeImgSrc(conn.otherProfile?.avatar_url) ? (
+                      <img src={safeImgSrc(conn.otherProfile.avatar_url)!} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10" />
                     ) : (
                       <div className="w-12 h-12 bg-[#1E3A1E] border border-white/10 rounded-xl flex items-center justify-center text-lg">
                         {conn.otherProfile?.name?.charAt(0) || '🧑'}
@@ -440,8 +448,8 @@ export default function MessagesPage() {
                     onClick={() => router.push('/messages/' + [conn.requester_id, conn.addressee_id].sort().join('_'))}
                     className="w-full flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] transition-transform"
                   >
-                    {conn.otherProfile?.avatar_url ? (
-                      <img src={conn.otherProfile.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                    {safeImgSrc(conn.otherProfile?.avatar_url) ? (
+                      <img src={safeImgSrc(conn.otherProfile.avatar_url)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0">🧑</div>
                     )}
@@ -547,8 +555,8 @@ export default function MessagesPage() {
                         router.push('/messages/' + [conn.requester_id, conn.addressee_id].sort().join('_'))
                       }}
                       className="w-full flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] transition-transform">
-                      {conn.otherProfile?.avatar_url ? (
-                        <img src={conn.otherProfile.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                      {safeImgSrc(conn.otherProfile?.avatar_url) ? (
+                        <img src={safeImgSrc(conn.otherProfile.avatar_url)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0">🧑</div>
                       )}
@@ -664,8 +672,8 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, onDel
         {isUnread && <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-[3px] h-[3px] rounded-full bg-[#E8B84B]" />}
 
         <div className="relative flex-shrink-0">
-          {thread.otherProfile?.avatar_url ? (
-            <img src={thread.otherProfile.avatar_url} alt="" className="w-11 h-11 rounded-xl object-cover" />
+          {safeImgSrc(thread.otherProfile?.avatar_url) ? (
+            <img src={safeImgSrc(thread.otherProfile.avatar_url)!} alt="" className="w-11 h-11 rounded-xl object-cover" />
           ) : (
             <div className="w-11 h-11 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg border border-white/10">
               {thread.otherProfile?.name?.charAt(0) || '🧑'}

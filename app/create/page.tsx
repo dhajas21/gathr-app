@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CITY_NAMES, getCityCoords, EVENT_CATEGORIES } from '@/lib/constants'
+import { isValidUUID } from '@/lib/utils'
 
 function formatDraftAge(d: Date) {
   const diff = Date.now() - d.getTime()
@@ -55,11 +56,9 @@ export default function CreateEventPage() {
   const [draftToast, setDraftToast] = useState(false)
   const [isFromDraft, setIsFromDraft] = useState(false)
 
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
   useEffect(() => {
     const param = new URLSearchParams(window.location.search).get('community')
-    if (param && UUID_RE.test(param)) setFromCommunityId(param)
+    if (param && isValidUUID(param)) setFromCommunityId(param)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUserId(session.user.id)
@@ -208,6 +207,7 @@ export default function CreateEventPage() {
   const handleCreate = async () => {
     setLoading(true)
     setError('')
+    try {
 
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/auth'); return }
@@ -217,12 +217,10 @@ export default function CreateEventPage() {
 
     if (startDatetime < new Date()) {
       setError('Start time must be in the future')
-      setLoading(false)
       return
     }
     if (endDatetime <= startDatetime) {
       setError('End time must be after start time')
-      setLoading(false)
       return
     }
 
@@ -247,8 +245,8 @@ export default function CreateEventPage() {
       location_name: venueName.trim(),
       location_address: address.trim(),
       city,
-      capacity: parseInt(capacity) || 0,
-      spots_left: parseInt(capacity) || 0,
+      capacity: Math.max(0, parseInt(capacity) || 0),
+      spots_left: Math.max(0, parseInt(capacity) || 0),
       tags,
       visibility: privacy,
       host_id: session.user.id,
@@ -263,7 +261,6 @@ export default function CreateEventPage() {
 
     if (insertError) {
       setError(insertError.message)
-      setLoading(false)
       return
     }
 
@@ -273,6 +270,11 @@ export default function CreateEventPage() {
       router.push('/communities/' + fromCommunityId + '?tab=events')
     } else {
       router.push('/events/' + insertedEvent!.id)
+    }
+    } catch (err: any) {
+      setError(err?.message || 'Something went wrong')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -394,7 +396,7 @@ export default function CreateEventPage() {
 
             <div>
               <label className={labelClass}>Address</label>
-              <input className={inputClass} placeholder="470 Bayview Dr, Bellingham WA" value={address} onChange={e => setAddress(e.target.value)} onBlur={() => geocodeAddress(address, venueName, city)} maxLength={200} />
+              <input className={inputClass} placeholder="470 Bayview Dr, Bellingham WA" value={address} onChange={e => setAddress(e.target.value)} maxLength={200} />
               {geocoding && (
                 <p className="text-[10px] text-[#E8B84B]/60 mt-1.5 flex items-center gap-1.5">
                   <span className="inline-block w-2 h-2 rounded-full bg-[#E8B84B]/50 animate-pulse" />

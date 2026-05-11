@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gathr-shell-v2'
+const CACHE_NAME = 'gathr-shell-v3'
 const SHELL_URLS = ['/', '/home', '/offline.html', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (event) => {
@@ -20,7 +20,8 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return
   const url = new URL(request.url)
   if (url.origin !== location.origin) return
-  if (url.pathname.startsWith('/auth') || url.pathname.startsWith('/api')) return
+  const NO_CACHE_PATHS = ['/auth', '/api', '/profile', '/notifications', '/messages', '/settings']
+  if (NO_CACHE_PATHS.some(p => url.pathname.startsWith(p))) return
 
   event.respondWith(
     caches.match(request).then((cached) => {

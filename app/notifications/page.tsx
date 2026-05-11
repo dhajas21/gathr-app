@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { NotificationsPageSkeleton } from '@/components/Skeleton'
+import { safeImgSrc } from '@/lib/utils'
 
 export default function NotificationsPage() {
   const [user, setUser] = useState<any>(null)
@@ -177,8 +178,8 @@ export default function NotificationsPage() {
 
         {/* Avatar */}
         <div className="flex-shrink-0 relative">
-          {actor?.avatar_url ? (
-            <img src={actor.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10" />
+          {safeImgSrc(actor?.avatar_url) ? (
+            <img src={safeImgSrc(actor.avatar_url)!} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10" />
           ) : (
             <div className="w-10 h-10 bg-[#1E2E1E] rounded-xl flex items-center justify-center text-lg border border-white/10">
               {actor?.name?.charAt(0) || getTypeIcon(notif.type)}

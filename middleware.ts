@@ -30,7 +30,7 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set('x-nonce', nonce)
 
   if (pathname === '/' || PUBLIC_PREFIXES.some(route => pathname.startsWith(route))) {
-    const response = NextResponse.next()
+    const response = NextResponse.next({ request: { headers: requestHeaders } })
     response.headers.set('Content-Security-Policy', csp)
     return response
   }

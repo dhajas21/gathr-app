@@ -7,7 +7,7 @@ import BottomNav from '@/components/BottomNav'
 import { EventDetailSkeleton } from '@/components/Skeleton'
 import MysteryMatchCard from '@/components/MysteryMatchCard'
 import { CAT_EMOJI } from '@/lib/categoryEmoji'
-import { safeImgSrc, formatDateVerbose, formatTime } from '@/lib/utils'
+import { safeImgSrc, formatDateVerbose, formatTime, isValidUUID } from '@/lib/utils'
 
 interface Event {
   id: string
@@ -77,11 +77,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
   useEffect(() => {
     params.then(({ id }) => {
-      if (!UUID_RE.test(id)) { router.push('/home'); return }
+      if (!isValidUUID(id)) { router.push('/home'); return }
       setEventId(id)
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }

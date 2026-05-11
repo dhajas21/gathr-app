@@ -153,7 +153,7 @@ export default function ProfilePage() {
       setXpBarWidth(Math.round(((xpVal % 50) / 50) * 100))
     }, 120)
     return () => clearTimeout(t)
-  }, [activeTab, hostedEvents.length, attendedEvents.length, connections.length, profile])
+  }, [activeTab, hostedEvents.length, attendedEvents.length, connections.length, profile?.interests?.length])
 
 
   const fetchAll = async (userId: string) => {

@@ -16,7 +16,10 @@ export function usePushNotifications(userId: string | null) {
   useEffect(() => {
     if (!userId || typeof window === 'undefined') return
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-    if (!VAPID_PUBLIC_KEY) return
+    if (!VAPID_PUBLIC_KEY) {
+      if (process.env.NODE_ENV === 'development') console.warn('[usePushNotifications] NEXT_PUBLIC_VAPID_PUBLIC_KEY not set — push disabled')
+      return
+    }
 
     navigator.serviceWorker.ready
       .then(async (reg) => {

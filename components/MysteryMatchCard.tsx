@@ -1,6 +1,7 @@
 'use client'
 
 import SafetyBadge from './SafetyBadge'
+import { safeImgSrc } from '@/lib/utils'
 
 interface Props {
   match: any
@@ -44,9 +45,9 @@ export default function MysteryMatchCard({
         onClick={() => isRevealed && onNavigate('/profile/' + match.id + '?from=' + eventId)}
         className={'flex-shrink-0 ' + (isRevealed ? 'cursor-pointer' : 'cursor-default')}>
         {isRevealed ? (
-          match.avatar_url ? (
+          safeImgSrc(match.avatar_url) ? (
             <img
-              src={match.avatar_url}
+              src={safeImgSrc(match.avatar_url)!}
               alt=""
               className={'w-11 h-11 rounded-xl object-cover border border-white/10 ' + (eventState === 'ongoing' ? 'blur-[3px]' : '')}
             />

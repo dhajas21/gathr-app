@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { CommunityDetailSkeleton } from '@/components/Skeleton'
+import { safeImgSrc, isValidUUID, formatDate } from '@/lib/utils'
 
 interface Post {
   id: string
@@ -68,13 +69,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const chatEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
   useEffect(() => {
     let cancelled = false
     params.then(({ id }) => {
       if (cancelled) return
-      if (!UUID_RE.test(id)) { router.push('/communities'); return }
+      if (!isValidUUID(id)) { router.push('/communities'); return }
       setCommunityId(id)
       const tab = new URLSearchParams(window.location.search).get('tab')
       if (tab === 'chat' || tab === 'feed' || tab === 'events' || tab === 'members') setActiveTab(tab)
@@ -167,6 +166,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   }
 
   const fetchCommunity = async (id: string, userId: string) => {
+    try {
     const { data: commData } = await supabase.from('communities').select('*').eq('id', id).single()
     if (!commData) { router.push('/communities'); return }
     setCommunity(commData)
@@ -177,7 +177,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         .select('*, profile:profiles!community_members_user_id_fkey(id, name, bio_social, avatar_url)')
         .eq('community_id', id).neq('role', 'pending')
         .order('joined_at', { ascending: true }).limit(50),
-      supabase.from('events').select('*').eq('community_id', id).order('start_datetime', { ascending: true }).limit(10),
+      supabase.from('events').select('id, title, cover_url, start_datetime').eq('community_id', id).order('start_datetime', { ascending: true }).limit(10),
       supabase.from('community_posts').select('id, user_id, text, like_count, created_at, profiles(id, name, avatar_url)').eq('community_id', id).order('created_at', { ascending: false }).limit(30),
       supabase.from('community_post_likes').select('post_id').eq('user_id', userId),
       supabase.from('community_posts').select('*', { count: 'exact', head: true }).eq('community_id', id),
@@ -212,8 +212,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       setPosts(postsData.data.map((p: any) => ({ ...p, liked: likedIds.has(p.id) })))
       fetchCommentCounts(postsData.data.map((p: any) => p.id))
     }
-
-    setLoading(false)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleJoin = async () => {
@@ -324,6 +327,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   }
 
   const handleDeletePost = async (postId: string) => {
+    const post = posts.find(p => p.id === postId)
+    if (!post || (post.user_id !== user?.id && memberRole !== 'owner' && memberRole !== 'admin')) return
     await supabase.from('community_posts').delete().eq('id', postId)
     setPosts(prev => prev.filter(p => p.id !== postId))
     setPostCount(prev => Math.max(0, prev - 1))
@@ -379,12 +384,16 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   }
 
   const handleDeleteComment = async (commentId: string, postId: string) => {
+    const comment = (commentsMap[postId] || []).find(c => c.id === commentId)
+    if (!comment || (comment.user_id !== user?.id && memberRole !== 'owner' && memberRole !== 'admin')) return
     await supabase.from('community_post_comments').delete().eq('id', commentId)
     setCommentsMap(prev => ({ ...prev, [postId]: (prev[postId] || []).filter(c => c.id !== commentId) }))
     setCommentCountMap(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 1) - 1) }))
   }
 
   const handleDeleteChatMessage = async (msgId: string) => {
+    const msg = chatMessages.find(m => m.id === msgId)
+    if (!msg || (msg.user_id !== user?.id && memberRole !== 'owner' && memberRole !== 'admin')) return
     await supabase.from('community_chat_messages').delete().eq('id', msgId)
     setChatMessages(prev => prev.filter(m => m.id !== msgId))
   }
@@ -453,18 +462,12 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     }
   }
 
-  const formatTime = (dt: string) => {
+  const timeAgo = (dt: string) => {
     const diff = Date.now() - new Date(dt).getTime()
     if (diff < 60000) return 'just now'
     if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago'
     if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago'
     return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
-
-  const formatDate = (dt: string) => {
-    const d = new Date(dt)
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) +
-      ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
   }
 
   if (loading) return <CommunityDetailSkeleton />
@@ -479,8 +482,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       {/* Banner */}
       <div className="relative h-44 flex items-center justify-center text-5xl"
         style={{ background: community.banner_gradient || 'var(--gradient-community-banner)' }}>
-        {community.banner_url ? (
-          <img src={community.banner_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        {safeImgSrc(community.banner_url) ? (
+          <img src={safeImgSrc(community.banner_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <span className="relative z-10">{community.icon || '👥'}</span>
         )}
@@ -605,8 +608,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               return (
                 <div key={post.id} className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
                   <div className="flex items-start gap-2.5 mb-3">
-                    {profile?.avatar_url ? (
-                      <img src={profile.avatar_url} alt="" className="w-8 h-8 rounded-xl object-cover flex-shrink-0" />
+                    {safeImgSrc(profile?.avatar_url) ? (
+                      <img src={safeImgSrc(profile.avatar_url)!} alt="" className="w-8 h-8 rounded-xl object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-8 h-8 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-sm flex-shrink-0">
                         {profile?.name?.charAt(0) || '?'}
@@ -616,7 +619,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       <div className="flex items-center gap-2">
                         <button onClick={() => router.push('/profile/' + profile?.id)}
                           className="text-sm font-semibold text-[#F0EDE6]">{profile?.name || 'Unknown'}</button>
-                        <span className="text-[9px] text-white/25">{formatTime(post.created_at)}</span>
+                        <span className="text-[9px] text-white/25">{timeAgo(post.created_at)}</span>
                         {(isOwn || isOwnerOrAdmin) && (
                           <button onClick={() => handleDeletePost(post.id)} className="ml-auto text-[9px] text-white/20 active:text-[#E85B5B]">✕</button>
                         )}
@@ -643,8 +646,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       )}
                       {(commentsMap[post.id] || []).map(comment => (
                         <div key={comment.id} className="flex items-start gap-2 mb-2.5">
-                          {comment.profiles?.avatar_url ? (
-                            <img src={comment.profiles.avatar_url} alt="" className="w-6 h-6 rounded-lg object-cover flex-shrink-0 mt-0.5" />
+                          {safeImgSrc(comment.profiles?.avatar_url) ? (
+                            <img src={safeImgSrc(comment.profiles.avatar_url)!} alt="" className="w-6 h-6 rounded-lg object-cover flex-shrink-0 mt-0.5" />
                           ) : (
                             <div className="w-6 h-6 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">
                               {comment.profiles?.name?.charAt(0) || '?'}
@@ -654,7 +657,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                             <div className="flex items-center gap-1.5 mb-0.5">
                               <button onClick={() => router.push('/profile/' + comment.profiles?.id)}
                                 className="text-[11px] font-semibold text-[#F0EDE6]/80">{comment.profiles?.name || 'Unknown'}</button>
-                              <span className="text-[9px] text-white/25">{formatTime(comment.created_at)}</span>
+                              <span className="text-[9px] text-white/25">{timeAgo(comment.created_at)}</span>
                             </div>
                             <p className="text-xs text-white/60 leading-relaxed">{comment.text}</p>
                           </div>
@@ -712,15 +715,24 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               )}
             </div>
             {events.length === 0 ? (
-              <p className="text-xs text-white/30 text-center py-4">No events yet</p>
+              <div className="flex flex-col items-center gap-2 py-8">
+                <div className="text-3xl">🗓</div>
+                <p className="text-sm text-white/40 text-center">No events yet</p>
+                {(isMember) && (
+                  <button onClick={() => router.push('/create?community=' + communityId)}
+                    className="mt-1 bg-[#E8B84B] text-[#0D110D] px-4 py-2 rounded-xl text-xs font-bold active:scale-95 transition-transform">
+                    Create an Event
+                  </button>
+                )}
+              </div>
             ) : (
               <div className="space-y-2">
                 {events.map(event => (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer">
                     <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0 overflow-hidden relative">
-                      {event.cover_url
-                        ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      {safeImgSrc(event.cover_url)
+                        ? <img src={safeImgSrc(event.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         : '🎉'
                       }
                     </div>
@@ -747,8 +759,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                 <div className="space-y-3">
                   {pendingRequests.map(req => (
                     <div key={req.user_id} className="flex items-center gap-3">
-                      {req.profile?.avatar_url ? (
-                        <img src={req.profile.avatar_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                      {safeImgSrc(req.profile?.avatar_url) ? (
+                        <img src={safeImgSrc(req.profile.avatar_url)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                           {req.profile?.name?.charAt(0) || '🧑'}
@@ -785,8 +797,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   <div key={member.id}
                     onClick={() => member.user_id !== user?.id && router.push('/profile/' + member.user_id)}
                     className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer">
-                    {member.profile?.avatar_url ? (
-                      <img src={member.profile.avatar_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                    {safeImgSrc(member.profile?.avatar_url) ? (
+                      <img src={safeImgSrc(member.profile.avatar_url)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                         {member.profile?.name?.charAt(0) || '🧑'}
@@ -836,8 +848,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       {!isOwn && (
                         <div className="w-7 h-7 flex-shrink-0 self-end">
                           {showHeader ? (
-                            profile?.avatar_url ? (
-                              <img src={profile.avatar_url} alt="" className="w-7 h-7 rounded-lg object-cover" />
+                            safeImgSrc(profile?.avatar_url) ? (
+                              <img src={safeImgSrc(profile.avatar_url)!} alt="" className="w-7 h-7 rounded-lg object-cover" />
                             ) : (
                               <div className="w-7 h-7 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-xs text-[#F0EDE6]">
                                 {profile?.name?.charAt(0) || '?'}
@@ -938,8 +950,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                     onClick={() => !addingEvent && handleAddEventToCommunity(event.id)}
                     className="flex items-center gap-3 bg-[#0D110D] border border-white/10 rounded-2xl p-3 cursor-pointer active:opacity-70">
                     <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex-shrink-0 overflow-hidden relative">
-                      {event.cover_url
-                        ? <img src={event.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      {safeImgSrc(event.cover_url)
+                        ? <img src={safeImgSrc(event.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center text-lg">🎉</div>
                       }
                     </div>
