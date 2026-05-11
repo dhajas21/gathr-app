@@ -102,10 +102,13 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         event: 'INSERT', schema: 'public', table: 'community_posts',
         filter: 'community_id=eq.' + communityId,
       }, async (payload) => {
+        // Skip refetch for our own posts — already inserted optimistically
+        const newPost = payload.new as any
+        if (newPost.user_id === user?.id) return
         const { data } = await supabase
           .from('community_posts')
           .select('id, user_id, text, image_url, like_count, created_at, profiles(id, name, avatar_url)')
-          .eq('id', payload.new.id).single()
+          .eq('id', newPost.id).maybeSingle()
         if (data) setPosts(prev => {
           if (prev.some(p => p.id === (data as any).id)) return prev
           return [{ ...(data as any), liked: false }, ...prev]
@@ -113,7 +116,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [communityId])
+  }, [communityId, user?.id])
 
   useEffect(() => {
     if (!communityId || !isMember) return
@@ -123,10 +126,13 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         event: 'INSERT', schema: 'public', table: 'community_chat_messages',
         filter: 'community_id=eq.' + communityId,
       }, async (payload) => {
+        // Skip refetch for our own messages — already inserted optimistically
+        const newMsg = payload.new as any
+        if (newMsg.user_id === user?.id) return
         const { data } = await supabase
           .from('community_chat_messages')
           .select('id, user_id, text, created_at, profiles(id, name, avatar_url)')
-          .eq('id', payload.new.id).single()
+          .eq('id', newMsg.id).maybeSingle()
         if (data) setChatMessages(prev => {
           if (prev.some(m => m.id === (data as any).id)) return prev
           return [...prev, data as any]
@@ -140,7 +146,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [communityId, isMember])
+  }, [communityId, isMember, user?.id])
 
   useEffect(() => {
     if (activeTab === 'chat' && communityId && isMember) fetchChat(communityId)

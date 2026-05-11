@@ -9,6 +9,7 @@ import MysteryMatchCard from '@/components/MysteryMatchCard'
 import { CAT_EMOJI } from '@/lib/categoryEmoji'
 import { optimizedImgSrc, formatDateVerbose, formatTime, isValidUUID } from '@/lib/utils'
 import { track } from '@/components/AnalyticsProvider'
+import FadeIn from '@/components/FadeIn'
 import confetti from 'canvas-confetti'
 
 interface Event {
@@ -65,6 +66,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [blocked, setBlocked] = useState(false)
   const [hasReviewsPending, setHasReviewsPending] = useState(true)
   const [showCancelRsvp, setShowCancelRsvp] = useState(false)
+  const [rsvpGhostKey, setRsvpGhostKey] = useState(0)
   const [matches, setMatches] = useState<any[]>([])
   const [matchConnStatuses, setMatchConnStatuses] = useState<Record<string, string>>({})
   const [matchConnLoading, setMatchConnLoading] = useState<string | null>(null)
@@ -123,6 +125,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       }, async (payload) => {
         setTotalAttendees(prev => prev + 1)
         setEvent(prev => prev ? { ...prev, spots_left: Math.max(0, prev.spots_left - 1) } : prev)
+        // Only show the +1 ghost for OTHER users' RSVPs (our own is already optimistic)
+        const newRsvp = payload.new as { user_id?: string }
+        if (newRsvp.user_id && newRsvp.user_id !== user?.id) {
+          setRsvpGhostKey(k => k + 1)
+        }
         const { data } = await supabase
           .from('rsvps')
           .select('user_id, profiles(id, name, avatar_url)')
@@ -516,7 +523,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const spotsPercent = event.capacity > 0 ? ((event.capacity - event.spots_left) / event.capacity) * 100 : 0
 
   return (
-    <div className="min-h-screen bg-[#0D110D] flex flex-col">
+    <FadeIn className="min-h-screen bg-[#0D110D] flex flex-col">
 
       {/* Hero */}
       <div className="relative h-52 flex items-center justify-center text-6xl flex-shrink-0"
@@ -599,8 +606,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         {/* Attendees */}
         <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">
+            <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium relative">
               {totalAttendees > 0 ? `${totalAttendees} Going` : 'Attendees'}
+              {rsvpGhostKey > 0 && (
+                <span
+                  key={rsvpGhostKey}
+                  className="absolute -top-3 left-full ml-1 text-[10px] font-bold text-[#7EC87E] rsvp-ghost normal-case tracking-normal">
+                  +1
+                </span>
+              )}
             </div>
             {totalAttendees > 0 && (
               <button onClick={() => router.push('/events/' + event.id + '/attendees')}
@@ -1038,6 +1052,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       )}
 
       <BottomNav />
-    </div>
+    </FadeIn>
   )
 }

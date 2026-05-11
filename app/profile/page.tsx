@@ -8,6 +8,7 @@ import BottomNav from '@/components/BottomNav'
 import { ProfilePageSkeleton } from '@/components/Skeleton'
 import ThemeToggle from '@/components/ThemeToggle'
 import UndoToast from '@/components/UndoToast'
+import FadeIn from '@/components/FadeIn'
 import { optimizedImgSrc, formatDateLong } from '@/lib/utils'
 import { catEmoji } from '@/lib/categoryEmoji'
 
@@ -306,7 +307,7 @@ export default function ProfilePage() {
   const unlockedCount = ACHIEVEMENTS.filter(a => a.val >= a.req).length
 
   return (
-    <div className="min-h-screen bg-[#0D110D] pb-24">
+    <FadeIn className="min-h-screen bg-[#0D110D] pb-24">
 
       <div style={{ background: 'var(--gradient-profile-header)' }}>
         <div className="flex items-start justify-between px-4 pt-14 mb-3">
@@ -789,6 +790,6 @@ export default function ProfilePage() {
       />
 
       <BottomNav />
-    </div>
+    </FadeIn>
   )
 }

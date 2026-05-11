@@ -150,18 +150,19 @@ export default function GathrPlusPage() {
 
       {/* CTA */}
       <div className="px-5 pb-10">
-        {activeTrial && !isSubscriber && (
-          <div className="mb-4 bg-[#7EC87E]/10 border border-[#7EC87E]/25 rounded-2xl px-4 py-3 text-center">
-            <div className="text-xs font-semibold text-[#7EC87E] mb-0.5">✦ Trial active</div>
-            <div className="text-[10px] text-white/40">
-              {(() => {
-                const ms = new Date(activeTrial).getTime() - Date.now()
-                const hrs = Math.floor(ms / 3600000)
-                return hrs >= 24 ? `${Math.floor(hrs / 24)}d ${hrs % 24}h remaining` : `${hrs}h remaining`
-              })()}
+        {activeTrial && !isSubscriber && (() => {
+          const ms = new Date(activeTrial).getTime() - Date.now()
+          const hrs = Math.floor(ms / 3600000)
+          const isUrgent = hrs < 24
+          return (
+            <div className={'mb-4 bg-[#7EC87E]/10 border border-[#7EC87E]/25 rounded-2xl px-4 py-3 text-center ' + (isUrgent ? 'soft-pulse' : '')}>
+              <div className="text-xs font-semibold text-[#7EC87E] mb-0.5">✦ Trial active</div>
+              <div className="text-[10px] text-white/40">
+                {hrs >= 24 ? `${Math.floor(hrs / 24)}d ${hrs % 24}h remaining` : `${hrs}h remaining`}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
         {isSubscriber && (
           <div className="mb-4 bg-[#E8B84B]/10 border border-[#E8B84B]/25 rounded-2xl px-4 py-3 text-center">
             <div className="text-xs font-semibold text-[#E8B84B]">✦ Gathr+ Active</div>

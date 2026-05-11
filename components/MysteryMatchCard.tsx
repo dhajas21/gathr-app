@@ -63,6 +63,8 @@ export default function MysteryMatchCard({
               <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" fill="currentColor" />
             </svg>
             <div className="absolute inset-0 bg-gradient-to-br from-[#E8B84B]/6 to-transparent" />
+            {/* Slow shimmer sweep — reinforces 'intentionally hidden' rather than 'broken' */}
+            <div className="mystery-shimmer absolute inset-0 pointer-events-none" />
             <span className="absolute bottom-0.5 right-0.5 text-[7px]">🔒</span>
           </div>
         )}

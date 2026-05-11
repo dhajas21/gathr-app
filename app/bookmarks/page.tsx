@@ -85,7 +85,7 @@ export default function BookmarksPage() {
 
       {events.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-3 px-4">
-          <div className="text-4xl">🔖</div>
+          <div className="text-4xl empty-float">🔖</div>
           <p className="text-white/40 text-sm text-center">No saved events yet</p>
           <p className="text-white/25 text-xs text-center max-w-[220px]">Tap the bookmark icon on any event to save it here</p>
           <button onClick={() => router.push('/home')}
