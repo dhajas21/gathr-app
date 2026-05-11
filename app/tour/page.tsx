@@ -24,8 +24,8 @@ const tourSlides = [
     icon: '👥',
     title: 'Groups & Communities',
     highlight: 'Find your people',
-    body: 'Join communities built around shared interests — running crews, coffee clubs, tech meetups, and more. Members post events within the community and every community has its own real-time group chat.',
-    tip: 'Tap Groups in the bottom nav to browse and join. Community events appear in your home feed. Open the chat tab inside any community to message all members at once.',
+    body: 'Join communities built around shared interests — running crews, coffee clubs, tech meetups, and more. Members post to a shared feed, reply to posts with comments, and every community has its own real-time group chat. Owners and admins can pin events, moderate posts, and remove chat messages.',
+    tip: 'Tap Groups in the bottom nav to browse and join. Create an event from inside a community to link it directly to that group. Owners can promote members to admin in Community Settings.',
     bg: 'linear-gradient(135deg,#1A2A1E,#0E1A14)',
   },
   {
@@ -49,7 +49,7 @@ const tourSlides = [
     title: 'Connect & Message',
     highlight: 'Real conversations',
     body: 'See someone at an event you\'d like to know? Send a connection request. Once accepted, start a private DM thread — each conversation shows exactly where you two first met.',
-    tip: 'Pending connection requests appear in your Messages tab — accept or decline right there. Long-press one of your own messages to unsend it.',
+    tip: 'Pending connection requests appear in your Messages tab — accept or decline right there. Long-press one of your own messages to unsend it. Swipe left on a conversation to delete it from your list.',
     bg: 'linear-gradient(135deg,#2A1A1A,#1A0E0E)',
   },
   {

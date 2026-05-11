@@ -82,6 +82,7 @@ export default function ProfilePage() {
   const [showAchievementUnlock, setShowAchievementUnlock] = useState(false)
   const [communityCount, setCommunityCount] = useState(0)
   const [pinnedBadges, setPinnedBadges] = useState<string[]>([])
+  const [hasDraft, setHasDraft] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -172,7 +173,7 @@ export default function ProfilePage() {
 
 
   const fetchAll = async (userId: string) => {
-    const [profileRes, hostedRes, rsvpRes, connRes, communityRes] = await Promise.all([
+    const [profileRes, hostedRes, rsvpRes, connRes, communityRes, draftRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('events').select('*').eq('host_id', userId).order('start_datetime', { ascending: false }),
       supabase.from('rsvps').select('event_id').eq('user_id', userId),
@@ -181,7 +182,9 @@ export default function ProfilePage() {
         .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId)
         .eq('status', 'accepted'),
       supabase.from('community_members').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      supabase.from('event_drafts').select('id').eq('user_id', userId).limit(1),
     ])
+    setHasDraft((draftRes.data?.length ?? 0) > 0)
     if (communityRes.count !== null) setCommunityCount(communityRes.count)
 
     if (profileRes.data) {
@@ -453,6 +456,19 @@ export default function ProfilePage() {
 
         {activeTab === 1 && (
           <>
+            {hasDraft && (
+              <button onClick={() => router.push('/create')}
+                className="w-full bg-[#1C1E10] border border-[#E8B84B]/25 rounded-2xl p-3.5 flex items-center justify-between active:scale-[0.98] transition-transform">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center text-base flex-shrink-0">✏️</div>
+                  <div className="text-left">
+                    <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium mb-0.5">Unsaved Draft</div>
+                    <div className="text-sm text-[#F0EDE6]">Resume creating your event</div>
+                  </div>
+                </div>
+                <span className="text-[#E8B84B]/50 text-lg">›</span>
+              </button>
+            )}
             {hostedEvents.length > 0 && (
               <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
                 <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">Hosted by you</div>
