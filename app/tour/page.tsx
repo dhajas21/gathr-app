@@ -32,7 +32,7 @@ const tourSlides = [
     icon: '🔮',
     title: 'Mystery Matches',
     highlight: 'The reveal is the reward',
-    body: 'RSVP to any event and Gathr shows how many attendees share your vibe — but keeps them blurred until after you go. Full profiles unlock once the event ends and you\'ve attended.',
+    body: 'RSVP to any event and Gathr shows how many attendees share your vibe — but keeps them blurred until after you go. Full profiles unlock once the event ends and you\'ve attended. You\'ll get a notification in your bell icon when your matches are ready.',
     tip: 'Gathr+ members see partial names and shared interests before the event, and can send an anonymous wave. A mutual wave gives both people an early first-name reveal. Upgrade anytime in Settings.',
     bg: 'linear-gradient(135deg,#1E2A2E,#0E1A1E)',
   },
@@ -41,7 +41,7 @@ const tourSlides = [
     title: 'Safety & Trust',
     highlight: 'A community you can count on',
     body: 'After every event you attended, you\'re invited to rate the people you crossed paths with — three quick anonymous questions. Ratings build a public safety tier: New, Verified, or Trusted. Flagged accounts are removed from match lists and reviewed by our team.',
-    tip: 'Open the event page after it ends to submit reviews. Safety flags go directly to our team — two flags from different users can restrict an account. Your own tier is visible on your profile.',
+    tip: 'You\'ll receive a notification after attending an event — tap it to go straight to the review page. Safety flags go directly to our team — two flags from different users can restrict an account. Your own tier is visible on your profile.',
     bg: 'linear-gradient(135deg,#1A1E2A,#0E1014)',
   },
   {
