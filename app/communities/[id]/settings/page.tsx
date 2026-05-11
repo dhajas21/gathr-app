@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { isValidUUID } from '@/lib/utils'
+import { isValidUUID, safeImgSrc } from '@/lib/utils'
 
 const CATEGORIES = [
   'Social', 'Fitness & Running', 'Wellness', 'Tech & Startups', 'Arts & Creativity',
@@ -150,8 +150,14 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
   const handleDelete = async () => {
     if (!communityId) return
     setDeleting(true)
-    await supabase.from('community_members').delete().eq('community_id', communityId)
+    const { data: posts } = await supabase.from('community_posts').select('id').eq('community_id', communityId)
+    const postIds = (posts || []).map((p: any) => p.id)
+    if (postIds.length > 0) {
+      await supabase.from('community_post_comments').delete().in('post_id', postIds)
+    }
+    await supabase.from('community_chat_messages').delete().eq('community_id', communityId)
     await supabase.from('community_posts').delete().eq('community_id', communityId)
+    await supabase.from('community_members').delete().eq('community_id', communityId)
     await supabase.from('communities').delete().eq('id', communityId)
     router.push('/communities')
   }
@@ -297,8 +303,8 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
                 const isUpdating = updatingMemberId === member.user_id
                 return (
                   <div key={member.user_id} className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-3.5 py-3">
-                    {member.profile?.avatar_url ? (
-                      <img src={member.profile.avatar_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                    {safeImgSrc(member.profile?.avatar_url) ? (
+                      <img src={safeImgSrc(member.profile.avatar_url)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                         {member.profile?.name?.charAt(0) || '🧑'}

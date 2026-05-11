@@ -14,9 +14,10 @@ export default function ResetPasswordPage() {
   const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setReady(true)
     })
+    return () => subscription.unsubscribe()
   }, [])
 
   const handleReset = async () => {
