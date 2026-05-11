@@ -204,7 +204,7 @@ XP is earned through various actions and stored on `profiles.xp`. Level is deriv
 - **Veteran** — upper tier
 - **Legend** — top tier
 
-**28 achievements** across bronze, silver, and gold — covering categories like: events attended, events hosted, communities joined, connections made, safety reviews submitted, category variety, and more.
+**32 achievements** across bronze, silver, and gold — covering categories like: events attended, events hosted, communities joined or founded, connections made, events bookmarked, safety tier earned, category variety, and more.
 
 **Badges** are shown in the Stats tab of your profile. You can pin up to 3 badges to your public profile. An achievement celebration modal (with confetti via canvas-confetti) appears when you cross a milestone.
 

@@ -63,6 +63,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const [commentCountMap, setCommentCountMap] = useState<Record<string, number>>({})
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({})
   const [commentingId, setCommentingId] = useState<string | null>(null)
+  const [shareCopied, setShareCopied] = useState(false)
   const postInputRef = useRef<HTMLTextAreaElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -444,7 +445,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     if (navigator.share) {
       try { await navigator.share(shareData) } catch {}
     } else {
-      await navigator.clipboard.writeText(url)
+      try {
+        await navigator.clipboard.writeText(url)
+        setShareCopied(true)
+        setTimeout(() => setShareCopied(false), 2000)
+      } catch {}
     }
   }
 
@@ -486,7 +491,9 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             ←
           </button>
           <div className="flex gap-2">
-            <button onClick={handleShare} className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">↑</button>
+            <button onClick={handleShare} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center text-base transition-colors ' + (shareCopied ? 'border-[#E8B84B]/40 text-[#E8B84B]' : 'border-white/15 text-[#F0EDE6]')}>
+              {shareCopied ? '✓' : '↑'}
+            </button>
             {memberRole === 'owner' && (
               <button onClick={() => router.push('/communities/' + communityId + '/settings')}
                 className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-base">⚙️</button>

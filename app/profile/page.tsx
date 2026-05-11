@@ -29,6 +29,8 @@ function computeAchievements(
   uniqueAttendedCats: number,
   uniqueHostedCats: number,
   communityCount: number,
+  ownedCommunityCount: number,
+  bookmarkCount: number,
 ) {
   const safetyTier = profile?.safety_tier || 'new'
   return [
@@ -60,6 +62,11 @@ function computeAchievements(
     // Community
     { icon: '🏘️', title: 'Group Member', desc: 'Join your first community', tier: 'bronze', val: communityCount, req: 1 },
     { icon: '🌿', title: 'Community Regular', desc: 'Join 3 communities', tier: 'silver', val: communityCount, req: 3 },
+    { icon: '🌐', title: 'Town Square', desc: 'Join 5 communities', tier: 'gold', val: communityCount, req: 5 },
+    { icon: '🏛️', title: 'Community Founder', desc: 'Create your first community', tier: 'bronze', val: ownedCommunityCount, req: 1 },
+    // Bookmarks
+    { icon: '🔖', title: 'First Save', desc: 'Bookmark your first event', tier: 'bronze', val: bookmarkCount, req: 1 },
+    { icon: '🗂️', title: 'Curator', desc: 'Bookmark 5 events', tier: 'silver', val: bookmarkCount, req: 5 },
     // Safety tier
     { icon: '🛡️', title: 'Trusted Member', desc: 'Reach Verified safety tier', tier: 'silver', val: (safetyTier === 'verified' || safetyTier === 'trusted') ? 1 : 0, req: 1 },
     { icon: '💠', title: 'Community Pillar', desc: 'Reach Trusted safety tier', tier: 'gold', val: safetyTier === 'trusted' ? 1 : 0, req: 1 },
@@ -81,6 +88,8 @@ export default function ProfilePage() {
   const [newAchievements, setNewAchievements] = useState<any[]>([])
   const [showAchievementUnlock, setShowAchievementUnlock] = useState(false)
   const [communityCount, setCommunityCount] = useState(0)
+  const [ownedCommunityCount, setOwnedCommunityCount] = useState(0)
+  const [bookmarkCount, setBookmarkCount] = useState(0)
   const [pinnedBadges, setPinnedBadges] = useState<string[]>([])
   const [hasDraft, setHasDraft] = useState(false)
   const router = useRouter()
@@ -143,7 +152,7 @@ export default function ProfilePage() {
 
       const uniqueAttendedCats = new Set(attendedEvents.map((e: any) => e.category)).size
       const uniqueHostedCats = new Set(hostedEvents.map((e: any) => e.category)).size
-      const allAch = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, levelVal, uniqueAttendedCats, uniqueHostedCats, communityCount)
+      const allAch = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, levelVal, uniqueAttendedCats, uniqueHostedCats, communityCount, ownedCommunityCount, bookmarkCount)
       const seenRaw = localStorage.getItem('gathr_seen_achievements')
       const seen: string[] | null = seenRaw ? JSON.parse(seenRaw) : null
       if (seen !== null) {
@@ -173,7 +182,7 @@ export default function ProfilePage() {
 
 
   const fetchAll = async (userId: string) => {
-    const [profileRes, hostedRes, rsvpRes, connRes, communityRes, draftRes] = await Promise.all([
+    const [profileRes, hostedRes, rsvpRes, connRes, communityRes, draftRes, ownedRes, bmRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('events').select('*').eq('host_id', userId).order('start_datetime', { ascending: false }),
       supabase.from('rsvps').select('event_id').eq('user_id', userId),
@@ -183,9 +192,13 @@ export default function ProfilePage() {
         .eq('status', 'accepted'),
       supabase.from('community_members').select('id', { count: 'exact', head: true }).eq('user_id', userId),
       supabase.from('event_drafts').select('id').eq('user_id', userId).limit(1),
+      supabase.from('community_members').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('role', 'owner'),
+      supabase.from('event_bookmarks').select('id', { count: 'exact', head: true }).eq('user_id', userId),
     ])
     setHasDraft((draftRes.data?.length ?? 0) > 0)
     if (communityRes.count !== null) setCommunityCount(communityRes.count)
+    if (ownedRes.count !== null) setOwnedCommunityCount(ownedRes.count)
+    if (bmRes.count !== null) setBookmarkCount(bmRes.count)
 
     if (profileRes.data) {
       setProfile(profileRes.data)
@@ -262,7 +275,7 @@ export default function ProfilePage() {
 
   const uniqueAttendedCats = new Set(attendedEvents.map((e: any) => e.category)).size
   const uniqueHostedCats = new Set(hostedEvents.map((e: any) => e.category)).size
-  const ACHIEVEMENTS = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, level, uniqueAttendedCats, uniqueHostedCats, communityCount)
+  const ACHIEVEMENTS = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, interests, profile, level, uniqueAttendedCats, uniqueHostedCats, communityCount, ownedCommunityCount, bookmarkCount)
 
   const tierColor = (tier: string, unlocked: boolean) =>
     !unlocked ? 'text-white/20' :

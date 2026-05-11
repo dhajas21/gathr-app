@@ -157,7 +157,7 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
   const inputClass = 'w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm'
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] pb-10">
+    <div className="min-h-screen bg-[#0D110D] pb-16">
       <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
         <div className="w-9 h-9 bg-white/[0.07] rounded-xl animate-pulse flex-shrink-0" />
         <div className="h-5 w-36 bg-white/[0.07] rounded-xl animate-pulse" />
@@ -172,7 +172,7 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
   )
 
   return (
-    <div className="min-h-screen bg-[#0D110D] pb-10">
+    <div className="min-h-screen bg-[#0D110D] pb-16">
 
       <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
         <button onClick={() => router.back()}
