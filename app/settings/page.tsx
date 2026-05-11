@@ -30,6 +30,13 @@ export default function SettingsPage() {
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'idea' | 'praise' | 'other'>('idea')
+  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [feedbackSending, setFeedbackSending] = useState(false)
+  const [feedbackError, setFeedbackError] = useState('')
+  const [feedbackSent, setFeedbackSent] = useState(false)
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [gathrPlus, setGathrPlus] = useState(false)
   const [gathrPlusExpiresAt, setGathrPlusExpiresAt] = useState<string | null>(null)
   const passwordSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -58,8 +65,44 @@ export default function SettingsPage() {
         }
       })()
     })
-    return () => { if (passwordSuccessTimerRef.current) clearTimeout(passwordSuccessTimerRef.current) }
+    return () => {
+      if (passwordSuccessTimerRef.current) clearTimeout(passwordSuccessTimerRef.current)
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current)
+    }
   }, [])
+
+  const handleSendFeedback = async () => {
+    if (!user || feedbackSending) return
+    const trimmed = feedbackMessage.trim()
+    if (!trimmed) { setFeedbackError('Tell us what you wanted to share.'); return }
+    if (trimmed.length > 2000) { setFeedbackError('Please keep it under 2000 characters.'); return }
+    setFeedbackSending(true)
+    setFeedbackError('')
+    const { error } = await supabase.from('feedback').insert({
+      user_id: user.id,
+      category: feedbackCategory,
+      message: trimmed,
+      page_path: typeof window !== 'undefined' ? window.location.pathname : null,
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 500) : null,
+    })
+    if (error) {
+      // 23505 is our rate-limit code (raised in the BEFORE trigger)
+      setFeedbackError(
+        (error as any).code === '23505'
+          ? 'You\'ve sent a few already — please wait an hour before sending more.'
+          : 'Something went wrong. Try again in a minute.',
+      )
+      setFeedbackSending(false)
+      return
+    }
+    setFeedbackSent(true)
+    setFeedbackMessage('')
+    feedbackTimerRef.current = setTimeout(() => {
+      setShowFeedback(false)
+      setFeedbackSent(false)
+    }, 1800)
+    setFeedbackSending(false)
+  }
 
   const handleToggleMode = async (mode: 'social' | 'professional') => {
     if (savingMode) return
@@ -458,6 +501,17 @@ export default function SettingsPage() {
             <span className="text-white/30 text-sm">›</span>
           </button>
 
+          <button
+            onClick={() => { setShowFeedback(true); setFeedbackError(''); setFeedbackSent(false) }}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] active:bg-white/[0.03] transition-colors"
+          >
+            <div className="text-left">
+              <div className="text-sm text-[#F0EDE6]">Send Feedback</div>
+              <div className="text-[10px] text-white/35 mt-0.5">Report a bug, share an idea, or say hi</div>
+            </div>
+            <span className="text-white/30 text-sm">›</span>
+          </button>
+
           <div className="px-4 py-3.5 border-b border-white/[0.06]">
             <div className="text-sm text-white/35">Version</div>
             <div className="text-[10px] text-white/20 mt-0.5">Gathr 1.0</div>
@@ -487,6 +541,75 @@ export default function SettingsPage() {
         </div>
 
       </div>
+
+      {showFeedback && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => !feedbackSending && setShowFeedback(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+            {feedbackSent ? (
+              <div className="text-center py-6">
+                <div className="text-4xl mb-3">🙌</div>
+                <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Got it — thank you</h3>
+                <p className="text-xs text-white/40">We read every message. We may reach out if we need more detail.</p>
+              </div>
+            ) : (
+              <>
+                <div className="text-center mb-5">
+                  <div className="text-3xl mb-3">💬</div>
+                  <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Send feedback</h3>
+                  <p className="text-xs text-white/40">Bug, idea, praise, or anything else — we'd love to hear it.</p>
+                </div>
+
+                {/* Category chips */}
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {[
+                    { value: 'bug', label: '🐛 Bug' },
+                    { value: 'idea', label: '💡 Idea' },
+                    { value: 'praise', label: '⭐ Love' },
+                    { value: 'other', label: '✦ Other' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setFeedbackCategory(opt.value as 'bug' | 'idea' | 'praise' | 'other')}
+                      className={'py-2 rounded-xl text-[11px] font-medium border transition-all ' +
+                        (feedbackCategory === opt.value
+                          ? 'bg-[#E8B84B]/10 border-[#E8B84B]/35 text-[#E8B84B]'
+                          : 'bg-[#0D110D] border-white/10 text-white/45')}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  value={feedbackMessage}
+                  onChange={e => setFeedbackMessage(e.target.value)}
+                  rows={5}
+                  maxLength={2000}
+                  placeholder="What's on your mind? The more specific the better."
+                  className="w-full bg-[#0D110D] border border-white/10 rounded-2xl px-4 py-3 text-sm text-[#F0EDE6] placeholder-white/25 outline-none focus:border-[#E8B84B]/40 resize-none"
+                />
+                <div className="text-[10px] text-white/25 mt-1 text-right">{feedbackMessage.length} / 2000</div>
+
+                {feedbackError && (
+                  <div className="mt-2 text-xs text-[#E85B5B] bg-[#E85B5B]/8 border border-[#E85B5B]/20 rounded-xl px-3 py-2">
+                    {feedbackError}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSendFeedback}
+                  disabled={feedbackSending || !feedbackMessage.trim()}
+                  className="w-full mt-4 py-3.5 rounded-2xl bg-[#E8B84B] text-[#0D110D] font-bold text-sm disabled:opacity-40 active:scale-[0.98] transition-transform">
+                  {feedbackSending ? 'Sending…' : 'Send feedback'}
+                </button>
+                <p className="text-[9px] text-white/20 text-center mt-2 leading-relaxed">
+                  Sent with your user ID and the page you're on. No screenshots are captured automatically.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => !deletingAccount && (setShowDeleteConfirm(false), setDeleteConfirmText(''))}>
