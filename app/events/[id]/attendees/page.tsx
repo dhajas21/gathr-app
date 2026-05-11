@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import SafetyBadge from '@/components/SafetyBadge'
-import { isValidUUID, safeImgSrc } from '@/lib/utils'
+import { isValidUUID, safeImgSrc, optimizedImgSrc } from '@/lib/utils'
 
 export default function AttendeesPage({ params }: { params: Promise<{ id: string }> }) {
   const [user, setUser] = useState<any>(null)
@@ -131,8 +131,8 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               <div key={r.user_id}
                 onClick={() => canLink && router.push('/profile/' + r.user_id)}
                 className={'flex items-center gap-3 py-3 ' + (canLink ? 'cursor-pointer active:opacity-70' : '')}>
-                {safeImgSrc(profile?.avatar_url) ? (
-                  <img src={safeImgSrc(profile.avatar_url)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                {optimizedImgSrc(profile?.avatar_url, 96) ? (
+                  <img src={optimizedImgSrc(profile.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                 ) : (
                   <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                     {profile?.name?.charAt(0) || '?'}

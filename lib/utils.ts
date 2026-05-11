@@ -16,6 +16,28 @@ export function safeImgSrc(url: string | null | undefined): string | null {
   }
 }
 
+/**
+ * Like safeImgSrc but rewrites Supabase Storage object URLs to the render/image
+ * endpoint so the CDN serves a resized, quality-capped JPEG/WebP instead of
+ * the raw original.  Non-Supabase URLs (e.g. Google profile photos) are
+ * returned unchanged.
+ *
+ * @param width  Target width in CSS pixels — double for 2× retina (e.g. 64 for a w-8 avatar)
+ * @param quality JPEG/WebP quality 1–100, default 80
+ */
+export function optimizedImgSrc(
+  url: string | null | undefined,
+  width: number,
+  quality = 80,
+): string | null {
+  const safe = safeImgSrc(url)
+  if (!safe) return null
+  if (!safe.includes('/storage/v1/object/public/')) return safe
+  const renderUrl = safe.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
+  const sep = renderUrl.includes('?') ? '&' : '?'
+  return `${renderUrl}${sep}width=${width}&quality=${quality}`
+}
+
 export function isToday(dt: string) {
   const d = new Date(dt), now = new Date()
   return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()

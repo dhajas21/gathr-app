@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { CommunityDetailSkeleton } from '@/components/Skeleton'
-import { safeImgSrc, isValidUUID, formatDate } from '@/lib/utils'
+import { optimizedImgSrc, isValidUUID, formatDate } from '@/lib/utils'
 
 interface Post {
   id: string
@@ -555,8 +555,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       {/* Banner */}
       <div className="relative h-44 flex items-center justify-center text-5xl"
         style={{ background: community.banner_gradient || 'var(--gradient-community-banner)' }}>
-        {safeImgSrc(community.banner_url) ? (
-          <img src={safeImgSrc(community.banner_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        {optimizedImgSrc(community.banner_url, 900) ? (
+          <img src={optimizedImgSrc(community.banner_url, 900)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <span className="relative z-10">{community.icon || '👥'}</span>
         )}
@@ -703,8 +703,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               return (
                 <div key={post.id} className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
                   <div className="flex items-start gap-2.5 mb-3">
-                    {safeImgSrc(profile?.avatar_url) ? (
-                      <img src={safeImgSrc(profile.avatar_url)!} alt="" className="w-8 h-8 rounded-xl object-cover flex-shrink-0" />
+                    {optimizedImgSrc(profile?.avatar_url, 96) ? (
+                      <img src={optimizedImgSrc(profile.avatar_url, 96)!} alt="" className="w-8 h-8 rounded-xl object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-8 h-8 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-sm flex-shrink-0">
                         {profile?.name?.charAt(0) || '?'}
@@ -722,9 +722,9 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                   </div>
                   {post.text && <p className="text-sm text-white/70 leading-relaxed mb-3">{post.text}</p>}
-                  {safeImgSrc(post.image_url) && (
+                  {optimizedImgSrc(post.image_url, 700) && (
                     <div className="mb-3 overflow-hidden rounded-xl">
-                      <img src={safeImgSrc(post.image_url)!} alt="" className="w-full max-h-64 object-cover" />
+                      <img src={optimizedImgSrc(post.image_url, 700)!} alt="" className="w-full max-h-64 object-cover" />
                     </div>
                   )}
                   {isMember ? (
@@ -753,8 +753,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       )}
                       {(commentsMap[post.id] || []).map(comment => (
                         <div key={comment.id} className="flex items-start gap-2 mb-2.5">
-                          {safeImgSrc(comment.profiles?.avatar_url) ? (
-                            <img src={safeImgSrc(comment.profiles.avatar_url)!} alt="" className="w-6 h-6 rounded-lg object-cover flex-shrink-0 mt-0.5" />
+                          {optimizedImgSrc(comment.profiles?.avatar_url, 96) ? (
+                            <img src={optimizedImgSrc(comment.profiles.avatar_url, 96)!} alt="" className="w-6 h-6 rounded-lg object-cover flex-shrink-0 mt-0.5" />
                           ) : (
                             <div className="w-6 h-6 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">
                               {comment.profiles?.name?.charAt(0) || '?'}
@@ -845,8 +845,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer">
                     <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0 overflow-hidden relative">
-                      {safeImgSrc(event.cover_url)
-                        ? <img src={safeImgSrc(event.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      {optimizedImgSrc(event.cover_url, 96)
+                        ? <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         : '🎉'
                       }
                     </div>
@@ -873,8 +873,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                 <div className="space-y-3">
                   {pendingRequests.map(req => (
                     <div key={req.user_id} className="flex items-center gap-3">
-                      {safeImgSrc(req.profile?.avatar_url) ? (
-                        <img src={safeImgSrc(req.profile.avatar_url)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                      {optimizedImgSrc(req.profile?.avatar_url, 96) ? (
+                        <img src={optimizedImgSrc(req.profile.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                           {req.profile?.name?.charAt(0) || '🧑'}
@@ -911,8 +911,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   <div key={member.id}
                     onClick={() => member.user_id !== user?.id && router.push('/profile/' + member.user_id)}
                     className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer">
-                    {safeImgSrc(member.profile?.avatar_url) ? (
-                      <img src={safeImgSrc(member.profile.avatar_url)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                    {optimizedImgSrc(member.profile?.avatar_url, 96) ? (
+                      <img src={optimizedImgSrc(member.profile.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                         {member.profile?.name?.charAt(0) || '🧑'}
@@ -962,8 +962,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       {!isOwn && (
                         <div className="w-7 h-7 flex-shrink-0 self-end">
                           {showHeader ? (
-                            safeImgSrc(profile?.avatar_url) ? (
-                              <img src={safeImgSrc(profile.avatar_url)!} alt="" className="w-7 h-7 rounded-lg object-cover" />
+                            optimizedImgSrc(profile?.avatar_url, 96) ? (
+                              <img src={optimizedImgSrc(profile.avatar_url, 96)!} alt="" className="w-7 h-7 rounded-lg object-cover" />
                             ) : (
                               <div className="w-7 h-7 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-xs text-[#F0EDE6]">
                                 {profile?.name?.charAt(0) || '?'}
@@ -1064,8 +1064,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                     onClick={() => !addingEvent && handleAddEventToCommunity(event.id)}
                     className="flex items-center gap-3 bg-[#0D110D] border border-white/10 rounded-2xl p-3 cursor-pointer active:opacity-70">
                     <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex-shrink-0 overflow-hidden relative">
-                      {safeImgSrc(event.cover_url)
-                        ? <img src={safeImgSrc(event.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      {optimizedImgSrc(event.cover_url, 96)
+                        ? <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center text-lg">🎉</div>
                       }
                     </div>

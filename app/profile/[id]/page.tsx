@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { PublicProfileSkeleton } from '@/components/Skeleton'
 import SafetyBadge from '@/components/SafetyBadge'
-import { isValidUUID, formatDateLong, safeImgSrc } from '@/lib/utils'
+import { isValidUUID, formatDateLong, optimizedImgSrc } from '@/lib/utils'
 
 const ACHIEVEMENT_LOOKUP: Record<string, { icon: string; tier: 'bronze' | 'silver' | 'gold' }> = {
   'First Event': { icon: '🎉', tier: 'bronze' }, 'Rising Host': { icon: '🎙', tier: 'silver' },
@@ -169,8 +169,8 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-sm active:scale-95 transition-transform">↑</button>
         </div>
         <div className="px-4 pb-4">
-          {safeImgSrc(profile.avatar_url) ? (
-            <img src={safeImgSrc(profile.avatar_url)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3" />
+          {optimizedImgSrc(profile.avatar_url, 128) ? (
+            <img src={optimizedImgSrc(profile.avatar_url, 128)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3" />
           ) : (
             <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-2xl mb-3">🧑</div>
           )}
@@ -247,8 +247,8 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             <div className="flex items-center gap-2 flex-wrap">
               {mutualProfiles.map(p => (
                 <button key={p.id} onClick={() => router.push('/profile/' + p.id)} className="flex items-center gap-1.5 active:opacity-70">
-                  {safeImgSrc(p.avatar_url) ? (
-                    <img src={safeImgSrc(p.avatar_url)!} alt="" className="w-6 h-6 rounded-lg object-cover" />
+                  {optimizedImgSrc(p.avatar_url, 64) ? (
+                    <img src={optimizedImgSrc(p.avatar_url, 64)!} alt="" className="w-6 h-6 rounded-lg object-cover" />
                   ) : (
                     <div className="w-6 h-6 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-[10px]">🧑</div>
                   )}

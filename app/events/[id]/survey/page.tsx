@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import SafetyBadge from '@/components/SafetyBadge'
-import { isValidUUID, safeImgSrc } from '@/lib/utils'
+import { isValidUUID, safeImgSrc, optimizedImgSrc } from '@/lib/utils'
 
 interface Reviewee {
   id: string
@@ -222,8 +222,8 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
 
       {/* Person card */}
       <div className="mx-5 bg-[#1C241C] border border-white/[0.07] rounded-2xl p-4 mb-5 flex items-center gap-3">
-        {safeImgSrc(reviewee?.avatar_url) ? (
-          <img src={safeImgSrc(reviewee.avatar_url)!} alt="" className="w-14 h-14 rounded-2xl object-cover border border-white/10" />
+        {optimizedImgSrc(reviewee?.avatar_url, 128) ? (
+          <img src={optimizedImgSrc(reviewee.avatar_url, 128)!} alt="" className="w-14 h-14 rounded-2xl object-cover border border-white/10" />
         ) : (
           <div className="w-14 h-14 bg-[#2A4A2A] rounded-2xl flex items-center justify-center text-2xl border border-white/10">
             {reviewee?.name?.charAt(0) || '?'}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { MessagesPageSkeleton } from '@/components/Skeleton'
-import { safeImgSrc } from '@/lib/utils'
+import { optimizedImgSrc } from '@/lib/utils'
 
 export default function MessagesPage() {
   const [user, setUser] = useState<any>(null)
@@ -343,8 +343,8 @@ export default function MessagesPage() {
           </div>
           {connections.map(conn => (
             <div key={conn.id} className="flex items-center gap-3 mb-2 last:mb-0">
-              {safeImgSrc(conn.requester?.avatar_url) ? (
-                <img src={safeImgSrc(conn.requester.avatar_url)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+              {optimizedImgSrc(conn.requester?.avatar_url, 96) ? (
+                <img src={optimizedImgSrc(conn.requester.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
               ) : (
                 <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">🧑</div>
               )}
@@ -380,8 +380,8 @@ export default function MessagesPage() {
                   onClick={() => router.push('/messages/' + threadId)}
                   className="flex flex-col items-center gap-1 flex-shrink-0 active:scale-95 transition-transform">
                   <div className="relative">
-                    {safeImgSrc(conn.otherProfile?.avatar_url) ? (
-                      <img src={safeImgSrc(conn.otherProfile.avatar_url)!} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10" />
+                    {optimizedImgSrc(conn.otherProfile?.avatar_url, 96) ? (
+                      <img src={optimizedImgSrc(conn.otherProfile.avatar_url, 96)!} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10" />
                     ) : (
                       <div className="w-12 h-12 bg-[#1E3A1E] border border-white/10 rounded-xl flex items-center justify-center text-lg">
                         {conn.otherProfile?.name?.charAt(0) || '🧑'}
@@ -448,8 +448,8 @@ export default function MessagesPage() {
                     onClick={() => router.push('/messages/' + [conn.requester_id, conn.addressee_id].sort().join('_'))}
                     className="w-full flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] transition-transform"
                   >
-                    {safeImgSrc(conn.otherProfile?.avatar_url) ? (
-                      <img src={safeImgSrc(conn.otherProfile.avatar_url)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                    {optimizedImgSrc(conn.otherProfile?.avatar_url, 96) ? (
+                      <img src={optimizedImgSrc(conn.otherProfile.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0">🧑</div>
                     )}
@@ -555,8 +555,8 @@ export default function MessagesPage() {
                         router.push('/messages/' + [conn.requester_id, conn.addressee_id].sort().join('_'))
                       }}
                       className="w-full flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] transition-transform">
-                      {safeImgSrc(conn.otherProfile?.avatar_url) ? (
-                        <img src={safeImgSrc(conn.otherProfile.avatar_url)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                      {optimizedImgSrc(conn.otherProfile?.avatar_url, 96) ? (
+                        <img src={optimizedImgSrc(conn.otherProfile.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0">🧑</div>
                       )}
@@ -672,8 +672,8 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, onDel
         {isUnread && <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-[3px] h-[3px] rounded-full bg-[#E8B84B]" />}
 
         <div className="relative flex-shrink-0">
-          {safeImgSrc(thread.otherProfile?.avatar_url) ? (
-            <img src={safeImgSrc(thread.otherProfile.avatar_url)!} alt="" className="w-11 h-11 rounded-xl object-cover" />
+          {optimizedImgSrc(thread.otherProfile?.avatar_url, 96) ? (
+            <img src={optimizedImgSrc(thread.otherProfile.avatar_url, 96)!} alt="" className="w-11 h-11 rounded-xl object-cover" />
           ) : (
             <div className="w-11 h-11 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg border border-white/10">
               {thread.otherProfile?.name?.charAt(0) || '🧑'}

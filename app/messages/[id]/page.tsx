@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { safeImgSrc, isValidUUID } from '@/lib/utils'
+import { optimizedImgSrc, isValidUUID } from '@/lib/utils'
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 const THREAD_RE = new RegExp('^' + UUID + '_' + UUID + '$', 'i')
@@ -376,8 +376,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
           {'←'}
         </button>
-        {safeImgSrc(other?.avatar_url) ? (
-          <img src={safeImgSrc(other.avatar_url)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+        {optimizedImgSrc(other?.avatar_url, 96) ? (
+          <img src={optimizedImgSrc(other.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
         ) : (
           <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">🧑</div>
         )}
@@ -421,8 +421,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
               )}
               <div className={'flex items-end gap-2 ' + (mine ? 'flex-row-reverse' : '')}>
                 {!mine && (
-                  safeImgSrc(other?.avatar_url) ? (
-                    <img src={safeImgSrc(other.avatar_url)!} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0" />
+                  optimizedImgSrc(other?.avatar_url, 96) ? (
+                    <img src={optimizedImgSrc(other.avatar_url, 96)!} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0" />
                   ) : (
                     <div className="w-6 h-6 bg-[#2A4A2A] rounded-md flex items-center justify-center text-[9px] flex-shrink-0">
                       {other?.name?.charAt(0) || '?'}

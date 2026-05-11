@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
-import { safeImgSrc, formatDate } from '@/lib/utils'
+import { optimizedImgSrc, formatDate } from '@/lib/utils'
 import { catEmoji } from '@/lib/categoryEmoji'
 
 const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding', 'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness', 'Networking']
@@ -290,8 +290,8 @@ export default function SearchPage() {
     <div onClick={() => router.push('/events/' + event.id)}
       className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ background: '#1E2E1E' }}>
-        {safeImgSrc(event.cover_url)
-          ? <img src={safeImgSrc(event.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        {optimizedImgSrc(event.cover_url, 800)
+          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
           : catEmoji(event.category)
         }
       </div>
@@ -414,8 +414,8 @@ export default function SearchPage() {
                     <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                       className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ background: '#1E2E1E' }}>
-                        {safeImgSrc(event.cover_url)
-                          ? <img src={safeImgSrc(event.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        {optimizedImgSrc(event.cover_url, 800)
+                          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
                           : catEmoji(event.category)
                         }
                       </div>
@@ -540,8 +540,8 @@ export default function SearchPage() {
                   {visiblePeople.map(person => (
                     <div key={person.id} onClick={() => router.push('/profile/' + person.id)}
                       className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
-                      {safeImgSrc(person.avatar_url) ? (
-                        <img src={safeImgSrc(person.avatar_url)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                      {optimizedImgSrc(person.avatar_url, 96) ? (
+                        <img src={optimizedImgSrc(person.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                           {person.name?.charAt(0) || '🧑'}

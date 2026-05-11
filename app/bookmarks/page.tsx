@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { BookmarksPageSkeleton } from '@/components/Skeleton'
 import { CAT_GRADIENT } from '@/lib/constants'
-import { safeImgSrc, formatDateShort, formatTime } from '@/lib/utils'
+import { optimizedImgSrc, formatDateShort, formatTime } from '@/lib/utils'
 import { catEmoji } from '@/lib/categoryEmoji'
 
 export default function BookmarksPage() {
@@ -44,8 +44,8 @@ export default function BookmarksPage() {
       className="bg-[#1C241C] rounded-2xl overflow-hidden border border-white/10 cursor-pointer active:scale-[0.98] transition-transform">
       <div className="category-gradient-card h-28 flex items-center justify-center text-4xl relative"
         style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
-        {safeImgSrc(event.cover_url)
-          ? <img src={safeImgSrc(event.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        {optimizedImgSrc(event.cover_url, 800)
+          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
           : <span className="relative z-10">{catEmoji(event.category)}</span>
         }
         <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80" />

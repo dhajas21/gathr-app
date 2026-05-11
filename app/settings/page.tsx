@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import ThemeToggle from '@/components/ThemeToggle'
 import { useTheme } from '@/hooks/useTheme'
-import { safeImgSrc } from '@/lib/utils'
+import { optimizedImgSrc } from '@/lib/utils'
 
 export default function SettingsPage() {
   const [user, setUser] = useState<any>(null)
@@ -172,8 +172,8 @@ export default function SettingsPage() {
           onClick={() => router.push('/profile/edit')}
           className="bg-[#1C241C] border border-white/10 rounded-2xl p-4 flex items-center gap-3 cursor-pointer active:opacity-75 transition-opacity"
         >
-          {safeImgSrc(profile?.avatar_url) ? (
-            <img src={safeImgSrc(profile.avatar_url)!} alt="" className="w-12 h-12 rounded-2xl object-cover border border-[#E8B84B]/20 flex-shrink-0" />
+          {optimizedImgSrc(profile?.avatar_url, 96) ? (
+            <img src={optimizedImgSrc(profile.avatar_url, 96)!} alt="" className="w-12 h-12 rounded-2xl object-cover border border-[#E8B84B]/20 flex-shrink-0" />
           ) : (
             <div className="w-12 h-12 bg-[#1E3A1E] rounded-2xl flex items-center justify-center text-xl border border-[#E8B84B]/20 flex-shrink-0">
               🧑

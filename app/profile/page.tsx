@@ -7,7 +7,7 @@ import confetti from 'canvas-confetti'
 import BottomNav from '@/components/BottomNav'
 import { ProfilePageSkeleton } from '@/components/Skeleton'
 import ThemeToggle from '@/components/ThemeToggle'
-import { safeImgSrc, formatDateLong } from '@/lib/utils'
+import { optimizedImgSrc, formatDateLong } from '@/lib/utils'
 import { catEmoji } from '@/lib/categoryEmoji'
 
 
@@ -311,8 +311,8 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="px-4 pb-4">
-          {safeImgSrc(profile?.avatar_url) ? (
-            <img src={safeImgSrc(profile?.avatar_url)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3" />
+          {optimizedImgSrc(profile?.avatar_url, 128) ? (
+            <img src={optimizedImgSrc(profile?.avatar_url, 128)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3" />
           ) : (
             <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-2xl mb-3">🧑‍💻</div>
           )}
@@ -610,8 +610,8 @@ export default function ProfilePage() {
                 {connections.map(conn => (
                   <div key={conn.id} className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0">
                     <div onClick={() => router.push('/profile/' + conn.id)} className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer active:opacity-70">
-                      {safeImgSrc(conn.avatar_url) ? (
-                        <img src={safeImgSrc(conn.avatar_url)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                      {optimizedImgSrc(conn.avatar_url, 96) ? (
+                        <img src={optimizedImgSrc(conn.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                           {conn.name?.charAt(0) || '🧑'}
