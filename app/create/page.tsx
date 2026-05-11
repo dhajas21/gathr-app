@@ -383,6 +383,15 @@ export default function CreateEventPage() {
             <div>
               <label className={labelClass}>Address</label>
               <input className={inputClass} placeholder="470 Bayview Dr, Bellingham WA" value={address} onChange={e => setAddress(e.target.value)} onBlur={() => geocodeAddress(address, venueName, city)} maxLength={200} />
+              {geocoding && (
+                <p className="text-[10px] text-[#E8B84B]/60 mt-1.5 flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-[#E8B84B]/50 animate-pulse" />
+                  Looking up location…
+                </p>
+              )}
+              {!geocoding && lat && address && (
+                <p className="text-[10px] text-[#7EC87E]/70 mt-1.5">✓ Location confirmed</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">

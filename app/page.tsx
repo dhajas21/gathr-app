@@ -16,7 +16,7 @@ export default function SplashPage() {
         setChecking(false)
       }
     })
-  }, [])
+  }, [router])
 
   if (checking) return (
     <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">

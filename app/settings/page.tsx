@@ -242,11 +242,38 @@ export default function SettingsPage() {
               <input
                 className={inputClass}
                 type="password"
-                placeholder="New password"
+                placeholder="New password (min. 12 characters)"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 maxLength={72}
               />
+              {newPassword.length > 0 && (() => {
+                const score = [
+                  newPassword.length >= 8,
+                  newPassword.length >= 12,
+                  /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword),
+                  /[0-9]/.test(newPassword) && /[^A-Za-z0-9]/.test(newPassword),
+                ].filter(Boolean).length
+                const labels = ['Weak', 'Fair', 'Good', 'Strong']
+                const colors = ['#E85B5B', '#E8A84B', '#E8D44B', '#7EC87E']
+                return (
+                  <div className="space-y-1.5">
+                    <div className="flex gap-1">
+                      {[0, 1, 2, 3].map(i => (
+                        <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300"
+                          style={{ background: i < score ? colors[score - 1] : 'rgba(255,255,255,0.08)' }} />
+                      ))}
+                    </div>
+                    <p className="text-[10px]" style={{ color: score > 0 ? colors[score - 1] : 'rgba(255,255,255,0.3)' }}>
+                      {score === 0 ? 'Too short' : labels[score - 1]}
+                      {score < 4 && ' · '}
+                      {score === 1 && 'use 12+ characters'}
+                      {score === 2 && 'add uppercase & lowercase'}
+                      {score === 3 && 'add a number and symbol'}
+                    </p>
+                  </div>
+                )
+              })()}
               <input
                 className={inputClass}
                 type="password"
@@ -268,7 +295,7 @@ export default function SettingsPage() {
               )}
               <button
                 onClick={handleChangePassword}
-                disabled={savingPassword}
+                disabled={savingPassword || newPassword.length < 12 || newPassword !== confirmPassword}
                 className="w-full bg-[#E8B84B] text-[#0D110D] rounded-xl py-3 text-sm font-bold disabled:opacity-50 active:scale-[0.98] transition-transform"
               >
                 {savingPassword ? 'Saving…' : 'Update Password'}

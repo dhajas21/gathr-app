@@ -16,7 +16,7 @@ export default function BookmarksPage() {
       if (!session) { router.push('/auth'); return }
       fetchBookmarks(session.user.id)
     })
-  }, [])
+  }, [router])
 
   const fetchBookmarks = async (userId: string) => {
     const { data } = await supabase

@@ -39,7 +39,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       setEventId(id)
       loadEvent(id)
     })
-  }, [])
+  }, [params, router])
 
   const loadEvent = async (id: string) => {
     const { data: { session } } = await supabase.auth.getSession()

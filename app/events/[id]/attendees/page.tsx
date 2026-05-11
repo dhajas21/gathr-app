@@ -22,7 +22,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         fetchData(id, session.user.id)
       })
     })
-  }, [])
+  }, [params, router])
 
   const fetchData = async (eventId: string, userId: string) => {
     const { data: eventData } = await supabase
