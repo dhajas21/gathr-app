@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { isValidUUID } from '@/lib/utils'
 
 const CATEGORIES = [
   'Social', 'Fitness & Running', 'Wellness', 'Tech & Startups', 'Arts & Creativity',
@@ -38,6 +39,7 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
 
   useEffect(() => {
     params.then(({ id }) => {
+      if (!isValidUUID(id)) { router.push('/communities'); return }
       setCommunityId(id)
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }

@@ -6,7 +6,8 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { BookmarksPageSkeleton } from '@/components/Skeleton'
 import { CAT_GRADIENT } from '@/lib/constants'
-import { safeImgSrc } from '@/lib/utils'
+import { safeImgSrc, formatDateShort, formatTime } from '@/lib/utils'
+import { catEmoji } from '@/lib/categoryEmoji'
 
 export default function BookmarksPage() {
   const [events, setEvents] = useState<any[]>([])
@@ -33,8 +34,6 @@ export default function BookmarksPage() {
     }
   }
 
-  const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-  const formatTime = (dt: string) => new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
   const now = Date.now()
   const upcoming = events.filter(e => new Date(e.start_datetime).getTime() >= now)
@@ -47,7 +46,7 @@ export default function BookmarksPage() {
         style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
         {safeImgSrc(event.cover_url)
           ? <img src={safeImgSrc(event.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          : <span className="relative z-10">{event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : event.category === 'Outdoors' ? '🥾' : event.category === 'Arts & Culture' ? '🎨' : '🎉'}</span>
+          : <span className="relative z-10">{catEmoji(event.category)}</span>
         }
         <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80" />
       </div>
@@ -55,7 +54,7 @@ export default function BookmarksPage() {
         <div className="text-[10px] text-[#E8B84B] font-medium mb-0.5">{event.category}</div>
         <h3 className="font-bold text-[#F0EDE6] text-sm leading-snug mb-2">{event.title}</h3>
         <div className="flex items-center gap-3 text-[10px] text-white/40">
-          <span>📅 {formatDate(event.start_datetime)} · {formatTime(event.start_datetime)}</span>
+          <span>📅 {formatDateShort(event.start_datetime)} · {formatTime(event.start_datetime)}</span>
         </div>
         <div className="text-[10px] text-white/40 mt-0.5">📍 {event.location_name}{event.city ? ', ' + event.city : ''}</div>
       </div>

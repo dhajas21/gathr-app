@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import dynamic from 'next/dynamic'
-import { safeImgSrc } from '@/lib/utils'
+import { safeImgSrc, formatDateShort, formatTime } from '@/lib/utils'
+import { catEmoji } from '@/lib/categoryEmoji'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -71,12 +72,6 @@ export default function MapPage() {
     }
   }
 
-  const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-  const formatTime = (dt: string) => new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  const catEmoji = (cat: string) => {
-    const map: Record<string, string> = { Music: '🎸', Fitness: '🏃', 'Food & Drink': '🍺', Tech: '💻', Outdoors: '🥾' }
-    return map[cat] || '🎉'
-  }
 
   if (loading) return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
@@ -137,7 +132,7 @@ export default function MapPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-[#F0EDE6] truncate">{selected.title}</div>
-                <div className="text-xs text-white/40 mt-0.5">{formatDate(selected.start_datetime)} · {formatTime(selected.start_datetime)}</div>
+                <div className="text-xs text-white/40 mt-0.5">{formatDateShort(selected.start_datetime)} · {formatTime(selected.start_datetime)}</div>
                 <div className="text-xs text-white/40">{selected.location_name}</div>
               </div>
               <span className="text-[10px] bg-[#E8B84B]/10 text-[#E8B84B] border border-[#E8B84B]/20 px-2 py-0.5 rounded-lg flex-shrink-0">View →</span>

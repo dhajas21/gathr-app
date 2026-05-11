@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { EVENT_CATEGORIES } from '@/lib/constants'
+import { isValidUUID } from '@/lib/utils'
 
 export default function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -25,48 +26,47 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [privacy, setPrivacy] = useState('public')
-  const [geocoding, setGeocoding] = useState(false)
-  const [coverUrl, setCoverUrl] = useState<string | null>(null)
+const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const coverRef = useRef<HTMLInputElement>(null)
 
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
   useEffect(() => {
     params.then(({ id }) => {
-      if (!UUID_RE.test(id)) { router.push('/home'); return }
+      if (!isValidUUID(id)) { router.push('/home'); return }
       setEventId(id)
       loadEvent(id)
     })
   }, [params, router])
 
   const loadEvent = async (id: string) => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/auth'); return }
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.push('/auth'); return }
 
-    const { data } = await supabase.from('events').select('*').eq('id', id).single()
-    if (!data) { router.push('/home'); return }
-    if (data.host_id !== session.user.id) { router.push('/events/' + id); return }
+      const { data } = await supabase.from('events').select('*').eq('id', id).single()
+      if (!data) { router.push('/home'); return }
+      if (data.host_id !== session.user.id) { router.push('/events/' + id); return }
 
-    if (data.cover_url) { setCoverUrl(data.cover_url); setCoverPreview(data.cover_url) }
-    setTitle(data.title)
-    setCategory(data.category)
-    setDescription(data.description || '')
-    setVenueName(data.location_name || '')
-    setAddress(data.location_address || '')
-    setCity(data.city || '')
-    setCapacity(data.capacity ? String(data.capacity) : '')
-    setTags(data.tags || [])
-    setPrivacy(data.visibility || 'public')
+      if (data.cover_url) { setCoverUrl(data.cover_url); setCoverPreview(data.cover_url) }
+      setTitle(data.title)
+      setCategory(data.category)
+      setDescription(data.description || '')
+      setVenueName(data.location_name || '')
+      setAddress(data.location_address || '')
+      setCity(data.city || '')
+      setCapacity(data.capacity ? String(data.capacity) : '')
+      setTags(data.tags || [])
+      setPrivacy(data.visibility || 'public')
 
-    const start = new Date(data.start_datetime)
-    const end = new Date(data.end_datetime)
-    setDate(start.toISOString().slice(0, 10))
-    setStartTime(start.toTimeString().slice(0, 5))
-    setEndTime(end.toTimeString().slice(0, 5))
-
-    setLoading(false)
+      const start = new Date(data.start_datetime)
+      const end = new Date(data.end_datetime)
+      setDate(start.toISOString().slice(0, 10))
+      setStartTime(start.toTimeString().slice(0, 5))
+      setEndTime(end.toTimeString().slice(0, 5))
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,27 +79,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     reader.readAsDataURL(file)
   }
 
-  const geocodeAddress = async (addr: string, venue: string, c: string) => {
-    const query = [addr || venue, c].filter(Boolean).join(', ')
-    if (!query) return
-    setGeocoding(true)
-    try {
-      const res = await fetch(
-        'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query),
-        { headers: { 'User-Agent': 'GathrApp/1.0' } }
-      )
-      const data = await res.json()
-      if (data[0]) {
-        await supabase.from('events').update({
-          latitude: parseFloat(data[0].lat),
-          longitude: parseFloat(data[0].lon),
-        }).eq('id', eventId)
-      }
-    } catch {}
-    setGeocoding(false)
-  }
-
-  const addTag = () => {
+const addTag = () => {
     const t = tagInput.trim().toLowerCase()
     if (t && !tags.includes(t) && tags.length < 10) {
       setTags([...tags, t])
@@ -135,8 +115,31 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     }
 
     const startDatetime = new Date(date + 'T' + startTime)
-    const endDatetime = endTime ? new Date(date + 'T' + endTime) : startDatetime
+    const endDatetime = endTime ? new Date(date + 'T' + endTime) : new Date(startDatetime.getTime() + 2 * 3600000)
+    if (endTime && endDatetime <= startDatetime) {
+      setError('End time must be after start time')
+      setSaving(false)
+      return
+    }
     const cap = parseInt(capacity) || 0
+
+    // Geocode on save if address or city is provided
+    try {
+      const geoQuery = [address.trim() || venueName.trim(), city.trim()].filter(Boolean).join(', ')
+      if (geoQuery) {
+        const res = await fetch(
+          'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(geoQuery),
+          { headers: { 'User-Agent': 'GathrApp/1.0' } }
+        )
+        const geodata = await res.json()
+        if (geodata[0]) {
+          await supabase.from('events').update({
+            latitude: parseFloat(geodata[0].lat),
+            longitude: parseFloat(geodata[0].lon),
+          }).eq('id', eventId)
+        }
+      }
+    } catch {}
 
     const { error: updateError } = await supabase.from('events').update({
       title: title.trim(),
@@ -253,7 +256,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 
         <div>
           <label className={labelClass}>Address</label>
-          <input className={inputClass} placeholder="Street address" value={address} onChange={e => setAddress(e.target.value)} onBlur={() => geocodeAddress(address, venueName, city)} maxLength={200} />
+          <input className={inputClass} placeholder="Street address" value={address} onChange={e => setAddress(e.target.value)} maxLength={200} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">

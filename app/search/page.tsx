@@ -4,11 +4,24 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
-import { safeImgSrc } from '@/lib/utils'
+import { safeImgSrc, formatDate } from '@/lib/utils'
+import { catEmoji } from '@/lib/categoryEmoji'
 
 const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding', 'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness', 'Networking']
 const RECENT_SEARCHES_KEY = 'gathr_recent_searches'
 const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
+
+const BROWSE_CAT_EMOJI: Record<string, string> = {
+  'Music':'🎸','DJ & Electronic':'🎧','Hip Hop & R&B':'🎤','Jazz & Blues':'🎷','Live Concerts & Festivals':'🎪',
+  'Fitness':'🏃','Yoga & Pilates':'🧘','Running & Cycling':'🚴','Climbing & Hiking':'🧗','Combat Sports & CrossFit':'🥊',
+  'Food & Drink':'🍺','Coffee & Brunch':'☕','Wine & Cocktails':'🍷','Cooking & Culinary':'👨‍🍳','Street Food & Markets':'🌮',
+  'Tech & Coding':'💻','Startups & Entrepreneurship':'🚀','AI & Innovation':'🤖','Gaming & Esports':'🎮','Web3 & Crypto':'⛓',
+  'Outdoors & Adventure':'🥾','Hiking & Camping':'⛺','Water Sports':'🏄','Snow Sports':'🎿',
+  'Arts & Culture':'🎨','Photography & Film':'📷','Theatre & Comedy':'🎭','Fashion & Style':'👗','Literature & Writing':'📚',
+  'Social & Parties':'🎉','Nightlife':'🌙','Networking':'💼','Business & Finance':'📈',
+  'Wellness & Mindfulness':'🌿','Dance & Movement':'💃','Spirituality':'✨','Volunteering & Activism':'🌱',
+  'Education & Workshops':'🎓','Sports & Recreation':'⚽','Pets & Animals':'🐾','Science & Innovation':'🔬','Markets & Pop-ups':'🏪',
+}
 
 const DAY_KEYWORDS: Record<string, number> = {
   'today': 0, 'tonight': 0, 'tomorrow': 1,
@@ -19,13 +32,14 @@ const DAY_KEYWORDS: Record<string, number> = {
 const TIME_KEYWORDS = ['morning', 'afternoon', 'evening', 'night', 'tonight', 'late']
 const CATEGORY_SYNONYMS: Record<string, string> = {
   'live music': 'Music', 'concert': 'Music', 'gig': 'Music', 'show': 'Music', 'band': 'Music', 'open mic': 'Music',
-  'run': 'Fitness', 'running': 'Fitness', 'workout': 'Fitness', 'gym': 'Fitness', 'yoga': 'Fitness', 'hike': 'Outdoors', 'hiking': 'Outdoors',
+  'run': 'Fitness', 'running': 'Fitness', 'workout': 'Fitness', 'gym': 'Fitness', 'yoga': 'Wellness & Mindfulness',
+  'hike': 'Outdoors & Adventure', 'hiking': 'Outdoors & Adventure',
   'coffee': 'Food & Drink', 'food': 'Food & Drink', 'drinks': 'Food & Drink', 'brunch': 'Food & Drink', 'dinner': 'Food & Drink', 'bar': 'Food & Drink',
-  'tech': 'Tech', 'coding': 'Tech', 'startup': 'Tech', 'hackathon': 'Tech', 'ai': 'Tech',
+  'tech': 'Tech & Coding', 'coding': 'Tech & Coding', 'startup': 'Tech & Coding', 'hackathon': 'Tech & Coding', 'ai': 'Tech & Coding',
   'art': 'Arts & Culture', 'gallery': 'Arts & Culture', 'painting': 'Arts & Culture', 'design': 'Arts & Culture',
-  'meetup': 'Social', 'hangout': 'Social', 'social': 'Social', 'party': 'Social',
+  'meetup': 'Social & Parties', 'hangout': 'Social & Parties', 'social': 'Social & Parties', 'party': 'Social & Parties',
   'networking': 'Networking', 'professional': 'Networking', 'founders': 'Networking',
-  'outdoor': 'Outdoors', 'nature': 'Outdoors', 'camping': 'Outdoors', 'trail': 'Outdoors',
+  'outdoor': 'Outdoors & Adventure', 'nature': 'Outdoors & Adventure', 'camping': 'Outdoors & Adventure', 'trail': 'Outdoors & Adventure',
 }
 
 function parseVibeQuery(query: string) {
@@ -162,6 +176,7 @@ export default function SearchPage() {
     setLoading(true)
     setSearched(true)
     if (q.trim()) saveRecentSearch(q.trim())
+    try {
 
     const vibe = parseVibeQuery(q)
     setVibeResult(vibe.searchTerms || vibe.detectedCategory || vibe.dayLabel ? vibe : null)
@@ -169,7 +184,7 @@ export default function SearchPage() {
     const categoryToUse = activeCategory !== 'All' ? activeCategory : vibe.detectedCategory
 
     // Strip PostgREST filter syntax characters from user input to prevent filter injection
-    const sanitize = (s: string) => s.replace(/[(),%_\\]/g, '').trim()
+    const sanitize = (s: string) => s.replace(/[(),%_\\.:'"`]/g, '').trim()
 
     // Search events
     let eventQuery = supabase.from('events').select('*').eq('visibility', 'public')
@@ -231,8 +246,9 @@ export default function SearchPage() {
         .ilike('category', '%' + sanitize(categoryToUse.split(' ')[0]) + '%').limit(10)
       if (commData) setCommunities(commData)
     } else { setCommunities([]) }
-
-    setLoading(false)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -262,11 +278,6 @@ export default function SearchPage() {
     }
   }
 
-  const formatDate = (dt: string) => {
-    const d = new Date(dt)
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) +
-      ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  }
 
   const totalResults = events.length + people.length + communities.length + tagResults.length
   const visibleEvents = activeTab === 'All' || activeTab === 'Events' ? events : []
@@ -280,7 +291,7 @@ export default function SearchPage() {
       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ background: '#1E2E1E' }}>
         {safeImgSrc(event.cover_url)
           ? <img src={safeImgSrc(event.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          : (event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : event.category === 'Outdoors' ? '🥾' : '🎉')
+          : catEmoji(event.category)
         }
       </div>
       <div className="flex-1 min-w-0">
@@ -404,7 +415,7 @@ export default function SearchPage() {
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ background: '#1E2E1E' }}>
                         {safeImgSrc(event.cover_url)
                           ? <img src={safeImgSrc(event.cover_url)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                          : (event.category === 'Music' ? '🎸' : event.category === 'Fitness' ? '🏃' : event.category === 'Food & Drink' ? '🍺' : event.category === 'Tech' ? '💻' : '🎉')
+                          : catEmoji(event.category)
                         }
                       </div>
                       <div className="flex-1 min-w-0">
@@ -440,11 +451,10 @@ export default function SearchPage() {
                 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding',
                 'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness',
               ]).map(cat => {
-                const emoji: Record<string,string> = {'Music':'🎸','DJ & Electronic':'🎧','Hip Hop & R&B':'🎤','Jazz & Blues':'🎷','Live Concerts & Festivals':'🎪','Fitness':'🏃','Yoga & Pilates':'🧘','Running & Cycling':'🚴','Climbing & Hiking':'🧗','Combat Sports & CrossFit':'🥊','Food & Drink':'🍺','Coffee & Brunch':'☕','Wine & Cocktails':'🍷','Cooking & Culinary':'👨‍🍳','Street Food & Markets':'🌮','Tech & Coding':'💻','Startups & Entrepreneurship':'🚀','AI & Innovation':'🤖','Gaming & Esports':'🎮','Web3 & Crypto':'⛓','Outdoors & Adventure':'🥾','Hiking & Camping':'⛺','Water Sports':'🏄','Snow Sports':'🎿','Arts & Culture':'🎨','Photography & Film':'📷','Theatre & Comedy':'🎭','Fashion & Style':'👗','Literature & Writing':'📚','Social & Parties':'🎉','Nightlife':'🌙','Networking':'💼','Business & Finance':'📈','Wellness & Mindfulness':'🌿','Dance & Movement':'💃','Spirituality':'✨','Volunteering & Activism':'🌱','Education & Workshops':'🎓','Sports & Recreation':'⚽','Pets & Animals':'🐾','Science & Innovation':'🔬','Markets & Pop-ups':'🏪'}
                 return (
                   <button key={cat} onClick={() => setActiveCategory(cat)}
                     className={'flex items-center gap-2 p-3 rounded-2xl border transition-all active:scale-95 ' + (activeCategory === cat ? 'border-[#E8B84B]/30 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
-                    <span className={showAllCats ? 'text-base' : 'text-lg'}>{emoji[cat] || '🎉'}</span>
+                    <span className={showAllCats ? 'text-base' : 'text-lg'}>{BROWSE_CAT_EMOJI[cat] || '🎉'}</span>
                     <span className={'font-medium text-[#F0EDE6] text-left leading-tight ' + (showAllCats ? 'text-[10px]' : 'text-sm')}>{cat}</span>
                   </button>
                 )

@@ -7,7 +7,7 @@ import BottomNav from '@/components/BottomNav'
 import { EventDetailSkeleton } from '@/components/Skeleton'
 import MysteryMatchCard from '@/components/MysteryMatchCard'
 import { CAT_EMOJI } from '@/lib/categoryEmoji'
-import { safeImgSrc } from '@/lib/utils'
+import { safeImgSrc, formatDateVerbose, formatTime } from '@/lib/utils'
 
 interface Event {
   id: string
@@ -461,8 +461,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     setShowCalendarModal(false)
   }
 
-  const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-  const formatTime = (dt: string) => new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
   const formatCommentTime = (dt: string) => {
     const diff = Date.now() - new Date(dt).getTime()
     if (diff < 60000) return 'just now'
@@ -546,7 +544,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <div className="flex items-center gap-3 mb-3">
             <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center text-xs flex-shrink-0">📅</div>
             <div>
-              <div className="text-sm font-medium text-[#F0EDE6]">{formatDate(event.start_datetime)}</div>
+              <div className="text-sm font-medium text-[#F0EDE6]">{formatDateVerbose(event.start_datetime)}</div>
               <div className="text-xs text-white/45">{formatTime(event.start_datetime)} – {formatTime(event.end_datetime)}</div>
             </div>
             <button onClick={handleAddToCalendar} className="ml-auto bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-lg px-2.5 py-1 text-[10px] text-[#E8B84B] active:scale-95 transition-transform">

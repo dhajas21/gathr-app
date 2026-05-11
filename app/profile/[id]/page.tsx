@@ -6,8 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { PublicProfileSkeleton } from '@/components/Skeleton'
 import SafetyBadge from '@/components/SafetyBadge'
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { isValidUUID, formatDateLong } from '@/lib/utils'
 
 const ACHIEVEMENT_LOOKUP: Record<string, { icon: string; tier: 'bronze' | 'silver' | 'gold' }> = {
   'First Event': { icon: '🎉', tier: 'bronze' }, 'Rising Host': { icon: '🎙', tier: 'silver' },
@@ -46,7 +45,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
 
   useEffect(() => {
     params.then(({ id }) => {
-      if (!UUID_RE.test(id)) { router.push('/home'); return }
+      if (!isValidUUID(id)) { router.push('/home'); return }
       setProfileId(id)
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }
@@ -135,7 +134,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     router.push('/messages/' + threadId + (from ? '?from=' + from : ''))
   }
 
-  const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   const categoryEmoji = (cat: string) =>
     cat === 'Music' ? '🎸' : cat === 'Fitness' ? '🏃' : cat === 'Food & Drink' ? '🍺' : cat === 'Tech' ? '💻' : cat === 'Outdoors' ? '🥾' : '🎉'
 
@@ -285,7 +283,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                       <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">{categoryEmoji(event.category)}</div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                        <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
+                        <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)} · {event.location_name}</div>
                       </div>
                       <span className="text-[9px] bg-[#E8B84B]/10 text-[#E8B84B] px-2 py-0.5 rounded border border-[#E8B84B]/20 flex-shrink-0">Host</span>
                     </div>
@@ -302,7 +300,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                       <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">{categoryEmoji(event.category)}</div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                        <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
+                        <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)} · {event.location_name}</div>
                       </div>
                       <span className="text-[9px] bg-[#7EC87E]/10 text-[#7EC87E] px-2 py-0.5 rounded border border-[#7EC87E]/20 flex-shrink-0">Going</span>
                     </div>

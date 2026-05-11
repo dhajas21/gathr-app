@@ -1,23 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import confetti from 'canvas-confetti'
 import BottomNav from '@/components/BottomNav'
 import { ProfilePageSkeleton } from '@/components/Skeleton'
 import ThemeToggle from '@/components/ThemeToggle'
+import { safeImgSrc, formatDateLong } from '@/lib/utils'
+import { catEmoji } from '@/lib/categoryEmoji'
 
-const LEVEL_MILESTONES = [
-  { level: 5, hours: 48, label: '48-hour' },
-  { level: 10, hours: 168, label: '7-day' },
-]
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  Music: '🎸', Fitness: '🏃', 'Food & Drink': '🍺', Tech: '💻',
-  Outdoors: '🥾', Art: '🎨', Gaming: '🎮', Film: '🎬',
-}
-const catEmoji = (cat: string) => CATEGORY_EMOJI[cat] || '🎉'
 
 function computeAchievements(
   hostedCount: number,
@@ -83,7 +76,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [celebrateLevel, setCelebrateLevel] = useState(0)
-  const [trialGranted, setTrialGranted] = useState<typeof LEVEL_MILESTONES[number] | null>(null)
+  const [trialGranted, setTrialGranted] = useState<{ level: number; hours: number; label: string } | null>(null)
   const [xpBarWidth, setXpBarWidth] = useState(0)
   const [newAchievements, setNewAchievements] = useState<any[]>([])
   const [showAchievementUnlock, setShowAchievementUnlock] = useState(false)
@@ -92,6 +85,7 @@ export default function ProfilePage() {
   const [bookmarkCount, setBookmarkCount] = useState(0)
   const [pinnedBadges, setPinnedBadges] = useState<string[]>([])
   const [hasDraft, setHasDraft] = useState(false)
+  const confettiTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const router = useRouter()
 
   useEffect(() => {
@@ -106,18 +100,8 @@ export default function ProfilePage() {
     loadData()
 
     const handleVisibility = () => { if (document.visibilityState === 'visible') loadData() }
-    const handlePageShow = () => loadData()
     document.addEventListener('visibilitychange', handleVisibility)
-    window.addEventListener('focus', loadData)
-    window.addEventListener('popstate', loadData)
-    window.addEventListener('pageshow', handlePageShow)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility)
-      window.removeEventListener('focus', loadData)
-      window.removeEventListener('popstate', loadData)
-      window.removeEventListener('pageshow', handlePageShow)
-    }
+    return () => { document.removeEventListener('visibilitychange', handleVisibility) }
   }, [])
 
   useEffect(() => {
@@ -129,24 +113,13 @@ export default function ProfilePage() {
 
       const storedLevel = parseInt(localStorage.getItem('gathr_user_level') || '0')
       if (storedLevel > 0 && levelVal > storedLevel) {
-        const grantedRaw = localStorage.getItem('gathr_level_trials')
-        const grantedLevels: number[] = grantedRaw ? JSON.parse(grantedRaw) : []
-        const milestone = LEVEL_MILESTONES.find(
-          m => storedLevel < m.level && levelVal >= m.level && !grantedLevels.includes(m.level)
-        )
-        if (milestone) {
-          const expiresAt = new Date(Date.now() + milestone.hours * 3600000).toISOString()
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-              supabase.from('profiles').update({ gathr_plus_expires_at: expiresAt }).eq('id', session.user.id)
-            }
-          })
-          localStorage.setItem('gathr_level_trials', JSON.stringify([...grantedLevels, milestone.level]))
-          setTrialGranted(milestone)
-        }
+        // Server validates eligibility and writes gathr_plus_expires_at — no localStorage bypass possible
+        supabase.functions.invoke('claim-level-trial').then(({ data }) => {
+          if (data?.granted) setTrialGranted(data.granted)
+        }).catch(() => {})
         setCelebrateLevel(levelVal)
         setShowLevelUp(true)
-        setTimeout(() => { try { confetti({ zIndex: 9999, particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] }) } catch {} }, 50)
+        confettiTimersRef.current.push(setTimeout(() => { try { confetti({ zIndex: 9999, particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] }) } catch {} }, 50))
       }
       localStorage.setItem('gathr_user_level', String(levelVal))
 
@@ -162,12 +135,14 @@ export default function ProfilePage() {
           setShowAchievementUnlock(true)
           const count = Math.min(fresh.length, 4)
           for (let i = 0; i < count; i++) {
-            setTimeout(() => { try { confetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] }) } catch {} }, i * 450 + 50)
+            confettiTimersRef.current.push(setTimeout(() => { try { confetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] }) } catch {} }, i * 450 + 50))
           }
         }
       }
-      localStorage.setItem('gathr_seen_achievements', JSON.stringify(allAch.filter(a => a.val >= a.req).map(a => a.title)))
+      // Seen list is updated only when the modal is dismissed (see dismiss handler) so achievements
+      // re-show if the user navigates away without tapping the button.
     } catch {}
+    return () => { confettiTimersRef.current.forEach(clearTimeout); confettiTimersRef.current = [] }
   }, [loading, hostedEvents.length, attendedEvents.length, connections.length, communityCount, profile])
 
   useEffect(() => {
@@ -184,8 +159,8 @@ export default function ProfilePage() {
   const fetchAll = async (userId: string) => {
     const [profileRes, hostedRes, rsvpRes, connRes, communityRes, draftRes, ownedRes, bmRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
-      supabase.from('events').select('*').eq('host_id', userId).order('start_datetime', { ascending: false }),
-      supabase.from('rsvps').select('event_id').eq('user_id', userId),
+      supabase.from('events').select('id,title,category,start_datetime,location_name,cover_url,spots_left,capacity').eq('host_id', userId).order('start_datetime', { ascending: false }).limit(50),
+      supabase.from('rsvps').select('event_id').eq('user_id', userId).limit(200),
       supabase.from('connections')
         .select('requester_id, addressee_id')
         .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId)
@@ -209,7 +184,7 @@ export default function ProfilePage() {
     if (rsvpRes.data && rsvpRes.data.length > 0) {
       const eventIds = rsvpRes.data.map((r: any) => r.event_id)
       const { data: attended } = await supabase
-        .from('events').select('*').in('id', eventIds).order('start_datetime', { ascending: false })
+        .from('events').select('id,title,category,start_datetime,location_name,cover_url,spots_left,capacity').in('id', eventIds).order('start_datetime', { ascending: false }).limit(200)
       if (attended) setAttendedEvents(attended)
     }
 
@@ -260,7 +235,6 @@ export default function ProfilePage() {
     router.push('/auth')
   }
 
-  const formatDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
   if (loading) return <ProfilePageSkeleton />
 
@@ -332,8 +306,8 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="px-4 pb-4">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3" />
+          {safeImgSrc(profile?.avatar_url) ? (
+            <img src={safeImgSrc(profile?.avatar_url)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3" />
           ) : (
             <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-2xl mb-3">🧑‍💻</div>
           )}
@@ -453,7 +427,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)}</div>
                     </div>
                   </div>
                 ))}
@@ -493,7 +467,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)} · {event.location_name}</div>
                     </div>
                     <span className="text-[9px] bg-[#E8B84B]/10 text-[#E8B84B] px-2 py-0.5 rounded border border-[#E8B84B]/20 flex-shrink-0">Host</span>
                   </div>
@@ -512,7 +486,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)} · {event.location_name}</div>
                     </div>
                     <span className="text-[9px] bg-[#7EC87E]/10 text-[#7EC87E] px-2 py-0.5 rounded border border-[#7EC87E]/20 flex-shrink-0">Going</span>
                   </div>
@@ -631,8 +605,8 @@ export default function ProfilePage() {
                 {connections.map(conn => (
                   <div key={conn.id} className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0">
                     <div onClick={() => router.push('/profile/' + conn.id)} className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer active:opacity-70">
-                      {conn.avatar_url ? (
-                        <img src={conn.avatar_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                      {safeImgSrc(conn.avatar_url) ? (
+                        <img src={safeImgSrc(conn.avatar_url)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
                           {conn.name?.charAt(0) || '🧑'}
@@ -711,7 +685,13 @@ export default function ProfilePage() {
                 ))}
               </div>
             )}
-            <button onClick={() => setShowAchievementUnlock(false)}
+            <button onClick={() => {
+              setShowAchievementUnlock(false)
+              try {
+                const allUnlocked = computeAchievements(hostedEvents.length, attendedEvents.length, connections.length, profile?.interests || [], profile, Math.floor(((hostedEvents.length * 10) + (attendedEvents.length * 5) + (connections.length * 3) + ((profile?.interests || []).length * 2)) / 50) + 1, new Set(attendedEvents.map((e: any) => e.category)).size, new Set(hostedEvents.map((e: any) => e.category)).size, communityCount, ownedCommunityCount, bookmarkCount).filter(a => a.val >= a.req).map(a => a.title)
+                localStorage.setItem('gathr_seen_achievements', JSON.stringify(allUnlocked))
+              } catch {}
+            }}
               className="w-full py-3 rounded-2xl bg-[#7EC87E] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform">
               Awesome! 🎉
             </button>

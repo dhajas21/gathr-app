@@ -15,3 +15,5 @@ export const CAT_EMOJI: Record<string, string> = {
   'Science & Innovation': '🔬', 'Markets & Pop-ups': '🏪',
   'Tech': '💻', 'Outdoors': '🥾', 'Social': '🎉',
 }
+
+export function catEmoji(cat: string): string { return CAT_EMOJI[cat] || '🎉' }
