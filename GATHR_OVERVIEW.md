@@ -101,7 +101,7 @@ All tables are in the `public` schema with **Row Level Security (RLS)** enabled 
 | `event_invites` | Invites sent for private events |
 | `communities` | Community groups. Name, description, category, icon, banner_gradient, visibility (public/private), member_count, is_private (computed column) |
 | `community_members` | Membership rows. `role`: owner / admin / member / pending |
-| `community_posts` | Posts inside a community. Text, like_count |
+| `community_posts` | Posts inside a community. Text (nullable — image-only posts allowed), image_url, like_count |
 | `community_post_likes` | Which user liked which post. Trigger updates `community_posts.like_count` |
 | `community_post_comments` | Threaded replies on community posts. text, post_id, user_id |
 | `community_chat_messages` | In-community chat. Text + user_id |
@@ -274,7 +274,7 @@ The `is_private` column is a **computed/generated column**: `GENERATED ALWAYS AS
 - **member** — can post, comment, like, and chat
 - **pending** — join request awaiting owner approval (private communities only)
 
-**Community posts:** Text posts (1000 char max). In public communities, posts are visible read-only to non-members (they see like/comment counts but no interaction buttons); private community posts are fully hidden behind a lock screen. Members see full interactions: liking creates a row in `community_post_likes` and a DB trigger atomically increments `like_count`. Posts support **threaded comments** (500 char max) — replies are stored in `community_post_comments` and loaded lazily on expand. Comment counts are bulk-fetched on page load. Any member can delete their own post/comment; owners and admins can delete any content for moderation. **Pagination:** the feed loads 30 posts on initial load; a "Load more" button (cursor-based via `created_at`) appends subsequent batches of 30. The Feed tab label shows the total DB count (`postCount`), not just the loaded slice.
+**Community posts:** Text posts (1000 char max) with optional image attachment (JPEG/PNG/WebP, max 5 MB). The `text` column is nullable — image-only posts are valid. In public communities, posts are visible read-only to non-members (they see like/comment counts but no interaction buttons); private community posts are fully hidden behind a lock screen. Members see full interactions: liking creates a row in `community_post_likes` and a DB trigger atomically increments `like_count`. Posts support **threaded comments** (500 char max) — replies are stored in `community_post_comments` and loaded lazily on expand. Comment counts are bulk-fetched on page load. Any member can delete their own post/comment; owners and admins can delete any content for moderation. Post deletion also removes the associated image from `community-post-images` storage. If the DB insert fails after a successful image upload, the uploaded file is rolled back. **Pagination:** the feed loads 30 posts on initial load; a "Load more" button (cursor-based via `created_at`) appends subsequent batches of 30. The Feed tab label shows the total DB count (`postCount`), not just the loaded slice.
 
 **Community chat:** Real-time group chat within each community tab. Messages are stored in `community_chat_messages` and loaded via Supabase Realtime `postgres_changes` subscriptions on both INSERT (new messages) and DELETE (moderator removals propagate in real time). Owners and admins see an ✕ button on every message; members only see it on their own.
 
@@ -377,9 +377,17 @@ Four public buckets in Supabase Storage, all with server-enforced MIME type rest
 | `profile-photos` | image/jpeg, png, webp, gif, heic, heif | 2 MB |
 | `event-covers` | image/jpeg, png, webp, gif, heic, heif | 5 MB |
 | `community-banners` | image/jpeg, png, webp, gif, heic, heif | 2 MB |
+| `community-post-images` | image/jpeg, jpg, png, webp | 5 MB |
 | `chat-attachments` | image/jpeg, png, webp + pdf, txt | 10 MB |
 
 MIME enforcement is at the **storage bucket level** — even if someone bypasses the frontend validation and hits the Supabase Storage API directly with the anon key, the server rejects non-allowed file types.
+
+**`community-post-images` RLS:**
+- Public read (anon key)
+- Authenticated upload: path must be `{communityId}/{userId}/{uuid}.{ext}` — the middle path segment must match `auth.uid()`, enforced by `(string_to_array(name, '/'))[2] = auth.uid()::text`
+- Delete: only the post author (matching path segment) may delete
+
+**`profile-photos` client size guard:** `setup/page.tsx` enforces a 2 MB client-side check matching the 2 MB bucket limit (previously was a 5 MB mismatch that would confuse users with a bucket rejection after a successful client-side check).
 
 ---
 
@@ -456,6 +464,8 @@ if (error) setBookmarked(prev => !prev) // rollback
 
 **`'use client'` everywhere:** Every page is a client component because all pages need live user data. This is intentional for a mobile-first PWA-style app — there are no meaningful server-rendered pages.
 
+**Image optimization via Supabase render endpoint:** All Supabase Storage image URLs are passed through `optimizedImgSrc(url, width, quality?)` in `lib/utils.ts`. This rewrites the URL from `/storage/v1/object/public/` to `/storage/v1/render/image/public/?width=N&quality=N`, which serves a CDN-resized image at the exact dimensions needed. Non-Supabase URLs (Google profile photos, etc.) pass through the `safeImgSrc` allowlist unchanged. Width sizing: 900px for full-page banners/covers, 800px for event card covers, 700px for community post images, 128px for profile hero avatars, 96px for standard avatars, 64px for small mutual-connection thumbnails.
+
 ---
 
 ## The Database Connection to Code
@@ -491,7 +501,7 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 | Edge function fails | Called with `.catch(() => {})` — silent failure, doesn't affect the user |
 | Typing indicator channel leak | Cleaned up in `useEffect` return (unmount) |
 | After-event match check fires every session | Guarded with `sessionStorage.getItem('gathr_match_check')` — runs max once per browser session |
-| DB-sourced URL in `<img src>` could load arbitrary content | `safeImgSrc()` allowlist applied to every DB-sourced avatar and cover URL attribute across all pages |
+| DB-sourced URL in `<img src>` could load arbitrary content | `optimizedImgSrc()` (wraps `safeImgSrc()` allowlist internally) applied to every DB-sourced image across all pages; non-Supabase URLs (e.g. Google) pass through `safeImgSrc()` unchanged |
 | Non-UUID route param causes Supabase query error | `isValidUUID()` guard at the top of every dynamic-route `useEffect` before any DB call |
 | Community delete leaves orphan rows | Client explicitly deletes `community_post_comments` → `community_chat_messages` → `community_posts` → `community_members` → `communities` in order |
 | `onAuthStateChange` subscription leak on reset page | Subscription returned by Supabase is now unsubscribed in `useEffect` cleanup |
