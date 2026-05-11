@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { safeImgSrc } from '@/lib/utils'
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 const THREAD_RE = new RegExp('^' + UUID + '_' + UUID + '$', 'i')
@@ -28,6 +29,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const fileRef = useRef<HTMLInputElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const uploadErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const presenceChannelRef = useRef<any>(null)
   const userIdRef = useRef<string | null>(null)
   const router = useRouter()
@@ -72,6 +74,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     return () => {
       supabase.removeChannel(presence)
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+      if (uploadErrorTimerRef.current) clearTimeout(uploadErrorTimerRef.current)
     }
   }, [threadId, user])
 
@@ -109,7 +112,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     return () => { supabase.removeChannel(channel) }
   }, [threadId])
 
+  const clearUploadError = (delay: number) => {
+    if (uploadErrorTimerRef.current) clearTimeout(uploadErrorTimerRef.current)
+    uploadErrorTimerRef.current = setTimeout(() => setUploadError(''), delay)
+  }
+
   const fetchMessages = async (tId: string, userId: string) => {
+    try {
     // Fetch newest 150 first (desc), then reverse for chronological display
     const { data, error } = await supabase
       .from('messages')
@@ -151,8 +160,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         if (otherProfile) setOther(otherProfile)
       }
     }
-    setLoading(false)
     scrollToBottom()
+    } finally {
+      setLoading(false)
+    }
   }
 
   const loadEarlier = async () => {
@@ -180,7 +191,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     const msg = longPressMsg
     setLongPressMsg(null)
     setMessages(prev => prev.filter(m => m.id !== msg.id))
-    await supabase.from('messages').delete().eq('id', msg.id)
+    const { error } = await supabase.from('messages').delete().eq('id', msg.id)
+    if (error) setMessages(prev => [...prev, msg].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()))
   }
 
   const scrollToBottom = () => {
@@ -221,7 +233,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     } else if (error) {
       setText(trimmed)
       setUploadError(error.message?.includes('rate_limit') ? 'Slow down — you\'re sending too fast' : 'Message failed to send. Tap to retry.')
-      setTimeout(() => setUploadError(''), 3500)
+      clearUploadError(3500)
     }
     setSending(false)
   }
@@ -238,13 +250,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     const fileExt = file.name.split('.').pop()?.toLowerCase() || ''
     if (!ALLOWED_EXTS.includes(fileExt) || !ALLOWED_MIME.includes(file.type)) {
       setUploadError('File type not supported — images and PDFs only')
-      setTimeout(() => setUploadError(''), 3000)
+      clearUploadError(3000)
       return
     }
 
     if (file.size > 10 * 1024 * 1024) {
       setUploadError('File too large — max 10 MB')
-      setTimeout(() => setUploadError(''), 3000)
+      clearUploadError(3000)
       return
     }
 
@@ -263,7 +275,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     if (storageError) {
       console.error('Upload error:', storageError)
       setUploadError('Upload failed — try again')
-      setTimeout(() => setUploadError(''), 3000)
+      clearUploadError(3000)
       setUploading(false)
       return
     }
@@ -287,7 +299,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     setUploading(false)
     if (msgError) {
       setUploadError('File sent but message failed — try again')
-      setTimeout(() => setUploadError(''), 3500)
+      clearUploadError(3500)
       return
     }
     scrollToBottom()
@@ -366,8 +378,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
           {'←'}
         </button>
-        {other?.avatar_url ? (
-          <img src={other.avatar_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+        {safeImgSrc(other?.avatar_url) ? (
+          <img src={safeImgSrc(other.avatar_url)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
         ) : (
           <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">🧑</div>
         )}
@@ -411,8 +423,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
               )}
               <div className={'flex items-end gap-2 ' + (mine ? 'flex-row-reverse' : '')}>
                 {!mine && (
-                  other?.avatar_url ? (
-                    <img src={other.avatar_url} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0" />
+                  safeImgSrc(other?.avatar_url) ? (
+                    <img src={safeImgSrc(other.avatar_url)!} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0" />
                   ) : (
                     <div className="w-6 h-6 bg-[#2A4A2A] rounded-md flex items-center justify-center text-[9px] flex-shrink-0">
                       {other?.name?.charAt(0) || '?'}
