@@ -330,7 +330,7 @@ The notifications page shows all notifications, marks them read on view, and nav
 Supabase Realtime uses `postgres_changes` subscriptions — it watches the Postgres WAL (Write-Ahead Log) and pushes change events to subscribed clients over a WebSocket.
 
 **Used on:**
-- `messages/[id]/page.tsx` — DM chat: subscribes to INSERT on `messages` filtered by `thread_id`. New messages append in real time.
+- `messages/[id]/page.tsx` — DM chat: subscribes to INSERT and DELETE on `messages` filtered by `thread_id`. New messages append in real time; unsent messages are removed in real time for both parties.
 - `communities/[id]/page.tsx` — Community chat: subscribes to INSERT and DELETE on `community_chat_messages` filtered by `community_id` (DELETE fires when a moderator removes a message)
 - `home/page.tsx` — subscribes to INSERT on `events` (new events added to feed) and UPDATE on `events` (spots_left changes propagate to feed cards instantly)
 - `events/[id]/page.tsx` — subscribes to INSERT and DELETE on `rsvps` filtered by `event_id`, keeping attendee list and spots_left live
@@ -338,6 +338,8 @@ Supabase Realtime uses `postgres_changes` subscriptions — it watches the Postg
 - `host/page.tsx` — subscribes to INSERT and DELETE on `rsvps` so RSVP counts on the host dashboard update as people join/leave events
 
 **DM inbox (delete conversation):** The DM inbox (`messages/page.tsx`) includes a `SwipeThread` component — swipe left on a thread to reveal two action buttons: Mark Read/Unread and Delete. Deletion hides the thread from the user's list; the underlying messages are preserved for the other party. Hidden thread IDs are stored in the `hidden_threads` table (RLS-protected, `user_id` + `thread_id` primary key) and loaded on mount via `fetchData`, so threads stay hidden across devices and sessions.
+
+**DM thread (unsend message):** Long-press any message you sent to reveal the Unsend sheet. Tapping Unsend deletes the message row from the database (guarded by `.eq('sender_id', user.id)` on the client in addition to RLS). If the message contained an image or file attachment, the storage object in the `chat-attachments` bucket is also deleted so the URL is fully invalidated. The realtime DELETE subscription propagates the removal to the recipient's screen immediately. If the DB delete fails, the message is restored in the local state.
 
 **Typing indicators** in DMs use Supabase **Presence** (not postgres_changes). Presence is a ephemeral pub/sub channel — each user broadcasts a `{ typing: true/false }` state, and others see it in real time via the `sync` event. It doesn't touch the database at all.
 
@@ -521,6 +523,8 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 | Community delete leaves orphan rows | Client explicitly deletes `community_post_comments` → `community_chat_messages` → `community_posts` → `community_members` → `communities` in order |
 | `onAuthStateChange` subscription leak on reset page | Subscription returned by Supabase is now unsubscribed in `useEffect` cleanup |
 | DM thread hidden state lost between devices | Moved from `localStorage` to `hidden_threads` table — persists across devices and sessions |
+| Unsend left image/file in storage | `handleUnsend` now calls `supabase.storage.from('chat-attachments').remove()` after the DB delete, cleaning up the attachment so the URL is fully invalidated |
+| Unsend could delete another user's message if RLS misconfigured | Delete query now includes `.eq('sender_id', user.id)` as a client-side safety guard |
 | Account deletion blocked by auth layer | `delete-account` Edge Function uses service-role admin client to call `auth.admin.deleteUser()` — bypasses the user's own auth constraints |
 
 ---

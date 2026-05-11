@@ -49,7 +49,7 @@ const tourSlides = [
     title: 'Connect & Message',
     highlight: 'Real conversations',
     body: 'See someone at an event you\'d like to know? Send a connection request. Once accepted, start a private DM thread — each conversation shows exactly where you two first met.',
-    tip: 'Pending connection requests appear in your Messages tab — accept or decline right there. Long-press one of your own messages to unsend it. Swipe left on a conversation to delete it from your list.',
+    tip: 'Pending connection requests appear in your Messages tab — accept or decline right there. Long-press one of your own messages to unsend it — photos and files are fully removed too. Swipe left on a conversation to delete it from your list.',
     bg: 'linear-gradient(135deg,#2A1A1A,#1A0E0E)',
   },
   {
