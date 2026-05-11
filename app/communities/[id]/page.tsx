@@ -65,6 +65,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({})
   const [commentingId, setCommentingId] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const postInputRef = useRef<HTMLTextAreaElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -462,6 +463,33 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     }
   }
 
+  const loadMorePosts = async () => {
+    if (!communityId || loadingMore) return
+    const oldestPost = posts[posts.length - 1]
+    if (!oldestPost) return
+    setLoadingMore(true)
+    const { data } = await supabase
+      .from('community_posts')
+      .select('id, user_id, text, like_count, created_at, profiles(id, name, avatar_url)')
+      .eq('community_id', communityId)
+      .order('created_at', { ascending: false })
+      .lt('created_at', oldestPost.created_at)
+      .limit(30)
+    if (data && data.length > 0) {
+      const { data: likesData } = user
+        ? await supabase.from('community_post_likes').select('post_id').eq('user_id', user.id)
+            .in('post_id', data.map((p: any) => p.id))
+        : { data: [] }
+      const likedIds = new Set((likesData || []).map((l: any) => l.post_id))
+      setPosts(prev => {
+        const existingIds = new Set(prev.map(p => p.id))
+        return [...prev, ...data.filter((p: any) => !existingIds.has(p.id)).map((p: any) => ({ ...p, liked: likedIds.has(p.id) }))]
+      })
+      fetchCommentCounts(data.map((p: any) => p.id))
+    }
+    setLoadingMore(false)
+  }
+
   const timeAgo = (dt: string) => {
     const diff = Date.now() - new Date(dt).getTime()
     if (diff < 60000) return 'just now'
@@ -548,7 +576,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             className={'py-3 text-xs font-semibold capitalize border-b-2 transition-all ' +
               (activeTab === tab ? 'border-[#E8B84B] text-[#E8B84B]' : 'border-transparent text-white/35')}>
             {tab === 'feed'
-              ? `Feed${posts.length > 0 ? ' · ' + posts.length : ''}`
+              ? `Feed${postCount > 0 ? ' · ' + postCount : ''}`
               : tab === 'events'
               ? `Events${events.length > 0 ? ' · ' + events.length : ''}`
               : tab === 'members'
@@ -595,14 +623,14 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               </div>
             )}
 
-            {isMember && posts.length === 0 && (
+            {(!community.is_private || isMember) && posts.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <div className="text-4xl">📢</div>
                 <p className="text-white/40 text-sm text-center">No posts yet — start the conversation!</p>
               </div>
             )}
 
-            {isMember && posts.map(post => {
+            {(!community.is_private || isMember) && posts.map(post => {
               const profile = (post as any).profiles
               const isOwn = post.user_id === user?.id
               return (
@@ -627,19 +655,26 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                   </div>
                   <p className="text-sm text-white/70 leading-relaxed mb-3">{post.text}</p>
-                  <div className="flex items-center gap-4 pt-2 border-t border-white/10">
-                    <button onClick={() => handleLike(post)}
-                      className={'flex items-center gap-1.5 text-xs font-medium transition-all active:scale-95 ' + (post.liked ? 'text-[#E8B84B]' : 'text-white/30')}>
-                      <span>{post.liked ? '♥' : '♡'}</span>
-                      <span>{post.like_count > 0 ? post.like_count : ''}</span>
-                    </button>
-                    <button onClick={() => handleExpandPost(post.id)}
-                      className={'flex items-center gap-1.5 text-xs font-medium transition-all active:scale-95 ' + (expandedPostId === post.id ? 'text-[#7EC87E]' : 'text-white/30')}>
-                      <span>💬</span>
-                      <span>{commentCountMap[post.id] ? commentCountMap[post.id] : 'Reply'}</span>
-                    </button>
-                  </div>
-                  {expandedPostId === post.id && (
+                  {isMember ? (
+                    <div className="flex items-center gap-4 pt-2 border-t border-white/10">
+                      <button onClick={() => handleLike(post)}
+                        className={'flex items-center gap-1.5 text-xs font-medium transition-all active:scale-95 ' + (post.liked ? 'text-[#E8B84B]' : 'text-white/30')}>
+                        <span>{post.liked ? '♥' : '♡'}</span>
+                        <span>{post.like_count > 0 ? post.like_count : ''}</span>
+                      </button>
+                      <button onClick={() => handleExpandPost(post.id)}
+                        className={'flex items-center gap-1.5 text-xs font-medium transition-all active:scale-95 ' + (expandedPostId === post.id ? 'text-[#7EC87E]' : 'text-white/30')}>
+                        <span>💬</span>
+                        <span>{commentCountMap[post.id] ? commentCountMap[post.id] : 'Reply'}</span>
+                      </button>
+                    </div>
+                  ) : (post.like_count > 0 || commentCountMap[post.id] > 0) ? (
+                    <div className="flex items-center gap-3 pt-2 border-t border-white/10">
+                      {post.like_count > 0 && <span className="flex items-center gap-1 text-xs text-white/25"><span>♡</span><span>{post.like_count}</span></span>}
+                      {commentCountMap[post.id] > 0 && <span className="flex items-center gap-1 text-xs text-white/25"><span>💬</span><span>{commentCountMap[post.id]}</span></span>}
+                    </div>
+                  ) : null}
+                  {isMember && expandedPostId === post.id && (
                     <div className="mt-3 pt-3 border-t border-white/[0.07]">
                       {(commentsMap[post.id] || []).length === 0 && (
                         <p className="text-[11px] text-white/25 mb-3 text-center">No replies yet</p>
@@ -687,6 +722,13 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                 </div>
               )
             })}
+
+            {(!community.is_private || isMember) && posts.length > 0 && posts.length < postCount && (
+              <button onClick={loadMorePosts} disabled={loadingMore}
+                className="w-full py-3 text-xs text-white/40 font-medium active:text-white/60 transition-colors disabled:opacity-40">
+                {loadingMore ? 'Loading...' : `Load more · ${postCount - posts.length} remaining`}
+              </button>
+            )}
           </div>
         )}
 
