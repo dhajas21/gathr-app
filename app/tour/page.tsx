@@ -57,7 +57,7 @@ const tourSlides = [
     title: 'Your Profile',
     highlight: 'Level up, earn badges, unlock perks',
     body: 'Hosting events, attending, making connections, and adding interests all earn XP. Level up through four tiers: Newcomer, Regular, Veteran, and Legend. Earn 28 achievements in bronze, silver, and gold — including Dual Mode for running both Social and Professional profiles at once.',
-    tip: 'Check your XP, level, and achievements in Profile → Stats. Pin your best badges to your public profile. Hit level 5 for a 48-hour Gathr+ preview — level 10 for 7 days. Manage your saved event draft from Profile → Events.',
+    tip: 'Check your XP, level, and achievements in Profile → Stats. Pin your best badges to your public profile. Hit level 5 for a 48-hour Gathr+ preview — level 10 for 7 days. Or claim a one-time 7-day Gathr+ free trial from Settings → Gathr+. Turn on push notifications anytime in Settings.',
     bg: 'linear-gradient(135deg,#2A2010,#1A1A08)',
   },
 ]

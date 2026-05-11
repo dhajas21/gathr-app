@@ -101,7 +101,7 @@ All tables are in the `public` schema with **Row Level Security (RLS)** enabled 
 | `event_invites` | Invites sent for private events |
 | `communities` | Community groups. Name, description, category, icon, banner_gradient, visibility (public/private), member_count, is_private (computed column) |
 | `community_members` | Membership rows. `role`: owner / admin / member / pending |
-| `community_posts` | Posts inside a community. Text (nullable — image-only posts allowed), image_url, like_count |
+| `community_posts` | Posts inside a community. Text (nullable — image-only posts allowed), image_url, like_count, comment_count (both counts maintained by DB triggers) |
 | `community_post_likes` | Which user liked which post. Trigger updates `community_posts.like_count` |
 | `community_post_comments` | Threaded replies on community posts. text, post_id, user_id |
 | `community_chat_messages` | In-community chat. Text + user_id |
@@ -119,20 +119,16 @@ All tables are in the `public` schema with **Row Level Security (RLS)** enabled 
 
 ### Key Column Details on `profiles`
 
-- `pub_tier` (text) — achievement tier: Newcomer / Regular / Veteran / Legend (computed server-side and cached here)
-- `pub_badges` (text[]) — array of earned badge titles shown on public profile
-- `pinned_badges` (text[]) — up to 3 badge titles the user has pinned to their own profile view
+User-writable:
+- `name`, `avatar_url`, `bio_social`, `bio_professional`, `title_professional`, `org_professional`, `links`, `city`, `interests` (array, capped at 10), `profile_mode` ('social' / 'professional' / 'both'), `rsvp_visibility` ('public' / 'connections' / 'private'), `is_discoverable`, `matching_enabled`, `pinned_badges` (up to 3 badge titles user pins to their public profile)
 
-> **Note:** XP and level are **not stored** in the database. They are computed on the client from `hosted_count`, `attended_count`, connection count, and interest count: `xp = hosted×10 + attended×5 + connections×3 + interests×2`, `level = floor(xp/50)+1`.
-- `safety_score` (float) — 0–100, average of all post-event reviews
-- `safety_tier` (text) — New / Verified / Trusted / Flagged
-- `gathr_plus` (bool) — paid subscriber
-- `gathr_plus_expires_at` (timestamptz) — milestone preview expiry (null if full subscriber)
-- `matching_enabled` (bool) — whether they appear in match lists
-- `discoverable` (bool) — whether they appear in search/people
-- `profile_mode` (text) — 'social' / 'professional' / 'both' — controls what's visible on public profile
-- `attended_count` (int) — maintained by DB trigger
-- `hosted_count` (int) — maintained by DB trigger
+**System-managed** (locked down by `guard_profile_protected_columns_trg` — user UPDATE attempts on these columns RAISE an exception; only service-role inside edge functions can write):
+- `hosted_count`, `attended_count` (maintained by DB triggers on events/rsvps)
+- `safety_score`, `safety_tier` ('new' / 'verified' / 'trusted' / 'flagged'), `review_count` (maintained by review aggregation)
+- `gathr_plus`, `gathr_plus_expires_at`, `gathr_plus_trial_used`, `gathr_plus_trial_levels` (modifiable only via `claim-gathr-plus-trial` / `claim-level-trial` edge functions running with service-role)
+
+XP and level are **not stored** in the database. The client computes them from authoritative DB counts:
+`xp = profile.hosted_count×10 + profile.attended_count×5 + connections×3 + interests×2`, `level = floor(xp/50) + 1`. Earlier versions computed XP from the *fetched array length* of `hostedEvents`/`attendedEvents`, which were limited to 50/200 rows respectively — this capped a power user's XP at ~30 levels. Now corrected to use the trigger-maintained counts directly.
 
 ### Key Column Details on `events`
 
@@ -164,10 +160,51 @@ All count management and notifications are handled by Postgres triggers — not 
 | `rate_limit_community_posts` | community_posts BEFORE INSERT | Blocks if user posted >20 posts in last hour |
 | `rate_limit_community_chat` | community_chat_messages BEFORE INSERT | Blocks if user sent >100 chat messages in last hour |
 | `rate_limit_messages` | messages BEFORE INSERT | Blocks if user sent >200 DMs in last hour |
+| `community_post_comment_count_trigger` | community_post_comments INSERT/DELETE | Maintains `community_posts.comment_count` (replaces fetching all comments to count them on every load) |
+| `guard_profile_protected_columns_trg` | profiles BEFORE UPDATE | Rejects user writes to billing (`gathr_plus_*`), safety (`safety_*`, `review_count`), and trigger-maintained counts (`hosted_count`, `attended_count`). Service-role bypasses |
+| `on_auth_user_created` | auth.users INSERT | Auto-creates a `profiles` row from `raw_user_meta_data` (name, city, avatar). Eliminates orphan-profile risk when email confirmation is pending |
 
 Rate limiting works by writing to `rate_limit_events` and counting recent rows. If over the limit, the trigger runs `RAISE EXCEPTION 'rate_limit_exceeded'` which aborts the INSERT and surfaces as an error on the client.
 
 All trigger functions are `SECURITY DEFINER` — they run with the permissions of the function owner (not the calling user), which lets them write to system tables like `rate_limit_events` that users can't write to directly.
+
+---
+
+## Database Indexes
+
+Search and common filter paths are backed by indexes:
+
+**Full-text-style (pg_trgm GIN indexes)** — these make `.ilike('%query%')` queries with leading wildcards fast at scale (without these, every search is a sequential scan):
+- `events.title`, `events.description`, `events.location_name`
+- `profiles.name`, `profiles.bio_social`, `profiles.city`
+- `communities.name`, `communities.description`
+
+**B-tree composite indexes** — these back the most common query patterns:
+- `events (city, start_datetime)` — home feed by city, sorted by start time
+- `events (visibility, start_datetime)` — public-event filter + sort
+- `events (latitude, longitude)` partial index `WHERE latitude IS NOT NULL` — map page
+- `rsvps (event_id, user_id)` — attendee lookups + per-event RSVP check
+- `event_bookmarks (user_id, created_at DESC)` — bookmarks page
+- `connections (status, requester_id, addressee_id)` — connection-state checks
+- `messages (thread_id, sent_at DESC)` — DM thread fetch
+- `messages (recipient_id)` partial `WHERE read_at IS NULL` — unread badge
+- `notifications (user_id, created_at DESC)` — notifications page
+- `community_members (user_id, community_id)` — membership lookups
+- `community_posts (community_id, created_at DESC)` — community feed
+- `community_chat_messages (community_id, created_at DESC)` — community chat history
+
+---
+
+## Postgres RPC Functions
+
+These are SECURITY DEFINER functions that wrap multi-step operations into atomic transactions, so failures can't leave orphan rows.
+
+| RPC | Args | Purpose |
+|---|---|---|
+| `create_community(p_name, p_description, p_category, p_visibility, p_icon, p_banner_gradient)` | name (3–100 chars), description, category, visibility (public/unlisted/private), optional icon + gradient | Inserts the community row AND the owner `community_members` row in a single transaction. Returns the new community's UUID. The frontend on `/communities/create` now calls this RPC instead of two sequential inserts (which used to leave orphans on partial failure). |
+| `delete_community(p_community_id)` | community UUID | Authorization check (caller must be owner) + cascading clean-up of `community_post_comments` → `community_post_likes` → `community_chat_messages` → `community_posts` → `community_members` → unlinks `events.community_id` → deletes the community. All in one transaction. |
+
+Both RPCs return clear PostgreSQL errors (auth = 42501, validation = 22023) that the frontend can surface. Authenticated role has `EXECUTE` permission.
 
 ---
 
@@ -300,9 +337,22 @@ Gathr+ is the premium tier. Features:
 - Send anonymous waves to matches before events
 - Priority matching rank (appears higher in other users' match lists)
 
-**Subscription status** is stored on `profiles.gathr_plus` (bool). A time-limited preview is stored as `profiles.gathr_plus_expires_at`. The client treats the user as Gathr+ if `gathr_plus === true` OR if `gathr_plus_expires_at` is in the future.
+**Access tiers:**
+- `profiles.gathr_plus` (bool) — true means the user is a paid subscriber (set by the future billing webhook)
+- `profiles.gathr_plus_expires_at` (timestamptz) — a time-limited grant: 7-day free trial OR a level-milestone preview (48h at level 5, 7-day at level 10)
+- `profiles.gathr_plus_trial_used` (bool) — gates the one-time 7-day free trial
+- `profiles.gathr_plus_trial_levels` (int[]) — which level-milestone previews have already been claimed
 
-The `gathr-plus/page.tsx` is the upgrade page. Actual billing is handled via the device's app store or payment provider — Gathr never stores card details.
+Client treats the user as Gathr+ if `gathr_plus === true` OR `gathr_plus_expires_at > now()`.
+
+**The lockdown:** All four columns above are protected by `guard_profile_protected_columns_trg` — direct user UPDATEs are rejected. The only paths that can set them:
+- `claim-gathr-plus-trial` edge function — the one-time 7-day free trial (`/gathr-plus` page calls this)
+- `claim-level-trial` edge function — level milestone previews (auto-invoked from `/profile` on level-up)
+- Service-role inside future billing webhooks (e.g. RevenueCat / Stripe webhook setting `gathr_plus = true`)
+
+This means a sophisticated user with API access cannot grant themselves Gathr+ or reset their `trial_used` flag. Earlier versions did the trial activation client-side and were exploitable.
+
+**Billing status:** Actual billing (RevenueCat + Apple IAP / Google Play Billing / Stripe for web) is not yet wired. The `/gathr-plus` page shows a "Billing Coming Soon" panel and a "Notify me" button that routes to `/waitlist`. Until billing launches, users only have access through the 7-day trial and level milestones.
 
 ---
 
@@ -335,7 +385,7 @@ Supabase Realtime uses `postgres_changes` subscriptions — it watches the Postg
 - `home/page.tsx` — subscribes to INSERT on `events` **filtered by `city=eq.${profile.city}`** (only new public events in the user's selected city are pushed) and UPDATE on `events` (spots_left changes propagate to feed cards instantly). The channel is set up in a dedicated `useEffect` dependent on `user.id` and `profile.city` — it automatically reconnects with the updated city filter when the user switches cities
 - `events/[id]/page.tsx` — subscribes to INSERT and DELETE on `rsvps` filtered by `event_id`, keeping attendee list and spots_left live
 - `notifications/page.tsx` — subscribes to INSERT on `notifications` filtered by `user_id`, so new notifications appear without a refresh
-- `host/page.tsx` — subscribes to INSERT and DELETE on `rsvps` so RSVP counts on the host dashboard update as people join/leave events
+- `host/page.tsx` — subscribes to INSERT and DELETE on `rsvps` so RSVP counts on the host dashboard update as people join/leave events. **The subscription has no server-side filter** (Postgres CHANGES filters don't support `event_id IN (…)`), so it filters client-side via `eventIdsRef: Set<string>` — payloads for events not owned by the current host are dropped before mutating state. Without this filter, every host got every other host's RSVPs over the WebSocket
 
 **DM inbox (delete conversation):** The DM inbox (`messages/page.tsx`) includes a `SwipeThread` component — swipe left on a thread to reveal two action buttons: Mark Read/Unread and Delete. Deletion hides the thread from the user's list; the underlying messages are preserved for the other party. Hidden thread IDs are stored in the `hidden_threads` table (RLS-protected, `user_id` + `thread_id` primary key) and loaded on mount via `fetchData`, so threads stay hidden across devices and sessions.
 
@@ -347,18 +397,34 @@ Supabase Realtime uses `postgres_changes` subscriptions — it watches the Postg
 
 ## Edge Functions
 
-Supabase Edge Functions run on Deno, serverside, close to the database. Three functions are deployed:
+Supabase Edge Functions run on Deno, server-side, close to the database. Five functions are deployed. All read `APP_ORIGIN` env var for `Access-Control-Allow-Origin` (defaults to wildcard if unset — set this to your production domain when you deploy).
 
-**`delete-account`** (JWT not pre-verified — function handles auth internally):
-- Called from Settings → Danger Zone when the user confirms account deletion
+**`delete-account`**:
+- Called from Settings → Danger Zone (Type "DELETE" confirmation required client-side)
 - Verifies the caller's identity via `auth.getUser()` using the bearer token
 - Uses a service-role admin client to call `auth.admin.deleteUser(userId)` — this cascades to all linked data via FK constraints
 - Returns `{ success: true }` on success; the client then calls `supabase.auth.signOut()` and redirects to `/auth`
 
-**`claim-level-trial`** (JWT not pre-verified — function handles auth internally):
-- Called from the profile page when a level milestone is reached
-- Computes XP and level server-side from authoritative DB counts
-- Grants the appropriate Gathr+ preview trial (48h at level 5, 7-day at level 10) if not already claimed
+**`claim-level-trial`** (JWT-verified):
+- Called from the profile page when a level milestone (5 or 10) is detected client-side
+- Computes XP and level server-side from authoritative DB counts (`hosted_count`, `attended_count`, connection count, interest count) — client cannot fake a level-up
+- Grants the appropriate Gathr+ preview trial (48h at level 5, 7-day at level 10) if `gathr_plus_trial_levels` doesn't already include that level
+- Writes `gathr_plus_expires_at` and `gathr_plus_trial_levels[]` via service-role (frontend can't, thanks to `guard_profile_protected_columns_trg`)
+
+**`claim-gathr-plus-trial`** (JWT-verified, **new**):
+- The only authorised path to activate the 7-day Gathr+ free trial
+- Eligibility: account ≥ 1 hour old, `gathr_plus_trial_used = false`, not already a paying subscriber
+- Sets `gathr_plus_expires_at = now() + 7 days` and `gathr_plus_trial_used = true` via service-role
+- The frontend `/gathr-plus` page calls this; the client can no longer write `gathr_plus_*` columns directly (RLS trigger blocks it)
+- Returns `{ success: true, expires_at, days: 7 }` or a structured 4xx error with a user-friendly message
+
+**`geocode-event`** (JWT-verified, **new**):
+- Replaces all in-browser Nominatim calls (browsers can't set a proper User-Agent; in-browser geocoding violated Nominatim ToS and could get user IPs rate-limited or banned)
+- Called fire-and-forget from `/create` and `/events/[id]/edit` after publish/save with `{ event_id }`
+- Authorization check: only the event's host can request a geocode for it
+- Hits Nominatim with `User-Agent: GathrApp/1.0 (gathr.app)`; falls back to `CITY_COORDS[city]` lookup (mirrors `lib/constants.ts CITIES`) if Nominatim returns no result
+- Updates `events.latitude` / `events.longitude` via service-role; idempotent
+- Frontend map view (`/map`) now ONLY queries events that already have coords (`not('latitude', 'is', null)`), so geocoding happens once at write time, never at read time
 
 **`after-event-matches`** (JWT-verified):
 - Called once per session from the home page: `supabase.functions.invoke('after-event-matches')`
@@ -368,6 +434,11 @@ Supabase Edge Functions run on Deno, serverside, close to the database. Three fu
 - Sends one notification per qualifying event (deduped against existing notifications)
 - Runs server-side so it can do multi-table joins efficiently without the client making 5+ sequential queries on load
 - Co-attendee lookups use a single `.in('event_id', qualifyingEventIds)` batch query — O(1) DB round-trips regardless of how many qualifying events there are; results are grouped by `event_id` client-side
+
+**`send-push`**:
+- Sends a Web Push notification to a specific user's subscribed devices
+- Looks up rows in `push_subscriptions` for the recipient, then POSTs each endpoint with the VAPID-signed payload
+- Triggered server-side from `pg_net` calls or scheduled jobs — not directly called from the client
 
 ---
 
@@ -492,6 +563,14 @@ if (error) setBookmarked(prev => !prev) // rollback
 
 **Community post image lightbox:** Tapping a community post image opens a full-screen overlay (`lightboxUrl` state in `communities/[id]/page.tsx`) showing the image at 900px render quality. Tapping anywhere or the × button dismisses it.
 
+**Reusable UI primitives:**
+- `components/PasswordInput.tsx` — password field with a show/hide eye toggle; used in `/auth`, `/auth/reset`, `/settings`. Sets `autoComplete="current-password"` or `"new-password"` so password managers work correctly.
+- `components/OfflineBanner.tsx` — mounted in `app/layout.tsx`; listens to `online` / `offline` window events and shows a top banner with a pulsing dot when the network is down.
+- `components/UndoToast.tsx` — snackbar with a built-in Undo button + visible progress strip. Caller passes `onUndo` / `onCommit` / `onClose`. Currently used by the profile draft-delete; designed to be reused for any destructive action where the work happens optimistically.
+- `components/FadeIn.tsx` — drop-in wrapper for content that benefits from a 300ms opacity + translateY fade-in (instead of a hard pop). Configurable `delay` and `duration`.
+
+**Haptics:** `components/BottomNav.tsx` calls `navigator.vibrate?.(8)` on every tab switch and `(12)` on the central + button. Silent on devices without vibration support (e.g. desktop); no impact on non-touch browsers.
+
 ---
 
 ## The Database Connection to Code
@@ -537,7 +616,19 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 | Account deletion blocked by auth layer | `delete-account` Edge Function uses service-role admin client to call `auth.admin.deleteUser()` — bypasses the user's own auth constraints |
 | Private event data (host, attendees, comments) returned before access gate fired | Gate check now runs immediately after the event row is fetched — blocked users never trigger the parallel data queries |
 | Event cover image orphaned in storage when host deletes event | `handleDelete` extracts the storage path from `cover_url` and calls `supabase.storage.from('event-covers').remove()` after the DB delete |
-| CORS wildcard on edge functions allows any origin | All three edge functions read `APP_ORIGIN` env var for `Access-Control-Allow-Origin`; set this secret in Supabase to your production domain |
+| CORS wildcard on edge functions allows any origin | All five edge functions read `APP_ORIGIN` env var for `Access-Control-Allow-Origin`; set this secret in Supabase to your production domain |
+| Profile XP capped at fetched-array length (50 hosted / 200 attended) | XP now derives from `profile.hosted_count` / `profile.attended_count` (DB-trigger-maintained); display still uses limited arrays |
+| Gathr+ trial exploitable via direct API write | `guard_profile_protected_columns_trg` rejects any user UPDATE to `gathr_plus_*` columns. Only `claim-gathr-plus-trial` (service-role) can flip the flag |
+| Host realtime subscription received every host's RSVPs platform-wide | Client-side filter via `eventIdsRef: Set<string>` drops payloads for events not owned by current host |
+| Map page geocoded events on every visit, never persisted | All geocoding moved to `geocode-event` edge function (proper User-Agent, server-side); map only queries events that already have lat/lng |
+| Default Leaflet markers blocked by CSP (unpkg.com not allowed) | Default-icon merge removed entirely; all pins use `L.divIcon` which is inline-HTML and CSP-safe |
+| Community create left orphan rows on partial failure | Replaced two sequential inserts with the atomic `create_community` RPC (single transaction, owner row + community row together) |
+| Community delete sequential cascade could partially fail | Replaced five sequential client deletes with the atomic `delete_community` RPC |
+| Orphan profile rows from unconfirmed email signups | `handle_new_auth_user` trigger creates the profile only when `auth.users` row commits; client-side profile upserts removed from signup + OAuth callback |
+| ILIKE search with leading wildcards forced sequential scans | `pg_trgm` extension + GIN indexes on title/name/description columns; same query now uses index lookups |
+| `community_post_comments` count required fetching every row on every load | `community_posts.comment_count` column maintained by `community_post_comment_count_trigger` — page reads the count directly |
+| Push permission auto-requested on first page load (browser penalty + low opt-in) | `usePushNotifications` exposes explicit `enable()` / `disable()` actions; Settings has a toggle that requests permission only when user taps it |
+| Account deletion possible from a single mis-tap | Delete dialog requires typing the literal string `DELETE` — submit button stays disabled otherwise |
 
 ---
 
@@ -595,7 +686,64 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 | Skeleton loading states | `components/Skeleton.tsx` |
 | Pull-to-refresh | `hooks/usePullToRefresh.ts` |
 | Web push | `hooks/usePushNotifications.ts`, `components/ServiceWorkerRegistrar.tsx` |
-| After-event match edge function | Supabase Edge Function: `after-event-matches` |
+| Password input (eye toggle) | `components/PasswordInput.tsx` |
+| Offline banner | `components/OfflineBanner.tsx` |
+| Undo toast | `components/UndoToast.tsx` |
+| Fade-in wrapper | `components/FadeIn.tsx` |
+| Edge: after-event matches | Supabase Edge Function: `after-event-matches` |
+| Edge: claim Gathr+ trial | Supabase Edge Function: `claim-gathr-plus-trial` |
+| Edge: claim level-milestone trial | Supabase Edge Function: `claim-level-trial` |
+| Edge: server-side geocoding | Supabase Edge Function: `geocode-event` |
+| Edge: account deletion | Supabase Edge Function: `delete-account` |
+| Edge: web push send | Supabase Edge Function: `send-push` |
+| RPC: atomic community create | Postgres function: `create_community` |
+| RPC: atomic community delete | Postgres function: `delete_community` |
 | Privacy Policy | `app/privacy/page.tsx` |
 | Terms of Service | `app/terms/page.tsx` |
 | Feature tour | `app/tour/page.tsx` |
+
+---
+
+## Deployment Setup Checklist
+
+Before a public launch:
+
+**Supabase Edge Function secrets** (set under Project Settings → Edge Functions → Secrets):
+- `APP_ORIGIN` — set to your production app origin, e.g. `https://gathr.app`. Without this, edge functions return `Access-Control-Allow-Origin: *` and accept calls from any website.
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — automatically populated by Supabase.
+
+**Frontend env vars** (`.env.local` or Vercel project settings):
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — required.
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` — required for web push notifications; generate via `npx web-push generate-vapid-keys`. Without this the Settings → Push Notifications toggle stays inactive.
+
+**Supabase Auth settings** (Auth → Policies):
+- Set the password minimum to 12 characters to match the client-side requirement (otherwise users could bypass the UI and create 6-character passwords via API).
+- Enable Sign in with Apple before submitting to the App Store (required when Google sign-in is available).
+
+**Billing** (not yet wired):
+- The Gathr+ page shows a "Billing Coming Soon" panel. Wire RevenueCat + Apple IAP + Google Play Billing + Stripe (web) before public launch. The webhook should call a yet-to-be-built edge function (`set-gathr-plus-active`) that updates `profiles.gathr_plus` via service-role.
+
+**Observability** (not yet wired):
+- Install Sentry (`@sentry/nextjs`) and PostHog (or Mixpanel) before public launch. The `ErrorBoundary` component is the integration point for Sentry's React error capture.
+
+---
+
+## Recent Schema / Behaviour Changes (Audit Cycle)
+
+Tracking the major changes from the most recent audit pass so future code review has a single anchor:
+
+- **XP/Level math**: now uses `profile.hosted_count` / `profile.attended_count` instead of fetched-array lengths (which were capped at 50 / 200).
+- **Host realtime**: subscription stays global (Postgres CHANGES doesn't support `IN ()`) but filters via `eventIdsRef` on the client.
+- **Map page**: only queries events with non-null coords; no in-browser geocoding (server-side `geocode-event` runs on event create/edit).
+- **Leaflet markers**: removed broken default-icon merge (unpkg CDN not in CSP). All pins use `divIcon`.
+- **Community create**: now uses `create_community` RPC; `member_count` starts at 0, trigger handles +1.
+- **Community delete**: now uses `delete_community` RPC; atomic cascade.
+- **Profile edit**: 10-interest cap enforced; removing avatar deletes the storage object.
+- **Event edit**: now supports editing `ticket_type` / `ticket_price` + advanced lat/lng override.
+- **Push notifications**: hook no longer auto-prompts; explicit `enable()`/`disable()`.
+- **Auth signup**: profile created by DB trigger from `raw_user_meta_data`. No client-side upsert.
+- **Gathr+ trial**: only granted via `claim-gathr-plus-trial` edge function. `guard_profile_protected_columns_trg` blocks user writes.
+- **Account deletion**: now requires typing "DELETE" in confirm dialog.
+- **DB indexes**: pg_trgm on text fields used in search; btree composites on hot-path filters.
+- **New tables/columns**: `community_posts.comment_count` (trigger-maintained).
+- **Polish components**: `PasswordInput`, `OfflineBanner`, `UndoToast`, `FadeIn`. Bottom nav haptics.
