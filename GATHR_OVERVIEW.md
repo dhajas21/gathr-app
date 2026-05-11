@@ -332,14 +332,14 @@ Supabase Realtime uses `postgres_changes` subscriptions — it watches the Postg
 **Used on:**
 - `messages/[id]/page.tsx` — DM chat: subscribes to INSERT and DELETE on `messages` filtered by `thread_id`. New messages append in real time; unsent messages are removed in real time for both parties.
 - `communities/[id]/page.tsx` — Community chat: subscribes to INSERT and DELETE on `community_chat_messages` filtered by `community_id` (DELETE fires when a moderator removes a message)
-- `home/page.tsx` — subscribes to INSERT on `events` (new events added to feed) and UPDATE on `events` (spots_left changes propagate to feed cards instantly)
+- `home/page.tsx` — subscribes to INSERT on `events` **filtered by `city=eq.${profile.city}`** (only new public events in the user's selected city are pushed) and UPDATE on `events` (spots_left changes propagate to feed cards instantly). The channel is set up in a dedicated `useEffect` dependent on `user.id` and `profile.city` — it automatically reconnects with the updated city filter when the user switches cities
 - `events/[id]/page.tsx` — subscribes to INSERT and DELETE on `rsvps` filtered by `event_id`, keeping attendee list and spots_left live
 - `notifications/page.tsx` — subscribes to INSERT on `notifications` filtered by `user_id`, so new notifications appear without a refresh
 - `host/page.tsx` — subscribes to INSERT and DELETE on `rsvps` so RSVP counts on the host dashboard update as people join/leave events
 
 **DM inbox (delete conversation):** The DM inbox (`messages/page.tsx`) includes a `SwipeThread` component — swipe left on a thread to reveal two action buttons: Mark Read/Unread and Delete. Deletion hides the thread from the user's list; the underlying messages are preserved for the other party. Hidden thread IDs are stored in the `hidden_threads` table (RLS-protected, `user_id` + `thread_id` primary key) and loaded on mount via `fetchData`, so threads stay hidden across devices and sessions.
 
-**DM thread (unsend message):** Long-press any message you sent to reveal the Unsend sheet. Tapping Unsend deletes the message row from the database (guarded by `.eq('sender_id', user.id)` on the client in addition to RLS). If the message contained an image or file attachment, the storage object in the `chat-attachments` bucket is also deleted so the URL is fully invalidated. The realtime DELETE subscription propagates the removal to the recipient's screen immediately. If the DB delete fails, the message is restored in the local state.
+**DM thread (unsend message):** Long-press (mobile) or right-click (desktop) any message you sent to reveal the Unsend sheet. Tapping Unsend deletes the message row from the database (guarded by `.eq('sender_id', user.id)` on the client in addition to RLS). If the message contained an image or file attachment, the storage object in the `chat-attachments` bucket is also deleted so the URL is fully invalidated. The realtime DELETE subscription propagates the removal to the recipient's screen immediately. If the DB delete fails, the message is restored in the local state.
 
 **Typing indicators** in DMs use Supabase **Presence** (not postgres_changes). Presence is a ephemeral pub/sub channel — each user broadcasts a `{ typing: true/false }` state, and others see it in real time via the `sync` event. It doesn't touch the database at all.
 
@@ -367,6 +367,7 @@ Supabase Edge Functions run on Deno, serverside, close to the database. Three fu
 - For each such event, finds unconnected co-attendees with `matching_enabled = true`
 - Sends one notification per qualifying event (deduped against existing notifications)
 - Runs server-side so it can do multi-table joins efficiently without the client making 5+ sequential queries on load
+- Co-attendee lookups use a single `.in('event_id', qualifyingEventIds)` batch query — O(1) DB round-trips regardless of how many qualifying events there are; results are grouped by `event_id` client-side
 
 ---
 
@@ -444,6 +445,8 @@ This is implemented with a debounced `useEffect` watching the form state.
 
 **Geocoding feedback:** While the Nominatim lookup runs after the user blurs the address field, the field shows a pulsing "Looking up location…" indicator. On success it shows a green "✓ Location confirmed". The Next step button is disabled and shows "Looking up location…" while geocoding is in flight.
 
+**Ticket price validation:** Before inserting a paid event, the client validates that `ticketPrice` parses to a positive finite number between `$0.01` and `$10,000`. The check uses `isFinite(price) && price > 0 && price <= 10000` — non-numeric input, zero, negatives, and values above the cap all surface a clear error message and block the insert.
+
 ---
 
 ## Settings — Key Behaviours
@@ -452,7 +455,13 @@ This is implemented with a debounced `useEffect` watching the form state.
 
 **Password change:** Minimum 12 characters, enforced both client-side (button disabled + strength meter) and server-side (Supabase Auth rejects weak passwords). A 4-bar strength meter updates in real time scoring: length ≥ 8, length ≥ 12, case mix, number + symbol mix. The Update Password button stays disabled until length ≥ 12 and both fields match — so users can't submit a password that will be rejected.
 
-**City change (home feed):** Selecting a new city updates `profiles.city`, shows a 2.5-second pill toast, and immediately re-fetches events from the server for the new city. The local event cache is not reused — a fresh query runs so the full pool for the new city loads. The city picker search input no longer auto-focuses on open (keyboard no longer jumps immediately).
+**City change (home feed):** Selecting a new city updates `profiles.city`, shows a 2.5-second pill toast, and immediately re-fetches events from the server for the new city. The local event cache is not reused — a fresh query runs so the full pool for the new city loads. The city picker search input no longer auto-focuses on open (keyboard no longer jumps immediately). Supported cities are scoped to PNW, BC, and West Coast US (17 cities in `ALL_CITIES`); the full coordinate lookup table (`CITIES`) covers all of these so `getCityCoords()` never falls back to the default.
+
+**RSVP confirmation:** Tapping "Cancel RSVP" on an event you've already joined opens a confirmation bottom sheet before releasing the spot — accidental taps cannot cancel unintentionally. The actual delete only fires after the user confirms "Yes, Cancel RSVP."
+
+**RSVP confetti:** A confetti burst fires immediately on a successful first-join RSVP, using `canvas-confetti` with gold/cream/green particles (`#E8B84B`, `#F0EDE6`, `#7EC87E`).
+
+**Home feed tab persistence:** The active home tab (Trending / For You / Near Me / Friends / Mine) is saved to `sessionStorage` under `gathr_home_tab` and restored on every mount, so navigating to an event and back doesn't reset the user to the Trending tab.
 
 **Profile edit guards:** Save button is disabled while name is blank. Avatar upload failure surfaces a specific error message ("Photo upload failed — your other changes were saved") rather than silently keeping the old photo. Interest search clear re-focuses the input so the user keeps typing without tapping.
 
@@ -526,6 +535,9 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 | Unsend left image/file in storage | `handleUnsend` now calls `supabase.storage.from('chat-attachments').remove()` after the DB delete, cleaning up the attachment so the URL is fully invalidated |
 | Unsend could delete another user's message if RLS misconfigured | Delete query now includes `.eq('sender_id', user.id)` as a client-side safety guard |
 | Account deletion blocked by auth layer | `delete-account` Edge Function uses service-role admin client to call `auth.admin.deleteUser()` — bypasses the user's own auth constraints |
+| Private event data (host, attendees, comments) returned before access gate fired | Gate check now runs immediately after the event row is fetched — blocked users never trigger the parallel data queries |
+| Event cover image orphaned in storage when host deletes event | `handleDelete` extracts the storage path from `cover_url` and calls `supabase.storage.from('event-covers').remove()` after the DB delete |
+| CORS wildcard on edge functions allows any origin | All three edge functions read `APP_ORIGIN` env var for `Access-Control-Allow-Origin`; set this secret in Supabase to your production domain |
 
 ---
 

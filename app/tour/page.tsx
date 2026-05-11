@@ -33,7 +33,7 @@ const tourSlides = [
     title: 'Mystery Matches',
     highlight: 'The reveal is the reward',
     body: 'RSVP to any event and Gathr shows how many attendees share your vibe — but keeps them blurred until after you go. Full profiles unlock once the event ends and you\'ve attended. You\'ll get a notification in your bell icon when your matches are ready.',
-    tip: 'Gathr+ members see partial names and shared interests before the event, and can send an anonymous wave. A mutual wave gives both people an early first-name reveal. Upgrade anytime in Settings.',
+    tip: 'Gathr+ members see partial names and shared interests before the event, and can send an anonymous wave. A mutual wave gives both people an early first-name reveal. When you\'re ready to cancel an RSVP, tap the button and confirm — your spot is released only after you confirm. Upgrade anytime in Settings.',
     bg: 'linear-gradient(135deg,#1E2A2E,#0E1A1E)',
   },
   {
@@ -49,7 +49,7 @@ const tourSlides = [
     title: 'Connect & Message',
     highlight: 'Real conversations',
     body: 'See someone at an event you\'d like to know? Send a connection request. Once accepted, start a private DM thread — each conversation shows exactly where you two first met.',
-    tip: 'Pending connection requests appear in your Messages tab — accept or decline right there. Long-press one of your own messages to unsend it — photos and files are fully removed too. Swipe left on a conversation to delete it from your list.',
+    tip: 'Pending connection requests appear in your Messages tab — accept or decline right there. Long-press (or right-click on desktop) one of your own messages to unsend it — photos and files are fully removed too. Swipe left on a conversation to delete it from your list.',
     bg: 'linear-gradient(135deg,#2A1A1A,#1A0E0E)',
   },
   {
