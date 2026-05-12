@@ -223,7 +223,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
           { num: mutualCount, label: 'Mutual' },
         ].map((stat, i) => (
           <div key={stat.label} className={'flex-1 text-center py-3 ' + (i < 3 ? 'border-r border-white/10' : '')}>
-            <div className="font-bold text-[#E8B84B] text-base" style={{ fontFamily: 'sans-serif' }}>{stat.num}</div>
+            <div className="font-display font-bold text-[#E8B84B] text-base">{stat.num}</div>
             <div className="text-[9px] text-white/40 mt-0.5 uppercase tracking-wide">{stat.label}</div>
           </div>
         ))}

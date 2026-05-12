@@ -579,7 +579,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-40">
 
-        <h1 className="font-bold text-[#F0EDE6] text-lg leading-snug mb-4" style={{fontFamily:'sans-serif'}}>
+        <h1 className="font-display font-bold text-[#F0EDE6] text-lg leading-snug mb-4">
           {event.title}
         </h1>
 

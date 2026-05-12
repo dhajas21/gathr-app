@@ -134,7 +134,7 @@ export default function CommunitiesPage() {
 
       <div className="px-4 pt-14 pb-2">
         <div className="flex items-center justify-between mb-1">
-          <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>Communities</h1>
+          <h1 className="font-display font-bold text-[#F0EDE6] text-xl">Communities</h1>
           <button onClick={() => router.push('/communities/create')}
             className="bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-xl px-3 py-1.5 text-xs text-[#E8B84B] font-semibold">
             + New

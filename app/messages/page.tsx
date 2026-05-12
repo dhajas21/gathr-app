@@ -350,7 +350,7 @@ export default function MessagesPage() {
 
       <div className="px-4 pt-14 pb-3 border-b border-white/10">
         <div className="flex items-center justify-between">
-          <h1 className="font-bold text-[#F0EDE6] text-xl" style={{ fontFamily: 'sans-serif' }}>Messages</h1>
+          <h1 className="font-display font-bold text-[#F0EDE6] text-xl">Messages</h1>
           <div className="flex items-center gap-2">
             {totalUnread > 0 && (
               <span className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-2.5 py-1 rounded-full">

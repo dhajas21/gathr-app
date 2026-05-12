@@ -55,20 +55,24 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col items-center px-6 pt-16 pb-10">
       <div className="mb-7">
-        <h1 className="text-3xl font-bold text-[#F0EDE6] tracking-tight" style={{ fontFamily: 'sans-serif' }}>
+        <h1 className="font-display text-3xl font-bold text-[#F0EDE6] tracking-tight">
           Gathr<span className="text-[#E8B84B]">.</span>
         </h1>
       </div>
 
       {done ? (
         <div className="w-full text-center">
-          <div className="text-4xl mb-3">✅</div>
+          <div className="w-12 h-12 rounded-2xl bg-[#7EC87E]/10 border border-[#7EC87E]/20 flex items-center justify-center mx-auto mb-3">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7EC87E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
           <p className="text-sm font-medium text-[#7EC87E] mb-1">Password updated!</p>
           <p className="text-xs text-white/40">Taking you home...</p>
         </div>
       ) : !ready ? (
         <div className="w-full text-center">
-          <div className="text-4xl mb-3">🔗</div>
+          <div className="w-12 h-12 rounded-2xl bg-[#1C241C] border border-white/10 flex items-center justify-center mx-auto mb-3">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </div>
           <p className="text-sm text-white/50">Verifying reset link...</p>
           <p className="text-xs text-white/25 mt-2">If this takes too long, try the link in your email again.</p>
         </div>
@@ -96,7 +100,7 @@ export default function ResetPasswordPage() {
 
             {error && (
               <div className="bg-[#E85B5B]/10 border border-[#E85B5B]/20 rounded-2xl px-4 py-3 flex items-center gap-2">
-                <span className="text-sm">⚠️</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E85B5B" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                 <span className="text-xs text-[#E85B5B]">{error}</span>
               </div>
             )}
