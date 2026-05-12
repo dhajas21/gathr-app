@@ -240,6 +240,14 @@ input, select, textarea, button {
 [data-theme="light"] .to-\[\#16100A\]   { --tw-gradient-to:   #EBD7B8 !important; }
 [data-theme="light"] .to-\[\#0E1A0E\]   { --tw-gradient-to:   #E8F2E8 !important; }
 
+/* Badge cutout borders — all notification/count dots use border-[#0D110D] to
+   "cut" the badge from the dark page background. In light mode the page is
+   cream #F4F0E8, so swap the border to match and keep the halo invisible. */
+[data-theme="light"] .border-\[\#0D110D\] { border-color: #F4F0E8 !important; }
+
+/* City-picker online dot — teal on dark, keep same in light (visible on cream) */
+[data-theme="light"] .bg-\[\#5BCC7A\] { background-color: #2A9E4F !important; }
+
 /* Bottom nav blur tint */
 [data-theme="light"] .backdrop-blur-2xl { background-color: rgba(244,240,232,0.94) !important; }
 

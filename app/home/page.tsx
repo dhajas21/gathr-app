@@ -329,12 +329,13 @@ export default function HomePage() {
               </svg>
             </button>
             <button onClick={() => router.push('/notifications')}
-              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center relative">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0EDE6" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              className={'w-9 h-9 rounded-xl flex items-center justify-center relative transition-all active:scale-95 ' + (unreadCount > 0 ? 'bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B]' : 'bg-[#1C241C] border border-white/10 text-[#F0EDE6]')}
+              style={unreadCount > 0 ? { boxShadow: '0 0 14px rgba(232,184,75,0.18)' } : undefined}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
               </svg>
               {unreadCount > 0 && (
-                <div className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-[#E85B5B] rounded-full flex items-center justify-center border-2 border-[#0D110D]">
+                <div className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-[#E85B5B] rounded-full flex items-center justify-center border-2 border-[#0D110D] soft-pulse">
                   <span className="text-[9px] font-bold text-white px-0.5">{unreadCount > 9 ? '9+' : unreadCount}</span>
                 </div>
               )}
