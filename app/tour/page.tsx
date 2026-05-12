@@ -87,7 +87,7 @@ export default function TourPage() {
           onClick={() => router.push('/home')}
           className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold font-display active:scale-95 transition-transform"
           style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
-          Time to Gathr →
+          It's time to Gathr →
         </button>
       </div>
     </div>
