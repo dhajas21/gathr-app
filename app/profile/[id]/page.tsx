@@ -7,6 +7,7 @@ import BottomNav from '@/components/BottomNav'
 import { PublicProfileSkeleton } from '@/components/Skeleton'
 import SafetyBadge from '@/components/SafetyBadge'
 import { isValidUUID, formatDateLong, optimizedImgSrc } from '@/lib/utils'
+import { cityToTimezone } from '@/lib/constants'
 
 const ACHIEVEMENT_LOOKUP: Record<string, { icon: string; tier: 'bronze' | 'silver' | 'gold' }> = {
   'First Event': { icon: '🎉', tier: 'bronze' }, 'Rising Host': { icon: '🎙', tier: 'silver' },
@@ -283,7 +284,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                       <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">{categoryEmoji(event.category)}</div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                        <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)} · {event.location_name}</div>
+                        <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>
                       </div>
                       <span className="text-[9px] bg-[#E8B84B]/10 text-[#E8B84B] px-2 py-0.5 rounded border border-[#E8B84B]/20 flex-shrink-0">Host</span>
                     </div>
@@ -300,7 +301,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                       <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">{categoryEmoji(event.category)}</div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                        <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)} · {event.location_name}</div>
+                        <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>
                       </div>
                       <span className="text-[9px] bg-[#7EC87E]/10 text-[#7EC87E] px-2 py-0.5 rounded border border-[#7EC87E]/20 flex-shrink-0">Going</span>
                     </div>

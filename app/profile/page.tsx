@@ -20,6 +20,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import UndoToast from '@/components/UndoToast'
 import FadeIn from '@/components/FadeIn'
 import { optimizedImgSrc, formatDateLong } from '@/lib/utils'
+import { cityToTimezone } from '@/lib/constants'
 import { catEmoji } from '@/lib/categoryEmoji'
 
 
@@ -193,7 +194,7 @@ export default function ProfilePage() {
   const fetchAll = async (userId: string) => {
     const [profileRes, hostedRes, rsvpRes, connRes, communityRes, draftRes, ownedRes, bmRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
-      supabase.from('events').select('id,title,category,start_datetime,location_name,cover_url,spots_left,capacity').eq('host_id', userId).order('start_datetime', { ascending: false }).limit(50),
+      supabase.from('events').select('id,title,category,start_datetime,location_name,cover_url,spots_left,capacity,city').eq('host_id', userId).order('start_datetime', { ascending: false }).limit(50),
       supabase.from('rsvps').select('event_id').eq('user_id', userId).limit(200),
       supabase.from('connections')
         .select('requester_id, addressee_id')
@@ -218,7 +219,7 @@ export default function ProfilePage() {
     if (rsvpRes.data && rsvpRes.data.length > 0) {
       const eventIds = rsvpRes.data.map((r: any) => r.event_id)
       const { data: attended } = await supabase
-        .from('events').select('id,title,category,start_datetime,location_name,cover_url,spots_left,capacity').in('id', eventIds).order('start_datetime', { ascending: false }).limit(200)
+        .from('events').select('id,title,category,start_datetime,location_name,cover_url,spots_left,capacity,city').in('id', eventIds).order('start_datetime', { ascending: false }).limit(200)
       if (attended) setAttendedEvents(attended)
     }
 
@@ -481,7 +482,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))}</div>
                     </div>
                   </div>
                 ))}
@@ -525,7 +526,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)} · {event.location_name}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>
                     </div>
                     <span className="text-[9px] bg-[#E8B84B]/10 text-[#E8B84B] px-2 py-0.5 rounded border border-[#E8B84B]/20 flex-shrink-0">Host</span>
                   </div>
@@ -544,7 +545,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)} · {event.location_name}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>
                     </div>
                     <span className="text-[9px] bg-[#7EC87E]/10 text-[#7EC87E] px-2 py-0.5 rounded border border-[#7EC87E]/20 flex-shrink-0">Going</span>
                   </div>

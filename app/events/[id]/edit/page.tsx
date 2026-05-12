@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { EVENT_CATEGORIES } from '@/lib/constants'
-import { isValidUUID } from '@/lib/utils'
+import { EVENT_CATEGORIES, cityToTimezone } from '@/lib/constants'
+import { isValidUUID, fromZonedTime } from '@/lib/utils'
 
 export default function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -68,11 +68,20 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       setLat(data.latitude ?? null)
       setLng(data.longitude ?? null)
 
+      // Populate the form in the event's own timezone, not the editor's.
+      // Without this, an LA host editing an NYC event would see times shifted.
+      const eventTz = cityToTimezone(data.city)
+      const tzDateFmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: eventTz, year: 'numeric', month: '2-digit', day: '2-digit',
+      })
+      const tzTimeFmt = new Intl.DateTimeFormat('en-GB', {
+        timeZone: eventTz, hour: '2-digit', minute: '2-digit', hour12: false,
+      })
       const start = new Date(data.start_datetime)
       const end = new Date(data.end_datetime)
-      setDate(start.toISOString().slice(0, 10))
-      setStartTime(start.toTimeString().slice(0, 5))
-      setEndTime(end.toTimeString().slice(0, 5))
+      setDate(tzDateFmt.format(start))
+      setStartTime(tzTimeFmt.format(start))
+      setEndTime(tzTimeFmt.format(end))
     } finally {
       setLoading(false)
     }
@@ -137,8 +146,12 @@ const addTag = () => {
       }
     }
 
-    const startDatetime = new Date(date + 'T' + startTime)
-    const endDatetime = endTime ? new Date(date + 'T' + endTime) : new Date(startDatetime.getTime() + 2 * 3600000)
+    // Interpret the host's time input in the EVENT's timezone, not the editor's.
+    const eventTz = cityToTimezone(city)
+    const startDatetime = fromZonedTime(date, startTime, eventTz)
+    const endDatetime = endTime
+      ? fromZonedTime(date, endTime, eventTz)
+      : new Date(startDatetime.getTime() + 2 * 3600000)
     if (endTime && endDatetime <= startDatetime) {
       setError('End time must be after start time')
       setSaving(false)

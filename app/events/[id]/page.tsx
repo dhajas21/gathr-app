@@ -7,7 +7,8 @@ import BottomNav from '@/components/BottomNav'
 import { EventDetailSkeleton } from '@/components/Skeleton'
 import MysteryMatchCard from '@/components/MysteryMatchCard'
 import { CAT_EMOJI } from '@/lib/categoryEmoji'
-import { optimizedImgSrc, formatDateVerbose, formatTime, isValidUUID } from '@/lib/utils'
+import { optimizedImgSrc, formatDateVerbose, formatTime, isValidUUID, tzAbbreviation } from '@/lib/utils'
+import { cityToTimezone } from '@/lib/constants'
 import { track } from '@/components/AnalyticsProvider'
 import FadeIn from '@/components/FadeIn'
 // canvas-confetti is dynamic-imported in the RSVP success handler to keep
@@ -587,8 +588,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <div className="flex items-center gap-3 mb-3">
             <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center text-xs flex-shrink-0">📅</div>
             <div>
-              <div className="text-sm font-medium text-[#F0EDE6]">{formatDateVerbose(event.start_datetime)}</div>
-              <div className="text-xs text-white/45">{formatTime(event.start_datetime)} – {formatTime(event.end_datetime)}</div>
+              {(() => { const tz = cityToTimezone(event.city); const abbr = tzAbbreviation(event.start_datetime, tz); return (
+                <>
+                  <div className="text-sm font-medium text-[#F0EDE6]">{formatDateVerbose(event.start_datetime, tz)}</div>
+                  <div className="text-xs text-white/45">
+                    {formatTime(event.start_datetime, tz)} – {formatTime(event.end_datetime, tz)}
+                    {abbr && <span className="text-white/30"> · {abbr}</span>}
+                  </div>
+                </>
+              )})()}
             </div>
             <button onClick={handleAddToCalendar} className="ml-auto bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-lg px-2.5 py-1 text-[10px] text-[#E8B84B] active:scale-95 transition-transform">
               + Calendar

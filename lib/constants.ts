@@ -1,36 +1,36 @@
 export const CITIES = [
-  { name: 'Bellingham', lat: 48.7519, lng: -122.4787 },
-  { name: 'Bellevue', lat: 47.6101, lng: -122.2015 },
-  { name: 'Seattle', lat: 47.6062, lng: -122.3321 },
-  { name: 'Tacoma', lat: 47.2529, lng: -122.4443 },
-  { name: 'Olympia', lat: 47.0379, lng: -122.9007 },
-  { name: 'Spokane', lat: 47.6588, lng: -117.4260 },
-  { name: 'Portland', lat: 45.5051, lng: -122.6750 },
-  { name: 'Eugene', lat: 44.0521, lng: -123.0868 },
-  { name: 'Salem', lat: 44.9429, lng: -123.0351 },
-  { name: 'Vancouver', lat: 49.2827, lng: -123.1207 },
-  { name: 'Victoria', lat: 48.4284, lng: -123.3656 },
-  { name: 'Surrey', lat: 49.1913, lng: -122.8490 },
-  { name: 'Burnaby', lat: 49.2488, lng: -122.9805 },
-  { name: 'San Francisco', lat: 37.7749, lng: -122.4194 },
-  { name: 'Los Angeles', lat: 34.0522, lng: -118.2437 },
-  { name: 'San Diego', lat: 32.7157, lng: -117.1611 },
-  { name: 'Sacramento', lat: 38.5816, lng: -121.4944 },
-  { name: 'New York', lat: 40.7128, lng: -74.0060 },
-  { name: 'Brooklyn', lat: 40.6782, lng: -73.9442 },
-  { name: 'Chicago', lat: 41.8781, lng: -87.6298 },
-  { name: 'Austin', lat: 30.2672, lng: -97.7431 },
-  { name: 'Denver', lat: 39.7392, lng: -104.9903 },
-  { name: 'Miami', lat: 25.7617, lng: -80.1918 },
-  { name: 'Atlanta', lat: 33.7490, lng: -84.3880 },
-  { name: 'Nashville', lat: 36.1627, lng: -86.7816 },
-  { name: 'Boston', lat: 42.3601, lng: -71.0589 },
-  { name: 'Philadelphia', lat: 39.9526, lng: -75.1652 },
-  { name: 'Minneapolis', lat: 44.9778, lng: -93.2650 },
-  { name: 'Detroit', lat: 42.3314, lng: -83.0458 },
-  { name: 'Phoenix', lat: 33.4484, lng: -112.0740 },
-  { name: 'Las Vegas', lat: 36.1699, lng: -115.1398 },
-  { name: 'Honolulu', lat: 21.3069, lng: -157.8583 },
+  { name: 'Bellingham',    lat: 48.7519, lng: -122.4787, timeZone: 'America/Los_Angeles' },
+  { name: 'Bellevue',      lat: 47.6101, lng: -122.2015, timeZone: 'America/Los_Angeles' },
+  { name: 'Seattle',       lat: 47.6062, lng: -122.3321, timeZone: 'America/Los_Angeles' },
+  { name: 'Tacoma',        lat: 47.2529, lng: -122.4443, timeZone: 'America/Los_Angeles' },
+  { name: 'Olympia',       lat: 47.0379, lng: -122.9007, timeZone: 'America/Los_Angeles' },
+  { name: 'Spokane',       lat: 47.6588, lng: -117.4260, timeZone: 'America/Los_Angeles' },
+  { name: 'Portland',      lat: 45.5051, lng: -122.6750, timeZone: 'America/Los_Angeles' },
+  { name: 'Eugene',        lat: 44.0521, lng: -123.0868, timeZone: 'America/Los_Angeles' },
+  { name: 'Salem',         lat: 44.9429, lng: -123.0351, timeZone: 'America/Los_Angeles' },
+  { name: 'Vancouver',     lat: 49.2827, lng: -123.1207, timeZone: 'America/Vancouver'    },
+  { name: 'Victoria',      lat: 48.4284, lng: -123.3656, timeZone: 'America/Vancouver'    },
+  { name: 'Surrey',        lat: 49.1913, lng: -122.8490, timeZone: 'America/Vancouver'    },
+  { name: 'Burnaby',       lat: 49.2488, lng: -122.9805, timeZone: 'America/Vancouver'    },
+  { name: 'San Francisco', lat: 37.7749, lng: -122.4194, timeZone: 'America/Los_Angeles' },
+  { name: 'Los Angeles',   lat: 34.0522, lng: -118.2437, timeZone: 'America/Los_Angeles' },
+  { name: 'San Diego',     lat: 32.7157, lng: -117.1611, timeZone: 'America/Los_Angeles' },
+  { name: 'Sacramento',    lat: 38.5816, lng: -121.4944, timeZone: 'America/Los_Angeles' },
+  { name: 'New York',      lat: 40.7128, lng: -74.0060,  timeZone: 'America/New_York'     },
+  { name: 'Brooklyn',      lat: 40.6782, lng: -73.9442,  timeZone: 'America/New_York'     },
+  { name: 'Chicago',       lat: 41.8781, lng: -87.6298,  timeZone: 'America/Chicago'      },
+  { name: 'Austin',        lat: 30.2672, lng: -97.7431,  timeZone: 'America/Chicago'      },
+  { name: 'Denver',        lat: 39.7392, lng: -104.9903, timeZone: 'America/Denver'       },
+  { name: 'Miami',         lat: 25.7617, lng: -80.1918,  timeZone: 'America/New_York'     },
+  { name: 'Atlanta',       lat: 33.7490, lng: -84.3880,  timeZone: 'America/New_York'     },
+  { name: 'Nashville',     lat: 36.1627, lng: -86.7816,  timeZone: 'America/Chicago'      },
+  { name: 'Boston',        lat: 42.3601, lng: -71.0589,  timeZone: 'America/New_York'     },
+  { name: 'Philadelphia',  lat: 39.9526, lng: -75.1652,  timeZone: 'America/New_York'     },
+  { name: 'Minneapolis',   lat: 44.9778, lng: -93.2650,  timeZone: 'America/Chicago'      },
+  { name: 'Detroit',       lat: 42.3314, lng: -83.0458,  timeZone: 'America/Detroit'      },
+  { name: 'Phoenix',       lat: 33.4484, lng: -112.0740, timeZone: 'America/Phoenix'      },
+  { name: 'Las Vegas',     lat: 36.1699, lng: -115.1398, timeZone: 'America/Los_Angeles' },
+  { name: 'Honolulu',      lat: 21.3069, lng: -157.8583, timeZone: 'Pacific/Honolulu'     },
 ]
 
 export const CITY_NAMES = CITIES.map(c => c.name)
@@ -39,6 +39,17 @@ export const DEFAULT_CITY = CITIES[0]
 
 export const getCityCoords = (cityName: string) =>
   CITIES.find(c => c.name === cityName) ?? DEFAULT_CITY
+
+/**
+ * IANA timezone for a given city name. Falls back to the viewer's browser
+ * timezone if the city isn't in CITIES (which keeps existing event displays
+ * working even for cities we don't formally support yet).
+ */
+export function cityToTimezone(cityName: string | null | undefined): string {
+  if (!cityName) return Intl.DateTimeFormat().resolvedOptions().timeZone
+  const found = CITIES.find(c => c.name === cityName)
+  return found?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+}
 
 export const POPULAR_INTERESTS = [
   'music', 'hiking', 'coffee', 'food', 'fitness', 'art', 'tech', 'travel',

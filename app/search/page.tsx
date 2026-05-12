@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { optimizedImgSrc, formatDate } from '@/lib/utils'
+import { cityToTimezone } from '@/lib/constants'
 import { catEmoji } from '@/lib/categoryEmoji'
 
 const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding', 'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness', 'Networking']
@@ -297,7 +298,7 @@ export default function SearchPage() {
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
-        <div className="text-[10px] text-white/40 mt-0.5">{formatDate(event.start_datetime)} · {event.location_name}</div>
+        <div className="text-[10px] text-white/40 mt-0.5">{formatDate(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>
         {event.tags?.length > 0 && (
           <div className="flex gap-1 mt-1.5">
             {event.tags.slice(0, 3).map((tag: string) => (
@@ -421,7 +422,7 @@ export default function SearchPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
-                        <div className="text-[10px] text-white/40 mt-0.5">{formatDate(event.start_datetime)}</div>
+                        <div className="text-[10px] text-white/40 mt-0.5">{formatDate(event.start_datetime, cityToTimezone(event.city))}</div>
                         {event.score >= 5 && <div className="text-[9px] text-[#E8B84B] mt-1">✦ Great match</div>}
                       </div>
                     </div>

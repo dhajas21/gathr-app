@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { CommunityDetailSkeleton } from '@/components/Skeleton'
 import { optimizedImgSrc, isValidUUID, formatDate } from '@/lib/utils'
+import { cityToTimezone } from '@/lib/constants'
 import { track } from '@/components/AnalyticsProvider'
 
 interface Post {
@@ -868,7 +869,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                      <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime)}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{formatDate(event.start_datetime, cityToTimezone(event.city))}</div>
                     </div>
                   </div>
                 ))}

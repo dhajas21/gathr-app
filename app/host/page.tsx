@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { HostDashboardSkeleton } from '@/components/Skeleton'
 import { formatDateLong, formatTime, optimizedImgSrc } from '@/lib/utils'
+import { cityToTimezone } from '@/lib/constants'
 import { catEmoji } from '@/lib/categoryEmoji'
 
 export default function HostDashboardPage() {
@@ -49,7 +50,7 @@ export default function HostDashboardPage() {
     try {
       const { data } = await supabase
         .from('events')
-        .select('id,title,category,start_datetime,end_datetime,location_name,capacity,spots_left,visibility,cover_url,ticket_type,ticket_price')
+        .select('id,title,category,start_datetime,end_datetime,location_name,capacity,spots_left,visibility,cover_url,ticket_type,ticket_price,city')
         .eq('host_id', userId)
         .order('start_datetime', { ascending: false })
         .limit(100)
@@ -213,7 +214,7 @@ export default function HostDashboardPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold text-[#F0EDE6] truncate">{event.title}</div>
-                          <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)} · {formatTime(event.start_datetime)}</div>
+                          <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {formatTime(event.start_datetime, cityToTimezone(event.city))}</div>
                         </div>
                         <div className="text-right flex-shrink-0">
                           <div className="font-bold text-[#E8B84B] text-lg">{count}</div>
@@ -283,7 +284,7 @@ export default function HostDashboardPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-semibold text-[#F0EDE6] truncate">{event.title}</div>
-                            <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime)} · {formatTime(event.start_datetime)}</div>
+                            <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {formatTime(event.start_datetime, cityToTimezone(event.city))}</div>
                             <div className="text-xs text-white/30">{event.location_name}</div>
                           </div>
                           <div className="text-right flex-shrink-0">
@@ -328,7 +329,7 @@ export default function HostDashboardPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-white/50 truncate">{event.title}</div>
-                          <div className="text-[10px] text-white/25 mt-0.5">{formatDateLong(event.start_datetime)}</div>
+                          <div className="text-[10px] text-white/25 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))}</div>
                         </div>
                         <div className="text-right flex-shrink-0">
                           <div className="text-sm font-bold text-white/40">{count}</div>
@@ -350,7 +351,7 @@ export default function HostDashboardPage() {
               <div className="bg-gradient-to-br from-[#1E3A1E] to-[#1A2A1A] border border-[#7EC87E]/20 rounded-2xl p-4">
                 <div className="text-[9px] uppercase tracking-widest text-[#7EC87E]/60 font-medium mb-2">⭐ Best performing event</div>
                 <div className="text-sm font-bold text-[#F0EDE6] mb-1 truncate">{bestEvent.title}</div>
-                <div className="text-[10px] text-white/40 mb-2">{formatDateLong(bestEvent.start_datetime)}</div>
+                <div className="text-[10px] text-white/40 mb-2">{formatDateLong(bestEvent.start_datetime, cityToTimezone(bestEvent.city))}</div>
                 <div className="flex items-center gap-4">
                   <div>
                     <div className="text-xl font-bold text-[#7EC87E]">{rsvpCounts[bestEvent.id] || 0}</div>

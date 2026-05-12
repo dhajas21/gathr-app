@@ -6,7 +6,7 @@ import { supabase, connectionPairOr } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-import { ALL_CITIES, CAT_GRADIENT, INTEREST_TO_CATS } from '@/lib/constants'
+import { ALL_CITIES, CAT_GRADIENT, INTEREST_TO_CATS, cityToTimezone } from '@/lib/constants'
 import { CAT_EMOJI } from '@/lib/categoryEmoji'
 import { isToday, isTomorrow, formatTime, formatDate, optimizedImgSrc } from '@/lib/utils'
 
@@ -122,7 +122,10 @@ export default function HomePage() {
           const updated = [...prev, newEvent].sort(
             (a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
           )
-          setSoonEvents(updated.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
+          setSoonEvents(updated.filter(e => {
+            const tz = cityToTimezone(e.city)
+            return isToday(e.start_datetime, tz) || isTomorrow(e.start_datetime, tz)
+          }))
           return updated
         })
       })
@@ -184,7 +187,10 @@ export default function HomePage() {
 
     const allEvents: Event[] = eventsRes.data || []
     setEvents(allEvents)
-    setSoonEvents(allEvents.filter(e => isToday(e.start_datetime) || isTomorrow(e.start_datetime)))
+    setSoonEvents(allEvents.filter(e => {
+      const tz = cityToTimezone(e.city)
+      return isToday(e.start_datetime, tz) || isTomorrow(e.start_datetime, tz)
+    }))
     setFeaturedEvent(allEvents.find(e => e.is_featured) || null)
     if (!sessionStorage.getItem('gathr_match_check')) {
       sessionStorage.setItem('gathr_match_check', '1')
@@ -410,9 +416,11 @@ export default function HomePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-70"></div>
                       {isRsvpd && <div className="absolute top-1.5 right-1.5 bg-[#7EC87E] text-[#0D110D] text-[8px] font-bold px-1.5 py-0.5 rounded-full">Going ✓</div>}
                       <div className="absolute bottom-1.5 left-2 right-2">
-                        <div className={'text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-block ' + (isToday(event.start_datetime) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>
-                          {isToday(event.start_datetime) ? 'Today' : 'Tomorrow'} · {formatTime(event.start_datetime)}
-                        </div>
+                        {(() => { const tz = cityToTimezone(event.city); return (
+                          <div className={'text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-block ' + (isToday(event.start_datetime, tz) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>
+                            {isToday(event.start_datetime, tz) ? 'Today' : 'Tomorrow'} · {formatTime(event.start_datetime, tz)}
+                          </div>
+                        )})()}
                       </div>
                     </div>
                     <div className="p-2 bg-[#1C241C]">
@@ -448,7 +456,7 @@ export default function HomePage() {
               <div className="text-xs text-[#E8B84B] font-medium mb-1">{featuredEvent.category}</div>
               <h3 className="font-bold text-[#F0EDE6] text-base leading-snug mb-2">{featuredEvent.title}</h3>
               <div className="flex items-center gap-3 text-[10px] text-white/45">
-                <span>📅 {formatDate(featuredEvent.start_datetime)}</span>
+                <span>📅 {formatDate(featuredEvent.start_datetime, cityToTimezone(featuredEvent.city))}</span>
                 <span>📍 {featuredEvent.location_name}</span>
               </div>
             </div>
@@ -510,7 +518,8 @@ export default function HomePage() {
             {filteredEvents.map(event => {
               const isRsvpd = rsvpEventIds.includes(event.id)
               const isHost = event.host_id === user?.id
-              const isSoon = isToday(event.start_datetime) || isTomorrow(event.start_datetime)
+              const evtTz = cityToTimezone(event.city)
+              const isSoon = isToday(event.start_datetime, evtTz) || isTomorrow(event.start_datetime, evtTz)
               const fillPct = event.capacity > 0 ? Math.round(((event.capacity - event.spots_left) / event.capacity) * 100) : 0
               const isBookmarked = bookmarkedEventIds.includes(event.id)
               return (
@@ -524,7 +533,7 @@ export default function HomePage() {
                     <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
                       <div className="flex gap-1">
                         {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">⭐ Featured</span>}
-                        {isSoon && <span className={'text-[8px] font-bold px-2 py-0.5 rounded-full ' + (isToday(event.start_datetime) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>{isToday(event.start_datetime) ? '🔴 Today' : '🟡 Tomorrow'}</span>}
+                        {isSoon && <span className={'text-[8px] font-bold px-2 py-0.5 rounded-full ' + (isToday(event.start_datetime, evtTz) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>{isToday(event.start_datetime, evtTz) ? '🔴 Today' : '🟡 Tomorrow'}</span>}
                       </div>
                       <div className="flex items-center gap-1">
                         {isRsvpd && <span className="bg-[#7EC87E]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Going ✓</span>}
@@ -543,7 +552,7 @@ export default function HomePage() {
                   <div className="p-3">
                     <h3 className="font-bold text-[#F0EDE6] text-sm mb-1.5 leading-snug">{event.title}</h3>
                     <div className="flex items-center gap-3 text-[10px] text-white/45 mb-2">
-                      <span>📅 {formatDate(event.start_datetime)}</span>
+                      <span>📅 {formatDate(event.start_datetime, evtTz)}</span>
                       <span>📍 {event.location_name}</span>
                       {activeTab === 2 && userLocation && (event as any)._dist !== undefined && (
                         <span className="text-[#7EC87E]">

@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { CITY_NAMES, getCityCoords, EVENT_CATEGORIES } from '@/lib/constants'
-import { isValidUUID } from '@/lib/utils'
+import { CITY_NAMES, getCityCoords, EVENT_CATEGORIES, cityToTimezone } from '@/lib/constants'
+import { isValidUUID, fromZonedTime } from '@/lib/utils'
 import { track } from '@/components/AnalyticsProvider'
 
 function formatDraftAge(d: Date) {
@@ -197,8 +197,13 @@ export default function CreateEventPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/auth'); return }
 
-    const startDatetime = new Date(date + 'T' + startTime)
-    const endDatetime = endTime ? new Date(date + 'T' + endTime) : new Date(startDatetime.getTime() + 3600000)
+    // Interpret the host's input in the EVENT's timezone, not the browser's.
+    // A host in NYC scheduling a Bellingham event at "7 PM" means 7 PM Pacific.
+    const eventTz = cityToTimezone(city)
+    const startDatetime = fromZonedTime(date, startTime, eventTz)
+    const endDatetime = endTime
+      ? fromZonedTime(date, endTime, eventTz)
+      : new Date(startDatetime.getTime() + 3600000)
 
     if (startDatetime < new Date()) {
       setError('Start time must be in the future')
@@ -394,6 +399,9 @@ export default function CreateEventPage() {
             <div>
               <label className={labelClass}>End Time</label>
               <input type="time" className={inputClass} value={endTime} onChange={e => setEndTime(e.target.value)} />
+              <p className="text-[10px] text-white/30 mt-1.5">
+                🕒 Times are anchored to <span className="text-white/45">{city}</span> — attendees in other timezones see this exact time with the local abbreviation.
+              </p>
             </div>
 
             <div>

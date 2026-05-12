@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { BookmarksPageSkeleton } from '@/components/Skeleton'
-import { CAT_GRADIENT } from '@/lib/constants'
+import { CAT_GRADIENT, cityToTimezone } from '@/lib/constants'
 import { optimizedImgSrc, formatDateShort, formatTime } from '@/lib/utils'
 import { catEmoji } from '@/lib/categoryEmoji'
 
@@ -63,7 +63,7 @@ export default function BookmarksPage() {
         <div className="text-[10px] text-[#E8B84B] font-medium mb-0.5">{event.category}</div>
         <h3 className="font-bold text-[#F0EDE6] text-sm leading-snug mb-2">{event.title}</h3>
         <div className="flex items-center gap-3 text-[10px] text-white/40">
-          <span>📅 {formatDateShort(event.start_datetime)} · {formatTime(event.start_datetime)}</span>
+          <span>📅 {formatDateShort(event.start_datetime, cityToTimezone(event.city))} · {formatTime(event.start_datetime, cityToTimezone(event.city))}</span>
         </div>
         <div className="text-[10px] text-white/40 mt-0.5">📍 {event.location_name}{event.city ? ', ' + event.city : ''}</div>
       </div>
