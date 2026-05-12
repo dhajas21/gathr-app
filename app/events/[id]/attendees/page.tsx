@@ -99,7 +99,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           ←
         </button>
         <div>
-          <h1 className="font-bold text-[#F0EDE6] text-lg">Who's going</h1>
+          <h1 className="font-display font-bold text-[#F0EDE6] text-lg">Who's going</h1>
           {event && <p className="text-xs text-white/40 mt-0.5 truncate max-w-[220px]">{event.title}</p>}
         </div>
         <span className="ml-auto text-xs text-white/30">{attendees.length} attendee{attendees.length !== 1 ? 's' : ''}</span>
@@ -107,20 +107,25 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
 
       {!isHost && (event?.visibility === 'private' || event?.visibility === 'unlisted') ? (
         <div className="flex flex-col items-center justify-center py-24 gap-3 px-4 text-center">
-          <div className="text-4xl">🔒</div>
+          <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
           <p className="text-white/40 text-sm">Attendee list is only visible to the host</p>
         </div>
       ) : attendees.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-3 px-4 text-center">
-          <div className="text-4xl">👋</div>
           <p className="text-white/40 text-sm">No attendees yet — be the first!</p>
         </div>
       ) : (
         <div className="px-4 py-3 divide-y divide-white/[0.06]">
           {isHost && attendees.some(r => r.profiles?.rsvp_visibility !== 'public') && (
             <div className="flex items-center gap-2 bg-[#1C241C] border border-white/[0.06] rounded-xl px-3 py-2 mb-3 text-[10px] text-white/30">
-              <span className="flex-shrink-0">ℹ️</span>
-              <span>🔒 Hidden from others &nbsp;·&nbsp; 🤝 Connections only &nbsp;·&nbsp; Visible to you as host</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>Hidden · Connections only · Visible to you as host</span>
             </div>
           )}
           {attendees.map((r: any) => {
@@ -147,10 +152,21 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                     <SafetyBadge tier={profile?.safety_tier || 'new'} reviewCount={profile?.review_count} size="sm" />
                   </div>
                   {isHost && profile?.rsvp_visibility === 'private' && (
-                    <div className="text-[10px] text-white/30 mt-0.5">🔒 Hidden from other attendees</div>
+                    <div className="flex items-center gap-1 text-[10px] text-white/30 mt-0.5">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </svg>
+                      Hidden from other attendees
+                    </div>
                   )}
                   {isHost && profile?.rsvp_visibility === 'connections' && (
-                    <div className="text-[10px] text-white/30 mt-0.5">🤝 Visible to connections only</div>
+                    <div className="flex items-center gap-1 text-[10px] text-white/30 mt-0.5">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                      </svg>
+                      Visible to connections only
+                    </div>
                   )}
                 </div>
                 {canLink && <span className="text-white/20 text-sm flex-shrink-0">›</span>}

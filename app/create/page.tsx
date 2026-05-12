@@ -311,7 +311,7 @@ export default function CreateEventPage() {
           ←
         </button>
         <div className="flex items-center gap-2 flex-1">
-          <h1 className="text-lg font-bold text-[#F0EDE6]">
+          <h1 className="font-display text-lg font-bold text-[#F0EDE6]">
             {step === 1 ? 'The Basics' : 'The Details'}
           </h1>
           {isFromDraft && (
@@ -357,8 +357,11 @@ export default function CreateEventPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full gap-1">
-                  <span className="text-2xl">🖼</span>
+                <div className="flex flex-col items-center justify-center h-full gap-1.5">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
                   <span className="text-xs text-white/30">Upload a cover photo</span>
                   <span className="text-[10px] text-white/20">JPG, PNG — Recommended 16:9</span>
                 </div>
@@ -400,7 +403,7 @@ export default function CreateEventPage() {
               <label className={labelClass}>End Time</label>
               <input type="time" className={inputClass} value={endTime} onChange={e => setEndTime(e.target.value)} />
               <p className="text-[10px] text-white/30 mt-1.5">
-                🕒 Times are anchored to <span className="text-white/45">{city}</span> — attendees in other timezones see this exact time with the local abbreviation.
+                Times are anchored to <span className="text-white/45">{city}</span> — attendees in other timezones see this exact time with the local abbreviation.
               </p>
             </div>
 
@@ -413,7 +416,7 @@ export default function CreateEventPage() {
               <label className={labelClass}>Address</label>
               <input className={inputClass} placeholder="470 Bayview Dr, Bellingham WA" value={address} onChange={e => setAddress(e.target.value)} maxLength={200} />
               {address && (
-                <p className="text-[10px] text-white/30 mt-1.5">📍 We'll pin this on the map after you publish</p>
+                <p className="text-[10px] text-white/30 mt-1.5">We'll pin this on the map after you publish</p>
               )}
             </div>
 
@@ -523,7 +526,15 @@ export default function CreateEventPage() {
               ← Back
             </button>
             <button onClick={handleCreate} disabled={loading} className="flex-[2] bg-[#E8B84B] text-[#0D110D] rounded-2xl py-4 font-bold text-sm disabled:opacity-40 active:scale-95 transition-transform">
-              {loading ? 'Creating...' : 'Create Event 🎉'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2"/>
+                    <path d="M7 1.5A5.5 5.5 0 0 1 12.5 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  Creating…
+                </span>
+              ) : 'Create Event'}
             </button>
           </div>
         )}
@@ -536,7 +547,14 @@ export default function CreateEventPage() {
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
 
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-xl flex items-center justify-center text-lg flex-shrink-0">📝</div>
+              <div className="w-10 h-10 bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-[#F0EDE6] truncate">
                   {pendingDraft.title || 'Untitled event'}

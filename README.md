@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gathr
 
-## Getting Started
+Social event discovery and hosting app — mobile-first web app built with Next.js 16 App Router and Supabase.
 
-First, run the development server:
+## Getting started
 
 ```bash
+npm install
+cp .env.local.example .env.local   # fill in your Supabase keys
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Required:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-## Learn More
+Optional (see `GATHR_OVERVIEW.md` → Deployment Setup Checklist for the full list):
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` — web push notifications
+- `NEXT_PUBLIC_SENTRY_DSN` — error tracking (Sentry)
+- `NEXT_PUBLIC_POSTHOG_KEY` — product analytics (PostHog)
+- `NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORM` — set `"true"` only on Supabase Pro plan with Image Transformations enabled
 
-To learn more about Next.js, take a look at the following resources:
+## Tech stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 |
+| Database | Supabase (Postgres + Auth + Storage + Realtime + Edge Functions) |
+| Hosting | Vercel |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project docs
 
-## Deploy on Vercel
+- **[GATHR_OVERVIEW.md](GATHR_OVERVIEW.md)** — complete technical reference: database schema, triggers, RLS, edge functions, realtime, code patterns, deployment checklist
+- **[GATHR_BRIEF.md](GATHR_BRIEF.md)** — product and business context: features, positioning, competitive landscape
+- **[GATHR_PLAYBOOK.md](GATHR_PLAYBOOK.md)** — launch playbook: beta strategy, city rollout, growth levers, funding roadmap
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Key conventions
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Every page is `'use client'` — the app is a mobile PWA-style app on Next.js infrastructure; all pages need live user data
+- **Tailwind v4**: `@import "tailwindcss"` syntax, no `tailwind.config.js`
+- **Supabase client**: singleton at `lib/supabase.ts` — never re-instantiate per component
+- **Count integrity**: all count updates (spots left, member counts, XP triggers) owned by Postgres DB triggers — never write counts directly from the client
+- **SVG icon system**: no emoji in the UI layer; inline SVG everywhere. Two exceptions: achievement badge emoji (semantic identity for 32 badges) and `community.icon` (user-configured)
+- **Category colors**: `CAT_GRADIENT` in `lib/constants.ts` is the source of truth for image-less event tile backgrounds
+- **Font classes**: `font-display` (Bricolage Grotesque), `font-editorial` (Fraunces), `font-mono-ui` (Geist Mono)
+- **Light mode**: CSS class `data-theme="light"` on `<html>`; 130+ overrides in `app/globals.css`; inline gradient colors must use CSS variables (e.g. `var(--gradient-event-hero)`) so they can be themed
+
+## Architecture notes
+
+- RLS is enabled on every table — queries are automatically scoped to the authenticated user; no manual `user_id` filter needed on reads
+- Gathr+ trial/billing columns (`gathr_plus_*`) are protected by `guard_profile_protected_columns_trg` — only edge functions running with service-role can write them
+- Rate limiting is enforced at the DB level via BEFORE INSERT triggers on `waves`, `community_posts`, `community_chat_messages`, `messages`, `feedback`, and `user_reviews`
+- The mystery match system, post-event match notifications, and Gathr+ level trials are all gated behind edge functions — not client-side logic
