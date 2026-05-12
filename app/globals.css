@@ -91,6 +91,15 @@ input, select, textarea, button {
   padding-bottom: max(env(safe-area-inset-bottom), 16px);
 }
 
+/* ─── Category gradient cards ──────────────────────── */
+/* background set via --cat-bg CSS variable from inline style */
+.category-gradient-card {
+  background: var(--cat-bg, #1C241C);
+}
+[data-theme="light"] .category-gradient-card {
+  background: var(--gradient-category-card) !important;
+}
+
 /* ─── Gradient CSS variables ───────────────────────── */
 :root {
   --gradient-profile-header: linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%);

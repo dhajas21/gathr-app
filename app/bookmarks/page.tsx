@@ -52,7 +52,7 @@ export default function BookmarksPage() {
     <div key={event.id} onClick={() => router.push('/events/' + event.id)}
       className="bg-[#1C241C] rounded-2xl overflow-hidden border border-white/10 cursor-pointer active:scale-[0.98] transition-transform">
       <div className="category-gradient-card h-28 flex items-center justify-center text-4xl relative"
-        style={{ background: CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] }}>
+        style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
         {optimizedImgSrc(event.cover_url, 800)
           ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
           : <span className="relative z-10">{catEmoji(event.category)}</span>
