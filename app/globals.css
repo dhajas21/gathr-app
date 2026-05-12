@@ -83,6 +83,14 @@ input, select, textarea, button {
   box-shadow: 0 0 14px rgba(232, 184, 75, 0.30);
 }
 
+/* Bell button active-state glow — gold in dark, darker gold in light (cream bg). */
+.btn-glow-bell {
+  box-shadow: 0 0 16px rgba(232, 184, 75, 0.30);
+}
+[data-theme="light"] .btn-glow-bell {
+  box-shadow: 0 0 14px rgba(142, 110, 19, 0.22);
+}
+
 .font-display {
   font-family: var(--font-syne), sans-serif;
 }

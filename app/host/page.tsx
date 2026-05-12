@@ -12,6 +12,8 @@ import { catEmoji } from '@/lib/categoryEmoji'
 export default function HostDashboardPage() {
   const [events, setEvents] = useState<any[]>([])
   const [rsvpCounts, setRsvpCounts] = useState<Record<string, number>>({})
+  const [hasDraft, setHasDraft] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const eventIdsRef = useRef<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'insights'>(() => {
     try { return (sessionStorage.getItem('gathr_host_tab') as 'overview' | 'events' | 'insights') || 'overview' } catch { return 'overview' }
@@ -26,6 +28,7 @@ export default function HostDashboardPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return
       if (!session) { router.push('/auth'); return }
+      setUserId(session.user.id)
       fetchData(session.user.id)
 
       channel = supabase
@@ -46,17 +49,22 @@ export default function HostDashboardPage() {
     return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
   }, [router])
 
-  const fetchData = async (userId: string) => {
+  const fetchData = async (uid: string) => {
     try {
-      const { data } = await supabase
-        .from('events')
-        .select('id,title,category,start_datetime,end_datetime,location_name,capacity,spots_left,visibility,cover_url,ticket_type,ticket_price,city')
-        .eq('host_id', userId)
-        .order('start_datetime', { ascending: false })
-        .limit(100)
+      const [eventsRes, draftRes] = await Promise.all([
+        supabase
+          .from('events')
+          .select('id,title,category,start_datetime,end_datetime,location_name,capacity,spots_left,visibility,cover_url,ticket_type,ticket_price,city')
+          .eq('host_id', uid)
+          .order('start_datetime', { ascending: false })
+          .limit(100),
+        supabase.from('event_drafts').select('id').eq('user_id', uid).limit(1),
+      ])
 
+      const data = eventsRes.data
       if (!data) return
       setEvents(data)
+      setHasDraft((draftRes.data?.length ?? 0) > 0)
       eventIdsRef.current = new Set(data.map((e: any) => e.id as string))
 
       if (data.length > 0) {
@@ -71,6 +79,14 @@ export default function HostDashboardPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDeleteDraft = async () => {
+    if (!userId) return
+    setHasDraft(false)
+    await supabase.from('event_drafts').delete().eq('user_id', userId)
+    const { data: files } = await supabase.storage.from('event-covers').list(`drafts/${userId}`)
+    if (files?.length) await supabase.storage.from('event-covers').remove(files.map((f: any) => `drafts/${userId}/${f.name}`))
   }
 
   const now = new Date().toISOString()
@@ -119,6 +135,21 @@ export default function HostDashboardPage() {
           + Event
         </button>
       </div>
+
+      {/* Draft banner — shown above tabs so it's always visible */}
+      {hasDraft && (
+        <div className="mx-4 mb-3 flex items-center gap-2.5 bg-[#1C1E10] border border-[#E8B84B]/25 rounded-2xl px-3.5 py-2.5">
+          <div className="w-7 h-7 bg-[#E8B84B]/10 rounded-lg flex items-center justify-center text-sm flex-shrink-0">✏️</div>
+          <button onClick={() => router.push('/create')} className="flex-1 min-w-0 text-left active:opacity-70 transition-opacity">
+            <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium leading-none mb-0.5">Unsaved Draft</div>
+            <div className="text-xs text-[#F0EDE6] font-medium">Resume creating your event →</div>
+          </button>
+          <button onClick={handleDeleteDraft}
+            className="w-6 h-6 flex items-center justify-center text-white/25 active:text-red-400 transition-colors flex-shrink-0 text-base leading-none">
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-white/10 px-4 mb-4">

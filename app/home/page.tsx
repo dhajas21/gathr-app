@@ -46,6 +46,14 @@ export default function HomePage() {
   const [hasDraft, setHasDraft] = useState(false)
   const router = useRouter()
 
+  const handleDeleteDraft = async () => {
+    if (!user) return
+    setHasDraft(false)
+    await supabase.from('event_drafts').delete().eq('user_id', user.id)
+    const { data: files } = await supabase.storage.from('event-covers').list(`drafts/${user.id}`)
+    if (files?.length) await supabase.storage.from('event-covers').remove(files.map((f: any) => `drafts/${user.id}/${f.name}`))
+  }
+
   const { refreshing, pullProgress, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
     async () => { if (user) await fetchAll(user.id) }
   )
@@ -366,8 +374,7 @@ export default function HomePage() {
               </svg>
             </button>
             <button onClick={() => router.push('/notifications')}
-              className={'w-9 h-9 rounded-xl flex items-center justify-center relative transition-all active:scale-95 ' + (unreadCount > 0 ? 'bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B]' : 'bg-[#1C241C] border border-white/10 text-[#F0EDE6]')}
-              style={unreadCount > 0 ? { boxShadow: '0 0 14px rgba(232,184,75,0.18)' } : undefined}>
+              className={'w-9 h-9 rounded-xl flex items-center justify-center relative transition-all active:scale-95 ' + (unreadCount > 0 ? 'bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] btn-glow-bell' : 'bg-[#1C241C] border border-white/10 text-[#F0EDE6]')}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
               </svg>
@@ -399,14 +406,17 @@ export default function HomePage() {
         </div>
 
         {hasDraft && (
-          <button onClick={() => router.push('/create')}
-            className="w-full flex items-center gap-2.5 bg-[#1C1E10] border border-[#E8B84B]/25 rounded-2xl px-3.5 py-2.5 mb-1 active:opacity-70 transition-opacity text-left">
+          <div className="w-full flex items-center gap-2.5 bg-[#1C1E10] border border-[#E8B84B]/25 rounded-2xl px-3.5 py-2.5 mb-1">
             <div className="w-7 h-7 bg-[#E8B84B]/10 rounded-lg flex items-center justify-center text-sm flex-shrink-0">✏️</div>
-            <div className="flex-1 min-w-0">
+            <button onClick={() => router.push('/create')} className="flex-1 min-w-0 text-left active:opacity-70 transition-opacity">
               <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium leading-none mb-0.5">Unsaved Draft</div>
               <div className="text-xs text-[#F0EDE6] font-medium">Resume creating your event →</div>
-            </div>
-          </button>
+            </button>
+            <button onClick={handleDeleteDraft}
+              className="w-6 h-6 flex items-center justify-center text-white/25 active:text-red-400 transition-colors flex-shrink-0 text-base leading-none">
+              ×
+            </button>
+          </div>
         )}
 
         {soonEvents.length > 0 && (
