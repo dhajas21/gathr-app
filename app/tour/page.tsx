@@ -17,7 +17,7 @@ const tourSlides = [
     title: 'Create an Event',
     highlight: 'In under 2 minutes',
     body: 'Hosting a run club, open mic, coffee chat, or dinner? Tap the gold + button. Pick from 40+ categories, set visibility to public, unlisted, or private, and choose a ticket type: Free, Paid, or Donation.',
-    tip: 'Your progress auto-saves as a draft — leave mid-way and it\'ll be waiting. If you have a draft and want to start something new, tap "Start Fresh (keep draft)" — your draft stays safe in your Profile Events tab until you\'re ready. Add a cover photo and interest tags so the right people find you.',
+    tip: 'Your progress auto-saves as a draft — leave mid-way and it\'ll be waiting. A draft chip appears on your home screen for a quick shortcut back, and your draft is also in Profile → Events tab. Add a cover photo and interest tags so the right people find you.',
     bg: 'linear-gradient(135deg,#2A2010,#1A1408)',
   },
   {
