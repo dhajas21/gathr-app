@@ -502,7 +502,12 @@ export default function HomePage() {
                 </div>
               )}
               <div className="absolute top-3 left-3">
-                <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2.5 py-1 rounded-full">⭐ Featured</span>
+                <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="#0D110D" stroke="none">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                  Featured
+                </span>
               </div>
               {rsvpEventIds.includes(featuredEvent.id) && (
                 <div className="absolute top-3 right-3">
@@ -514,8 +519,14 @@ export default function HomePage() {
               <div className="text-xs text-[#E8B84B] font-medium mb-1">{featuredEvent.category}</div>
               <h3 className="font-bold text-[#F0EDE6] text-base leading-snug mb-2">{featuredEvent.title}</h3>
               <div className="flex items-center gap-3 text-[10px] text-white/45">
-                <span>📅 {formatDate(featuredEvent.start_datetime, cityToTimezone(featuredEvent.city))}</span>
-                <span>📍 {featuredEvent.location_name}</span>
+                <span className="flex items-center gap-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  {formatDate(featuredEvent.start_datetime, cityToTimezone(featuredEvent.city))}
+                </span>
+                <span className="flex items-center gap-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  {featuredEvent.location_name}
+                </span>
               </div>
             </div>
           </div>
@@ -545,8 +556,9 @@ export default function HomePage() {
           </div>
           {activeTab === 2 && !geoGranted && (
             <button onClick={requestGeolocation}
-              className="flex items-center gap-1 text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1.5 rounded-xl">
-              📍 Use GPS
+              className="flex items-center gap-1.5 text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1.5 rounded-xl">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Use GPS
             </button>
           )}
         </div>
@@ -559,7 +571,10 @@ export default function HomePage() {
               <button onClick={() => router.push('/profile/edit')} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Add Interests</button>
             )}
             {activeTab === 2 && !geoGranted && (
-              <button onClick={requestGeolocation} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">📍 Use My Location</button>
+              <button onClick={requestGeolocation} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm flex items-center gap-2 mx-auto">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Use My Location
+              </button>
             )}
             {activeTab === 2 && geoGranted && (
               <button onClick={() => router.push('/create')} className="mt-1 bg-[#1C241C] border border-white/10 text-white/60 px-5 py-2.5 rounded-2xl font-semibold text-sm">Host something nearby</button>
@@ -594,8 +609,13 @@ export default function HomePage() {
                     )}
                     <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
                       <div className="flex gap-1">
-                        {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">⭐ Featured</span>}
-                        {isSoon && <span className={'text-[8px] font-bold px-2 py-0.5 rounded-full ' + (isToday(event.start_datetime, evtTz) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>{isToday(event.start_datetime, evtTz) ? '🔴 Today' : '🟡 Tomorrow'}</span>}
+                        {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1"><svg width="7" height="7" viewBox="0 0 24 24" fill="#0D110D" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Featured</span>}
+                        {isSoon && (
+                          <span className={'text-[8px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 ' + (isToday(event.start_datetime, evtTz) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>
+                            <span className={'w-[5px] h-[5px] rounded-full flex-shrink-0 ' + (isToday(event.start_datetime, evtTz) ? 'bg-white/80' : 'bg-[#0D110D]/50')} />
+                            {isToday(event.start_datetime, evtTz) ? 'Today' : 'Tomorrow'}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         {isRsvpd && <span className="bg-[#7EC87E]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Going ✓</span>}
@@ -605,8 +625,10 @@ export default function HomePage() {
                           onPointerDown={(e) => e.stopPropagation()}
                           onTouchStart={(e) => e.stopPropagation()}
                           aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark event'}
-                          className={'w-8 h-8 rounded-lg flex items-center justify-center text-[13px] transition-all ' + (isBookmarked ? 'bg-[#E8B84B]/25 text-[#E8B84B]' : 'bg-black/30 text-white/55')}>
-                          🔖
+                          className={'w-8 h-8 rounded-lg flex items-center justify-center transition-all ' + (isBookmarked ? 'bg-[#E8B84B]/25 text-[#E8B84B]' : 'bg-black/30 text-white/55')}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -614,8 +636,14 @@ export default function HomePage() {
                   <div className="p-3">
                     <h3 className="font-bold text-[#F0EDE6] text-sm mb-1.5 leading-snug">{event.title}</h3>
                     <div className="flex items-center gap-3 text-[10px] text-white/45 mb-2">
-                      <span>📅 {formatDate(event.start_datetime, evtTz)}</span>
-                      <span>📍 {event.location_name}</span>
+                      <span className="flex items-center gap-1">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        {formatDate(event.start_datetime, evtTz)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {event.location_name}
+                      </span>
                       {activeTab === 2 && userLocation && (event as any)._dist !== undefined && (
                         <span className="text-[#7EC87E]">
                           {(event as any)._dist < 1 ? Math.round((event as any)._dist * 1000) + 'm' : ((event as any)._dist).toFixed(1) + 'km'}
@@ -659,12 +687,20 @@ export default function HomePage() {
             <h3 className="text-base font-bold text-[#F0EDE6] mb-1 flex-shrink-0">Change Location</h3>
             <p className="text-xs text-white/40 mb-3 flex-shrink-0">Events and recommendations update by city</p>
             <div className="flex items-center gap-2 bg-[#0D110D] border border-white/10 rounded-2xl px-4 py-2.5 mb-3 flex-shrink-0">
-              <span className="text-sm text-white/30">🔍</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
               <input type="text" value={citySearch} onChange={e => setCitySearch(e.target.value)}
                 placeholder="Search or type a city..."
                 className="flex-1 bg-transparent text-[#F0EDE6] placeholder-white/30 outline-none"
                 style={{ fontSize: '16px' }} />
-              {citySearch && <button onClick={() => setCitySearch('')} className="text-xs text-white/30">✕</button>}
+              {citySearch && (
+                <button onClick={() => setCitySearch('')} className="text-white/30 flex-shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              )}
             </div>
             <div className="overflow-y-auto flex-1 space-y-2">
               {filteredCities.map(city => (
@@ -680,7 +716,9 @@ export default function HomePage() {
               {citySearch.trim() && !ALL_CITIES.some(c => c.toLowerCase() === citySearch.trim().toLowerCase()) && (
                 <button onClick={() => handleCityChange(citySearch.trim())}
                   className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-dashed border-[#E8B84B]/30 bg-[#0D110D]">
-                  <span className="text-sm">📍</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.6)" strokeWidth="2" strokeLinecap="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
                   <span className="text-sm text-[#E8B84B]">Use &quot;{citySearch.trim()}&quot;</span>
                 </button>
               )}
