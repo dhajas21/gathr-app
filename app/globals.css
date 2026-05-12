@@ -73,6 +73,16 @@ input, select, textarea, button {
   pointer-events: none;
 }
 
+/* Ambient glow for location-type header buttons (map + city picker).
+   Green halo in dark mode (location = green brand language).
+   Gold halo in light mode (warm accent on cream — mirrors bell's gold language). */
+.btn-glow-location {
+  box-shadow: 0 0 14px rgba(126, 200, 126, 0.22);
+}
+[data-theme="light"] .btn-glow-location {
+  box-shadow: 0 0 14px rgba(232, 184, 75, 0.30);
+}
+
 .font-display {
   font-family: var(--font-syne), sans-serif;
 }

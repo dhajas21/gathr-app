@@ -321,7 +321,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => router.push('/map')}
-              className="w-9 h-9 bg-[#1C241C] border border-[#7EC87E]/20 rounded-xl flex items-center justify-center text-[#7EC87E] active:scale-95 transition-all">
+              className="w-9 h-9 bg-[#1C241C] border border-[#7EC87E]/20 rounded-xl flex items-center justify-center text-[#7EC87E] active:scale-95 transition-all btn-glow-location">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
                 <circle cx="12" cy="10" r="3"/>
@@ -340,7 +340,7 @@ export default function HomePage() {
               )}
             </button>
             <button onClick={() => setShowCityPicker(true)}
-              className="flex items-center gap-1.5 bg-[#1C241C] border border-white/10 rounded-full px-3 py-1.5 active:scale-95 transition-all">
+              className="flex items-center gap-1.5 bg-[#1C241C] border border-white/10 rounded-full px-3 py-1.5 active:scale-95 transition-all btn-glow-location">
               <div className="w-1.5 h-1.5 rounded-full bg-[#5BCC7A] animate-pulse"></div>
               <span className="text-[#F0EDE6] text-xs font-medium">{profile?.city || 'Bellingham'}</span>
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
