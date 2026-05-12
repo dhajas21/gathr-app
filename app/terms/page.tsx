@@ -65,27 +65,31 @@ export default function TermsPage() {
             body: 'Your use of Gathr is also governed by our Privacy Policy, which is incorporated into these Terms by reference. Please review our Privacy Policy to understand how we collect, use, and protect your information, including the anonymity protections for waves and safety reviews.',
           },
           {
-            title: '12. Intellectual Property',
+            title: '12. Automated Decisions & AI',
+            body: 'Gathr does not use artificial intelligence, large language models, or machine learning to make decisions about you or your account. Match suggestions, event recommendations, safety tiers, and search results are produced by deterministic, hand-written code — not AI scoring. The search bar accepts natural-language phrases (e.g. "live music thursday night") that are interpreted by a fixed keyword parser, marked "Quick filters" in the UI; no LLM is in the loop and your queries are not sent to any third-party AI provider. Your messages, posts, photos, and profile content are not analysed by AI of any kind. If we ever introduce AI-assisted features (for example, optional content moderation), we will update these Terms and the Privacy Policy and give you the choice to opt out where applicable.',
+          },
+          {
+            title: '13. Intellectual Property',
             body: 'The Gathr name, logo, and platform design are owned by Gathr and may not be used without permission. All rights not expressly granted in these Terms are reserved.',
           },
           {
-            title: '13. Disclaimers',
+            title: '14. Disclaimers',
             body: 'Gathr is provided "as is" without warranties of any kind. We do not guarantee that the platform will be uninterrupted, error-free, or that defects will be corrected. Safety tier scores reflect aggregated community feedback and are not an endorsement or guarantee of any individual\'s conduct. We are not liable for any damages arising from your use of the platform or from attending any event found through it.',
           },
           {
-            title: '14. Limitation of Liability',
+            title: '15. Limitation of Liability',
             body: 'To the maximum extent permitted by law, Gathr shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of or inability to use the platform, including damages arising from reliance on safety tier information, wave interactions, or event attendance.',
           },
           {
-            title: '15. Termination',
+            title: '16. Termination',
             body: 'We may suspend or terminate your account at any time for violation of these Terms, including for abuse of the safety review system, wave system, or repeated safety flags from other community members.\n\nYou may delete your account at any time through Settings → Danger Zone. The dialog will ask you to type the word "DELETE" to confirm — this safeguard prevents accidental deletions. Once you confirm, your profile, hosted events, RSVPs, connections, messages, and Gathr+ status are permanently removed within 30 days. Anonymised review data you submitted may be retained to preserve the integrity of other users\' safety scores. Upon termination, your right to use Gathr ceases immediately.',
           },
           {
-            title: '16. Governing Law',
+            title: '17. Governing Law',
             body: 'These Terms are governed by the laws of the State of Washington, United States, without regard to conflict of law principles.',
           },
           {
-            title: '17. Contact',
+            title: '18. Contact',
             body: 'For questions about these Terms, contact us at: legal@gathr.app\nFor safety concerns or reports, contact us at: safety@gathr.app',
           },
         ].map(section => (

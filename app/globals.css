@@ -124,11 +124,18 @@ input, select, textarea, button {
 [data-theme="light"] .bg-\[\#2A4A2A\]\/60 { background-color: rgba(216,237,216,0.6) !important; }
 
 /* Gold gradient backgrounds */
+[data-theme="light"] .bg-\[\#2A2010\]      { background-color: #FFF6DC !important; }
 [data-theme="light"] .bg-\[\#2A2010\]\/60 { background-color: rgba(255,246,220,0.7) !important; }
+[data-theme="light"] .bg-\[\#1C1E10\]      { background-color: #FBF6DC !important; }
+[data-theme="light"] .bg-\[\#E8B84B\]\/5  { background-color: rgba(232,184,75,0.08) !important; }
 [data-theme="light"] .bg-\[\#E8B84B\]\/8  { background-color: rgba(232,184,75,0.10) !important; }
 [data-theme="light"] .bg-\[\#E8B84B\]\/10 { background-color: rgba(232,184,75,0.12) !important; }
 [data-theme="light"] .bg-\[\#E8B84B\]\/15 { background-color: rgba(232,184,75,0.15) !important; }
+[data-theme="light"] .bg-\[\#E8B84B\]\/20 { background-color: rgba(232,184,75,0.20) !important; }
 [data-theme="light"] .bg-\[\#1E3A1E\]\/40 { background-color: rgba(237,246,237,0.6) !important; }
+
+/* Dark overlay-button backgrounds (header pills on community banners etc.) */
+[data-theme="light"] .bg-\[\#0D110D\]\/70 { background-color: rgba(255,255,255,0.78) !important; }
 
 /* Green accent tag/pill backgrounds (interests, hashtags, smart filter chips) */
 [data-theme="light"] .bg-\[\#2A4A2A\]\/40 { background-color: rgba(216,237,216,0.55) !important; }
@@ -160,6 +167,21 @@ input, select, textarea, button {
 [data-theme="light"] .text-\[\#E8B84B\]\/70  { color: rgba(142,110,19,0.85) !important; }
 [data-theme="light"] .text-\[\#E8B84B\]\/60  { color: rgba(142,110,19,0.78) !important; }
 [data-theme="light"] .text-\[\#E8B84B\]\/50  { color: rgba(142,110,19,0.70) !important; }
+[data-theme="light"] .text-\[\#E8B84B\]\/45  { color: rgba(142,110,19,0.65) !important; }
+[data-theme="light"] .text-\[\#E8B84B\]\/40  { color: rgba(142,110,19,0.60) !important; }
+[data-theme="light"] .text-\[\#E8B84B\]\/35  { color: rgba(142,110,19,0.55) !important; }
+
+/* Achievement tier accents — silver / bronze.
+   #A0AEC0 (light slate) on cream is ~2.5:1; remap to a darker slate.
+   #CD7F32 (bronze) is already legible (~4:1) but tighten slightly. */
+[data-theme="light"] .text-\[\#A0AEC0\]      { color: #4A5563 !important; }
+[data-theme="light"] .text-\[\#CD7F32\]      { color: #8A5318 !important; }
+[data-theme="light"] .bg-\[\#A0AEC0\]\/10   { background-color: rgba(74,85,99,0.08) !important; }
+[data-theme="light"] .bg-\[\#CD7F32\]\/10   { background-color: rgba(138,83,24,0.08) !important; }
+[data-theme="light"] .border-\[\#A0AEC0\]\/25 { border-color: rgba(74,85,99,0.30) !important; }
+[data-theme="light"] .border-\[\#A0AEC0\]\/30 { border-color: rgba(74,85,99,0.34) !important; }
+[data-theme="light"] .border-\[\#CD7F32\]\/25 { border-color: rgba(138,83,24,0.32) !important; }
+[data-theme="light"] .border-\[\#CD7F32\]\/30 { border-color: rgba(138,83,24,0.36) !important; }
 
 /* Accent borders — same swap, so pill outlines remain visible on cream */
 [data-theme="light"] .border-\[\#7EC87E\]\/10 { border-color: rgba(46,107,54,0.20) !important; }
@@ -174,6 +196,8 @@ input, select, textarea, button {
 [data-theme="light"] .border-\[\#E8B84B\]\/25 { border-color: rgba(142,110,19,0.34) !important; }
 [data-theme="light"] .border-\[\#E8B84B\]\/30 { border-color: rgba(142,110,19,0.38) !important; }
 [data-theme="light"] .border-\[\#E8B84B\]\/35 { border-color: rgba(142,110,19,0.42) !important; }
+[data-theme="light"] .border-\[\#E8B84B\]\/40 { border-color: rgba(142,110,19,0.48) !important; }
+[data-theme="light"] .border-\[\#E8B84B\]\/50 { border-color: rgba(142,110,19,0.55) !important; }
 
 /* White opacity text */
 [data-theme="light"] .text-white\/20 { color: rgba(0,0,0,0.28) !important; }
@@ -203,6 +227,15 @@ input, select, textarea, button {
 [data-theme="light"] .to-\[\#1A2A1A\] { --tw-gradient-to: #F2F7F2 !important; }
 [data-theme="light"] .from-\[\#1E3A1E\] { --tw-gradient-from: #EDF6ED !important; }
 [data-theme="light"] .to-\[\#1E3A1E\] { --tw-gradient-to: #EDF6ED !important; }
+
+/* Achievement tier card gradients — three dark variants → light tints */
+[data-theme="light"] .from-\[\#2A2010\] { --tw-gradient-from: #FFF6DC !important; }
+[data-theme="light"] .to-\[\#1A1408\]   { --tw-gradient-to:   #F8EFCC !important; }
+[data-theme="light"] .from-\[\#1E2024\] { --tw-gradient-from: #E8EBEF !important; }
+[data-theme="light"] .to-\[\#141618\]   { --tw-gradient-to:   #DDE1E6 !important; }
+[data-theme="light"] .from-\[\#241A0E\] { --tw-gradient-from: #F4E6D2 !important; }
+[data-theme="light"] .to-\[\#16100A\]   { --tw-gradient-to:   #EBD7B8 !important; }
+[data-theme="light"] .to-\[\#0E1A0E\]   { --tw-gradient-to:   #E8F2E8 !important; }
 
 /* Bottom nav blur tint */
 [data-theme="light"] .backdrop-blur-2xl { background-color: rgba(244,240,232,0.94) !important; }
