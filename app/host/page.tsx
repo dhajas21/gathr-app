@@ -124,7 +124,7 @@ export default function HostDashboardPage() {
             ←
           </button>
           <div>
-            <h1 className="font-bold text-[#F0EDE6] text-xl">Host Dashboard</h1>
+            <h1 className="font-display font-bold text-[#F0EDE6] text-xl">Host Dashboard</h1>
             <p className="text-xs text-white/40 mt-0.5">{events.length} event{events.length !== 1 ? 's' : ''} · {totalRsvps} total RSVPs</p>
           </div>
         </div>
@@ -138,7 +138,12 @@ export default function HostDashboardPage() {
       {/* Draft banner — shown above tabs so it's always visible */}
       {hasDraft && (
         <div className="mx-4 mb-3 flex items-center gap-2.5 bg-[#1C1E10] border border-[#E8B84B]/25 rounded-2xl px-3.5 py-2.5">
-          <div className="w-7 h-7 bg-[#E8B84B]/10 rounded-lg flex items-center justify-center text-sm flex-shrink-0">✏️</div>
+          <div className="w-7 h-7 bg-[#E8B84B]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </div>
           <button onClick={() => router.push('/create')} className="flex-1 min-w-0 text-left active:opacity-70 transition-opacity">
             <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium leading-none mb-0.5">Unsaved Draft</div>
             <div className="text-xs text-[#F0EDE6] font-medium">Resume creating your event →</div>
@@ -167,17 +172,27 @@ export default function HostDashboardPage() {
           <>
             {/* Key stats */}
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { num: upcoming.length, label: 'Upcoming', icon: '📅', color: 'text-[#7EC87E]' },
-                { num: totalRsvps, label: 'Total RSVPs', icon: '👥', color: 'text-[#E8B84B]' },
-                { num: avgAttendance || '—', label: 'Avg attendance', icon: '📊', color: 'text-[#7EC87E]' },
-                { num: events.length, label: 'Events', icon: '📅', color: 'text-[#E8B84B]' },
-              ].map(stat => (
+              {([
+                {
+                  num: upcoming.length, label: 'Upcoming', color: 'text-[#7EC87E]',
+                  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7EC87E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+                },
+                {
+                  num: totalRsvps, label: 'Total RSVPs', color: 'text-[#E8B84B]',
+                  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B84B" strokeWidth="1.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+                },
+                {
+                  num: avgAttendance || '—', label: 'Avg attendance', color: 'text-[#7EC87E]',
+                  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7EC87E" strokeWidth="1.5" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+                },
+                {
+                  num: events.length, label: 'Events hosted', color: 'text-[#E8B84B]',
+                  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B84B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
+                },
+              ] as { num: number | string; label: string; color: string; icon: React.ReactNode }[]).map(stat => (
                 <div key={stat.label} className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-base">{stat.icon}</span>
-                  </div>
-                  <div className={'font-bold text-2xl ' + stat.color}>{stat.num}</div>
+                  <div className="mb-2">{stat.icon}</div>
+                  <div className={'font-display font-bold text-2xl ' + stat.color}>{stat.num}</div>
                   <div className="text-[10px] text-white/35 uppercase tracking-wide mt-0.5">{stat.label}</div>
                 </div>
               ))}
@@ -186,7 +201,11 @@ export default function HostDashboardPage() {
             {/* Host Pro CTA */}
             <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/20 rounded-2xl p-4">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center text-lg">⭐</div>
+                <div className="w-9 h-9 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                  </svg>
+                </div>
                 <div>
                   <div className="text-sm font-bold text-[#F0EDE6]">Host Pro</div>
                   <div className="text-[10px] text-white/35">Paid tickets · Analytics · Promoted events</div>
@@ -197,11 +216,13 @@ export default function HostDashboardPage() {
                   Join Waitlist
                 </button>
               </div>
-              <div className="flex gap-3 text-[10px] text-white/30">
-                <span>🎟 Ticketing</span>
-                <span>📊 Revenue</span>
-                <span>📣 Promotions</span>
-                <span>✉️ Mass message</span>
+              <div className="flex gap-3 flex-wrap text-[10px] text-white/30">
+                {['Ticketing', 'Revenue', 'Promotions', 'Mass message'].map(f => (
+                  <span key={f} className="flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-[#E8B84B]/35 inline-block flex-shrink-0" />
+                    {f}
+                  </span>
+                ))}
               </div>
             </div>
 
@@ -266,7 +287,9 @@ export default function HostDashboardPage() {
                       )}
                       {event.ticket_type && event.ticket_type !== 'free' && (
                         <div className="mt-2 flex items-center gap-1.5">
-                          <span className="text-[10px] text-[#E8B84B]">🎟 {event.ticket_type === 'paid' && event.ticket_price ? '$' + event.ticket_price : event.ticket_type === 'donation' ? 'Donation' : 'Paid'}</span>
+                          <span className="text-[10px] text-[#E8B84B]">
+                            {event.ticket_type === 'paid' && event.ticket_price ? '$' + event.ticket_price : event.ticket_type === 'donation' ? 'Donation' : 'Paid'}
+                          </span>
                         </div>
                       )}
                       <div className="flex gap-2 mt-3">
@@ -285,7 +308,11 @@ export default function HostDashboardPage() {
 
             {events.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <div className="text-4xl">🎉</div>
+                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </div>
                 <p className="text-white/40 text-sm">No events yet</p>
                 <button onClick={() => router.push('/create')}
                   className="mt-2 bg-[#E8B84B] text-[#0D110D] font-bold px-6 py-3 rounded-2xl text-sm">
@@ -386,7 +413,7 @@ export default function HostDashboardPage() {
           <>
             {bestEvent && (
               <div className="bg-gradient-to-br from-[#1E3A1E] to-[#1A2A1A] border border-[#7EC87E]/20 rounded-2xl p-4">
-                <div className="text-[9px] uppercase tracking-widest text-[#7EC87E]/60 font-medium mb-2">⭐ Best performing event</div>
+                <div className="text-[9px] uppercase tracking-widest text-[#7EC87E]/60 font-medium mb-2">Best performing event</div>
                 <div className="text-sm font-bold text-[#F0EDE6] mb-1 truncate">{bestEvent.title}</div>
                 <div className="text-[10px] text-white/40 mb-2">{formatDateLong(bestEvent.start_datetime, cityToTimezone(bestEvent.city))}</div>
                 <div className="flex items-center gap-4">
@@ -445,7 +472,11 @@ export default function HostDashboardPage() {
 
             <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/25 rounded-2xl p-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#E8B84B]/15 border border-[#E8B84B]/25 flex items-center justify-center text-lg flex-shrink-0">👑</div>
+                <div className="w-10 h-10 rounded-xl bg-[#E8B84B]/15 border border-[#E8B84B]/25 flex items-center justify-center flex-shrink-0">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 19h20M3 19 5 9l4.5 4.5L12 4l2.5 9.5L19 9l2 10"/>
+                  </svg>
+                </div>
                 <div className="flex-1">
                   <div className="text-xs font-bold text-[#E8B84B] mb-1">Host Pro — Advanced Insights</div>
                   <div className="text-[10px] text-white/50 leading-relaxed">Attendee demographics, repeat visitor tracking, revenue forecasting, and promotional tools.</div>
@@ -458,7 +489,11 @@ export default function HostDashboardPage() {
 
             {events.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <div className="text-4xl">📊</div>
+                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                  </svg>
+                </div>
                 <p className="text-white/40 text-sm text-center">Host your first event to see insights</p>
               </div>
             )}
