@@ -106,10 +106,10 @@ function SlideMatch() {
       <div className="space-y-1.5">
         <Eyebrow label="The Mystery Match" />
         <h1 className="font-display font-extrabold text-[30px] text-[#F0EDE6] leading-[.95] tracking-[-0.04em] pt-1">
-          See who's going.
+          You'll know someone there.
         </h1>
         <p className="font-editorial-italic text-[20px] text-[#E8B84B] leading-[1.2] tracking-[-0.01em]">
-          Meet them after.
+          You just don't know who yet.
         </p>
         <p className="text-[13px] text-white/45 leading-[1.55] max-w-[250px] mx-auto pt-1">
           Gathr shows how many people at each event share your vibe — and reveals who they are only after the event ends.
@@ -171,11 +171,11 @@ function SlideBrand() {
       <div className="relative z-10 flex flex-col items-center gap-4">
         <Eyebrow label="Welcome to Gathr" />
         <div>
-          <h1 className="font-display font-extrabold text-[64px] text-[#F0EDE6] leading-[.92] tracking-[-0.045em]">
-            Show up.
+          <h1 className="font-display font-extrabold text-[48px] text-[#F0EDE6] leading-[.92] tracking-[-0.045em]">
+            The event is the excuse.
           </h1>
-          <span className="font-editorial-italic font-semibold text-[38px] text-[#E8B84B] tracking-[-0.03em] leading-[1.1] block mt-1">
-            The rest follows.
+          <span className="font-editorial-italic font-semibold text-[32px] text-[#E8B84B] tracking-[-0.03em] leading-[1.1] block mt-1">
+            The people are the point.
           </span>
         </div>
         <p className="font-editorial-italic text-[16px] text-white/60 max-w-[240px] leading-[1.4]">
