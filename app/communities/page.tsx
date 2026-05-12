@@ -143,7 +143,9 @@ export default function CommunitiesPage() {
         <p className="text-xs text-white/40">Groups built around shared interests</p>
 
         <div className={`flex items-center gap-2 bg-[#1C241C] border rounded-2xl px-4 py-2.5 mt-3 transition-all ${searchFocused ? 'border-[#E8B84B]/35' : 'border-white/10'}`}>
-          <span className="text-sm text-white/30">🔍</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
           <input
             type="text"
             value={search}

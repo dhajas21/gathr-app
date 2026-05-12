@@ -79,11 +79,34 @@ function computeAchievements(
 }
 
 function TierIcon({ level, size = 24 }: { level: number; size?: number }) {
-  const p = { fill: 'none', stroke: 'rgba(232,184,75,0.7)', strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
-  if (level >= 10) return <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M2 19h20M3 19 5 9l4.5 4.5L12 4l2.5 9.5L19 9l2 10"/></svg>
-  if (level >= 5)  return <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-  if (level >= 3)  return <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-  return <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M12 22v-8M12 14c-2 0-5-2-5-6a5 5 0 0 1 10 0c0 4-3 6-5 6z"/></svg>
+  if (level >= 10) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24">
+        <path d="M2 20h20v-2H2z" fill="#E8B84B"/>
+        <path d="M4 18l1-9 4 5 3-9 3 9 4-5 1 9H4z" fill="#E8B84B"/>
+      </svg>
+    )
+  }
+  if (level >= 5) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24">
+        <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" fill="#E8B84B"/>
+      </svg>
+    )
+  }
+  if (level >= 3) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24">
+        <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="#E8B84B"/>
+      </svg>
+    )
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24">
+      <path d="M12 22v-9" stroke="#7EC87E" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+      <path d="M12 13c-2-2-6-1.5-6 1.5s3 4.5 6 4.5 6-1.5 6-4.5-4-3.5-6-1.5z" fill="#7EC87E"/>
+    </svg>
+  )
 }
 
 export default function ProfilePage() {
@@ -583,7 +606,7 @@ export default function ProfilePage() {
                   <div className="text-3xl font-bold text-[#E8B84B]">Level {level}</div>
                 </div>
                 <div className="w-14 h-14 rounded-2xl bg-[#E8B84B]/10 border border-[#E8B84B]/20 flex items-center justify-center">
-                  <TierIcon level={level} size={26} />
+                  <TierIcon level={level} size={32} />
                 </div>
               </div>
               <div className="mb-1.5 flex items-center justify-between">
