@@ -572,9 +572,10 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         style={{ background: community.banner_gradient || 'var(--gradient-community-banner)' }}>
         {optimizedImgSrc(community.banner_url, 900) ? (
           <img src={optimizedImgSrc(community.banner_url, 900)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />
-        ) : (
-          <span className="relative z-10">{community.icon || '👥'}</span>
-        )}
+        ) : community.icon
+            ? <span className="relative z-10 text-5xl">{community.icon}</span>
+            : <svg className="relative z-10" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.25" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        }
         <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent" />
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
           <button onClick={() => router.push('/communities')}
@@ -596,14 +597,22 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       {/* Info */}
       <div className="px-4 pt-3 pb-3">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: community.banner_gradient || 'var(--gradient-community-banner)' }}>
-            {community.icon || '👥'}
+            {community.icon
+              ? <span className="text-2xl">{community.icon}</span>
+              : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            }
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-[#F0EDE6] text-lg leading-tight">{community.name}</h1>
-              {community.is_private && <span className="text-[9px] bg-white/10 border border-white/10 text-white/40 px-1.5 py-0.5 rounded">🔒 Private</span>}
+              <h1 className="font-display font-bold text-[#F0EDE6] text-lg leading-tight">{community.name}</h1>
+              {community.is_private && (
+                <span className="inline-flex items-center gap-1 text-[9px] bg-white/10 border border-white/10 text-white/40 px-1.5 py-0.5 rounded">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Private
+                </span>
+              )}
             </div>
             <div className="text-xs text-white/40 mt-0.5">{community.member_count} members · {community.category}</div>
           </div>
@@ -654,7 +663,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             {/* Private locked state for non-members */}
             {community.is_private && !isMember && (
               <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-5 text-center">
-                <div className="text-3xl mb-2">🔒</div>
+                <div className="w-12 h-12 bg-[#0D110D] border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
                 <div className="text-sm font-semibold text-[#F0EDE6] mb-1">Private Community</div>
                 <div className="text-xs text-white/40">
                   {isPending ? 'Your request is being reviewed by the owner.' : 'Join to see posts and participate.'}
@@ -707,7 +720,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
 
             {(!community.is_private || isMember) && posts.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="text-4xl">📢</div>
+                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 11v2a4 4 0 0 0 4 4h1l2 4h2l-1-4h1a10 10 0 0 0 9-9.95V11"/><path d="M3 11A10 10 0 0 1 21 11"/>
+                  </svg>
+                </div>
                 <p className="text-white/40 text-sm text-center">No posts yet — start the conversation!</p>
               </div>
             )}
@@ -753,14 +770,23 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       </button>
                       <button onClick={() => handleExpandPost(post.id)}
                         className={'flex items-center gap-1.5 text-xs font-medium transition-all active:scale-95 ' + (expandedPostId === post.id ? 'text-[#7EC87E]' : 'text-white/30')}>
-                        <span>💬</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
                         <span>{commentCountMap[post.id] ? commentCountMap[post.id] : 'Reply'}</span>
                       </button>
                     </div>
                   ) : (post.like_count > 0 || commentCountMap[post.id] > 0) ? (
                     <div className="flex items-center gap-3 pt-2 border-t border-white/10">
                       {post.like_count > 0 && <span className="flex items-center gap-1 text-xs text-white/25"><span>♡</span><span>{post.like_count}</span></span>}
-                      {commentCountMap[post.id] > 0 && <span className="flex items-center gap-1 text-xs text-white/25"><span>💬</span><span>{commentCountMap[post.id]}</span></span>}
+                      {commentCountMap[post.id] > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-white/25">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                          </svg>
+                          <span>{commentCountMap[post.id]}</span>
+                        </span>
+                      )}
                     </div>
                   ) : null}
                   {isMember && expandedPostId === post.id && (
@@ -847,7 +873,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             </div>
             {events.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8">
-                <div className="text-3xl">🗓</div>
+                <div className="w-12 h-12 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </div>
                 <p className="text-sm text-white/40 text-center">No events yet</p>
                 {(isMember) && (
                   <button onClick={() => router.push('/create?community=' + communityId)}
@@ -861,11 +891,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                 {events.map(event => (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer">
-                    <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0 overflow-hidden relative">
-                      {optimizedImgSrc(event.cover_url, 96)
-                        ? <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />
-                        : '🎉'
-                      }
+                    <div className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden relative"
+                      style={{ background: 'var(--gradient-event-hero)' }}>
+                      {optimizedImgSrc(event.cover_url, 96) && (
+                        <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
@@ -958,13 +988,21 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           <div className="pb-4">
             {!isMember ? (
               <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-5 text-center">
-                <div className="text-3xl mb-2">💬</div>
+                <div className="w-12 h-12 bg-[#0D110D] border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
                 <div className="text-sm font-semibold text-[#F0EDE6] mb-1">Members Only</div>
                 <div className="text-xs text-white/40">Join the community to participate in the chat.</div>
               </div>
             ) : chatMessages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="text-4xl">💬</div>
+                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
                 <p className="text-white/40 text-sm text-center">No messages yet — say hello!</p>
               </div>
             ) : (
@@ -1058,7 +1096,13 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           <button onClick={handleJoin} disabled={actionLoading}
             className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform disabled:opacity-50"
             style={{ boxShadow: '0 5px 22px rgba(232,184,75,0.3)' }}>
-            {actionLoading ? 'Sending...' : community.is_private ? '🔒 Request to Join' : '+ Join Community'}
+            {actionLoading ? 'Sending...' : community.is_private
+              ? <span className="flex items-center justify-center gap-2">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Request to Join
+                </span>
+              : '+ Join Community'
+            }
           </button>
         )}
       </div>
@@ -1071,7 +1115,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             <div className="text-xs text-white/40 mb-4 flex-shrink-0">Select one of your events to add to this community.</div>
             {myEvents.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2 flex-1">
-                <div className="text-3xl">🎉</div>
+                <div className="w-12 h-12 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </div>
                 <p className="text-xs text-white/40 text-center">No eligible events found.</p>
               </div>
             ) : (
@@ -1080,11 +1128,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   <div key={event.id}
                     onClick={() => !addingEvent && handleAddEventToCommunity(event.id)}
                     className="flex items-center gap-3 bg-[#0D110D] border border-white/10 rounded-2xl p-3 cursor-pointer active:opacity-70">
-                    <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex-shrink-0 overflow-hidden relative">
-                      {optimizedImgSrc(event.cover_url, 96)
-                        ? <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />
-                        : <div className="w-full h-full flex items-center justify-center text-lg">🎉</div>
-                      }
+                    <div className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
+                      style={{ background: 'var(--gradient-event-hero)' }}>
+                      {optimizedImgSrc(event.cover_url, 96) && (
+                        <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
