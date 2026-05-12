@@ -321,11 +321,10 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => router.push('/map')}
-              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-white/50 active:scale-95 transition-transform">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
-                <line x1="8" y1="2" x2="8" y2="18"/>
-                <line x1="16" y1="6" x2="16" y2="22"/>
+              className="w-9 h-9 bg-[#1C241C] border border-[#7EC87E]/20 rounded-xl flex items-center justify-center text-[#7EC87E] active:scale-95 transition-all">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                <circle cx="12" cy="10" r="3"/>
               </svg>
             </button>
             <button onClick={() => router.push('/notifications')}
@@ -341,16 +340,22 @@ export default function HomePage() {
               )}
             </button>
             <button onClick={() => setShowCityPicker(true)}
-              className="flex items-center gap-1.5 bg-[#1C241C] border border-white/10 rounded-full px-3 py-1.5">
-              <div className="w-1.5 h-1.5 rounded-sm bg-[#5BCC7A]"></div>
-              <span className="text-[#F0EDE6] text-xs">{profile?.city || 'Bellingham'} ↓</span>
+              className="flex items-center gap-1.5 bg-[#1C241C] border border-white/10 rounded-full px-3 py-1.5 active:scale-95 transition-all">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#5BCC7A] animate-pulse"></div>
+              <span className="text-[#F0EDE6] text-xs font-medium">{profile?.city || 'Bellingham'}</span>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-4 cursor-pointer active:opacity-80"
+        <div className="flex items-center gap-2.5 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-4 cursor-pointer active:opacity-80 transition-opacity"
           onClick={() => router.push('/search')}>
-          <span className="text-white/30 text-sm">🔍</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/30 flex-shrink-0">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
           <span className="text-white/30 text-sm flex-1">Search events, people, vibes...</span>
           <span className="bg-[#1E3A1E] border border-[#E8B84B]/15 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">⚡ Search</span>
         </div>
