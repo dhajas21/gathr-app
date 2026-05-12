@@ -10,6 +10,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { ALL_CITIES, CAT_GRADIENT, INTEREST_TO_CATS, cityToTimezone } from '@/lib/constants'
 import { CAT_EMOJI } from '@/lib/categoryEmoji'
 import { isToday, isTomorrow, formatTime, formatDate, optimizedImgSrc } from '@/lib/utils'
+import OnboardingTooltip from '@/components/OnboardingTooltip'
 
 interface Event {
   id: string; title: string; category: string; start_datetime: string; end_datetime: string
@@ -45,6 +46,8 @@ export default function HomePage() {
   const [bookmarkToast, setBookmarkToast] = useState('')
   const bookmarkToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [hasDraft, setHasDraft] = useState(false)
+  const [tooltip, setTooltip] = useState<'create' | 'match' | 'groups' | null>(null)
+  const [pendingEventId, setPendingEventId] = useState<string | null>(null)
   const router = useRouter()
 
   const handleDeleteDraft = async () => {
@@ -53,6 +56,34 @@ export default function HomePage() {
     await supabase.from('event_drafts').delete().eq('user_id', user.id)
     const { data: files } = await supabase.storage.from('event-covers').list(`drafts/${user.id}`)
     if (files?.length) await supabase.storage.from('event-covers').remove(files.map((f: any) => `drafts/${user.id}/${f.name}`))
+  }
+
+  const dismissTooltip = (key: 'create' | 'groups') => {
+    try { localStorage.setItem('gathr_tt_' + key, '1') } catch {}
+    if (key === 'create') {
+      try {
+        if (!localStorage.getItem('gathr_tt_groups')) { setTooltip('groups'); return }
+      } catch {}
+    }
+    setTooltip(null)
+  }
+
+  const handleEventTap = (eventId: string) => {
+    try {
+      if (!localStorage.getItem('gathr_tt_match')) {
+        setPendingEventId(eventId)
+        setTooltip('match')
+        return
+      }
+    } catch {}
+    router.push('/events/' + eventId)
+  }
+
+  const dismissMatchTooltip = (navigate: boolean) => {
+    try { localStorage.setItem('gathr_tt_match', '1') } catch {}
+    setTooltip(null)
+    if (navigate && pendingEventId) router.push('/events/' + pendingEventId)
+    setPendingEventId(null)
   }
 
   const { refreshing, pullProgress, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
@@ -304,6 +335,15 @@ export default function HomePage() {
     }
   }, [activeTab, events, profile, rsvpEventIds, connectionIds, friendRsvpEventIds, user?.id, userLocation])
 
+  // Show first-time tooltips once the feed has loaded
+  useEffect(() => {
+    if (loading) return
+    try {
+      if (!localStorage.getItem('gathr_tt_create')) setTooltip('create')
+      else if (!localStorage.getItem('gathr_tt_groups')) setTooltip('groups')
+    } catch {}
+  }, [loading])
+
   const getEmptyMessage = () => {
     switch (activeTab) {
       case 1: return profile?.interests?.length > 0 ? 'No events match your interests yet' : 'Add interests to get personalized picks'
@@ -419,7 +459,7 @@ export default function HomePage() {
               {soonEvents.map(event => {
                 const isRsvpd = rsvpEventIds.includes(event.id)
                 return (
-                  <div key={event.id} onClick={() => router.push('/events/' + event.id)}
+                  <div key={event.id} onClick={() => handleEventTap(event.id)}
                     className={'flex-shrink-0 w-44 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/30' : 'border-white/10')}>
                     <div className="category-gradient-card h-20 flex items-center justify-center text-3xl relative"
                       style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
@@ -447,7 +487,7 @@ export default function HomePage() {
         )}
 
         {featuredEvent && activeTab === 0 && (
-          <div onClick={() => router.push('/events/' + featuredEvent.id)}
+          <div onClick={() => handleEventTap(featuredEvent.id)}
             className="rounded-3xl overflow-hidden mb-4 cursor-pointer active:scale-[0.98] transition-transform border border-[#E8B84B]/20">
             <div className="category-gradient-card h-36 flex items-center justify-center text-5xl relative"
               style={{ '--cat-bg': CAT_GRADIENT[featuredEvent.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
@@ -534,7 +574,7 @@ export default function HomePage() {
               const fillPct = event.capacity > 0 ? Math.round(((event.capacity - event.spots_left) / event.capacity) * 100) : 0
               const isBookmarked = bookmarkedEventIds.includes(event.id)
               return (
-                <div key={event.id} onClick={() => router.push('/events/' + event.id)}
+                <div key={event.id} onClick={() => handleEventTap(event.id)}
                   className={'bg-[#1C241C] rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/25' : 'border-white/10')}>
                   <div className="category-gradient-card h-28 flex items-center justify-center text-4xl relative"
                     style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
@@ -636,6 +676,40 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {tooltip === 'create' && (
+        <OnboardingTooltip
+          title="Tap + to create an event"
+          body="Add a title, time, place — your event is live in under 2 minutes. Draft auto-saves."
+          step="1 of 3"
+          onDismiss={() => dismissTooltip('create')}
+          arrowPosition="bottom-center"
+          style={{ bottom: 100, left: '50%', transform: 'translateX(-50%)' }}
+        />
+      )}
+
+      {tooltip === 'groups' && (
+        <OnboardingTooltip
+          title="Find groups in Communities"
+          body="Persistent groups around shared interests — run clubs, coffee crews, tech meetups."
+          step="2 of 3"
+          onDismiss={() => dismissTooltip('groups')}
+          arrowPosition="bottom-left"
+          style={{ bottom: 100, left: 16 }}
+        />
+      )}
+
+      {tooltip === 'match' && (
+        <OnboardingTooltip
+          title="RSVP to unlock your matches"
+          body="You'll see how many people going share your vibe — full profiles reveal after you attend."
+          step="3 of 3"
+          onDismiss={() => dismissMatchTooltip(true)}
+          onBackdropDismiss={() => dismissMatchTooltip(false)}
+          arrowPosition="bottom-center"
+          style={{ bottom: 120, left: '50%', transform: 'translateX(-50%)' }}
+        />
       )}
 
       <BottomNav />
