@@ -232,7 +232,7 @@ export default function SettingsPage() {
           ←
         </button>
         <div>
-          <h1 className="font-bold text-[#F0EDE6] text-xl">Settings</h1>
+          <h1 className="font-display font-bold text-[#F0EDE6] text-xl">Settings</h1>
           <p className="text-xs text-white/35 mt-0.5">Account, privacy & preferences</p>
         </div>
       </div>
@@ -246,8 +246,11 @@ export default function SettingsPage() {
           {optimizedImgSrc(profile?.avatar_url, 96) ? (
             <img src={optimizedImgSrc(profile.avatar_url, 96)!} alt="" className="w-12 h-12 rounded-2xl object-cover border border-[#E8B84B]/20 flex-shrink-0"  loading="lazy" />
           ) : (
-            <div className="w-12 h-12 bg-[#1E3A1E] rounded-2xl flex items-center justify-center text-xl border border-[#E8B84B]/20 flex-shrink-0">
-              🧑
+            <div className="w-12 h-12 bg-[#1E3A1E] rounded-2xl flex items-center justify-center border border-[#E8B84B]/20 flex-shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(232,184,75,0.4)">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/>
+              </svg>
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -394,7 +397,15 @@ export default function SettingsPage() {
                 disabled={savingPassword || newPassword.length < 12 || newPassword !== confirmPassword}
                 className="w-full bg-[#E8B84B] text-[#0D110D] rounded-xl py-3 text-sm font-bold disabled:opacity-50 active:scale-[0.98] transition-transform"
               >
-                {savingPassword ? 'Saving…' : 'Update Password'}
+                {savingPassword ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2"/>
+                      <path d="M7 1.5A5.5 5.5 0 0 1 12.5 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    Saving…
+                  </span>
+                ) : 'Update Password'}
               </button>
             </div>
           )}
@@ -407,17 +418,23 @@ export default function SettingsPage() {
           <div className="px-4 pb-3.5">
             <p className="text-[10px] text-white/35 mb-3">Controls how you appear to others and what you see.</p>
             <div className="space-y-2">
-              {[
-                { value: 'social', icon: '👋', label: 'Social', desc: 'Meet people, attend events', active: isSocial },
-                { value: 'professional', icon: '💼', label: 'Professional', desc: 'Network, find collaborators', active: isProfessional },
-              ].map(opt => (
+              {([
+                {
+                  value: 'social' as const, label: 'Social', desc: 'Meet people, attend events', active: isSocial,
+                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+                },
+                {
+                  value: 'professional' as const, label: 'Professional', desc: 'Network, find collaborators', active: isProfessional,
+                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>,
+                },
+              ]).map(opt => (
                 <button
                   key={opt.value}
-                  onClick={() => handleToggleMode(opt.value as 'social' | 'professional')}
+                  onClick={() => handleToggleMode(opt.value)}
                   className={'w-full flex items-center gap-3 p-3 rounded-2xl border transition-all ' +
                     (opt.active ? 'border-[#E8B84B]/30 bg-[#E8B84B]/5' : 'border-white/10 bg-[#0D110D]')}
                 >
-                  <span className="text-base">{opt.icon}</span>
+                  <span className={opt.active ? 'text-[#E8B84B]' : 'text-white/35'}>{opt.icon}</span>
                   <div className="text-left flex-1">
                     <div className={'text-sm font-medium ' + (opt.active ? 'text-[#F0EDE6]' : 'text-white/45')}>{opt.label}</div>
                     <div className="text-[10px] text-white/30">{opt.desc}</div>
@@ -577,14 +594,22 @@ export default function SettingsPage() {
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
             {feedbackSent ? (
               <div className="text-center py-6">
-                <div className="text-4xl mb-3">🙌</div>
+                <div className="w-12 h-12 bg-[#7EC87E]/10 border border-[#7EC87E]/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7EC87E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6 9 17l-5-5"/>
+                  </svg>
+                </div>
                 <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Got it — thank you</h3>
                 <p className="text-xs text-white/40">We read every message. We may reach out if we need more detail.</p>
               </div>
             ) : (
               <>
                 <div className="text-center mb-5">
-                  <div className="text-3xl mb-3">💬</div>
+                  <div className="w-11 h-11 bg-[#1E3A1E] border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
                   <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Send feedback</h3>
                   <p className="text-xs text-white/40">Bug, idea, praise, or anything else — we'd love to hear it.</p>
                 </div>
@@ -592,10 +617,10 @@ export default function SettingsPage() {
                 {/* Category chips */}
                 <div className="grid grid-cols-4 gap-2 mb-3">
                   {[
-                    { value: 'bug', label: '🐛 Bug' },
-                    { value: 'idea', label: '💡 Idea' },
-                    { value: 'praise', label: '⭐ Love' },
-                    { value: 'other', label: '✦ Other' },
+                    { value: 'bug', label: 'Bug' },
+                    { value: 'idea', label: 'Idea' },
+                    { value: 'praise', label: 'Love' },
+                    { value: 'other', label: 'Other' },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -645,7 +670,13 @@ export default function SettingsPage() {
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
             <div className="text-center mb-5">
-              <div className="text-3xl mb-3">⚠️</div>
+              <div className="w-11 h-11 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(239,68,68,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
               <h3 className="text-base font-bold text-[#F0EDE6] mb-2">Delete your account?</h3>
               <p className="text-xs text-white/40 leading-relaxed mb-4">
                 This will permanently delete your profile, events, connections, messages, and Gathr+ status. This cannot be undone.
