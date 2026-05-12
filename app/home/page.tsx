@@ -41,6 +41,8 @@ export default function HomePage() {
   const [friendRsvpEventIds, setFriendRsvpEventIds] = useState<string[]>([])
   const [cityToast, setCityToast] = useState('')
   const cityToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [bookmarkToast, setBookmarkToast] = useState('')
+  const bookmarkToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   const { refreshing, pullProgress, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
@@ -78,6 +80,7 @@ export default function HomePage() {
       document.removeEventListener('visibilitychange', onVisible)
       subscription.unsubscribe()
       if (cityToastTimerRef.current) clearTimeout(cityToastTimerRef.current)
+      if (bookmarkToastTimerRef.current) clearTimeout(bookmarkToastTimerRef.current)
     }
   }, [router])
 
@@ -192,17 +195,26 @@ export default function HomePage() {
     }
   }
 
+  const showBookmarkToast = (label: string) => {
+    setBookmarkToast(label)
+    if (bookmarkToastTimerRef.current) clearTimeout(bookmarkToastTimerRef.current)
+    bookmarkToastTimerRef.current = setTimeout(() => setBookmarkToast(''), 1800)
+  }
+
   const handleBookmark = async (e: React.MouseEvent, eventId: string) => {
     e.stopPropagation()
     if (!user) return
+    try { (navigator as any).vibrate?.(8) } catch {}
     if (bookmarkedEventIds.includes(eventId)) {
       setBookmarkedEventIds(prev => prev.filter(id => id !== eventId))
+      showBookmarkToast('Removed from bookmarks')
       const { error } = await supabase.from('event_bookmarks').delete().eq('event_id', eventId).eq('user_id', user.id)
-      if (error) setBookmarkedEventIds(prev => [...prev, eventId])
+      if (error) { setBookmarkedEventIds(prev => [...prev, eventId]); showBookmarkToast('Couldn\'t remove — try again') }
     } else {
       setBookmarkedEventIds(prev => [...prev, eventId])
+      showBookmarkToast('Bookmarked ✦')
       const { error } = await supabase.from('event_bookmarks').insert({ event_id: eventId, user_id: user.id })
-      if (error) setBookmarkedEventIds(prev => prev.filter(id => id !== eventId))
+      if (error) { setBookmarkedEventIds(prev => prev.filter(id => id !== eventId)); showBookmarkToast('Couldn\'t save — try again') }
     }
   }
 
@@ -316,6 +328,18 @@ export default function HomePage() {
       {cityToast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[90] bg-[#1C241C] border border-[#E8B84B]/25 text-[#E8B84B] text-xs font-semibold px-4 py-2 rounded-full shadow-lg pointer-events-none">
           📍 {cityToast}
+        </div>
+      )}
+      {bookmarkToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed left-1/2 -translate-x-1/2 z-[300] bg-[#1C241C] border border-white/15 text-[#F0EDE6] text-xs font-medium px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md pointer-events-none"
+          style={{
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 92px)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(232,184,75,0.15)',
+          }}>
+          {bookmarkToast}
         </div>
       )}
       <div className="px-4 pt-14 pb-0 bg-[#0D110D]">

@@ -426,6 +426,35 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           </div>
         )}
 
+        {messages.length === 0 && !hasMore && other && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4">
+            <div className="text-4xl">👋</div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-[#F0EDE6]">Say hi to {other.name?.split(' ')[0] || 'them'}</p>
+              <p className="text-xs text-white/35 mt-1 max-w-[240px] leading-relaxed">
+                {fromEventName
+                  ? 'You both said you\'d be at ' + fromEventName + '. Start the conversation.'
+                  : 'New thread, no pressure. A short opener works best.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center max-w-[300px]">
+              {[
+                'Hey 👋',
+                fromEventName ? 'Excited for ' + fromEventName + '!' : 'How\'s your week going?',
+                'Want to grab coffee?',
+              ].map(opener => (
+                <button
+                  key={opener}
+                  onClick={() => setText(opener)}
+                  className="text-xs bg-[#1C241C] border border-white/10 rounded-full px-3 py-1.5 text-white/55 active:scale-95 transition-transform"
+                >
+                  {opener}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {messages.map((msg, i) => {
           const mine = msg.sender_id === user?.id
           const showTime = i === 0 ||
@@ -544,7 +573,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         <button
           onClick={handleSend}
           disabled={!text.trim() || sending}
-          className="w-8 h-8 bg-[#E8B84B] rounded-lg flex items-center justify-center text-sm text-[#0D110D] flex-shrink-0 disabled:opacity-40 active:scale-95 transition-transform"
+          className="w-8 h-8 bg-[#E8B84B] rounded-lg flex items-center justify-center text-sm text-[#0D110D] flex-shrink-0 disabled:opacity-40 active:scale-95 transition-all"
+          style={{
+            boxShadow: text.trim() && !sending
+              ? '0 0 18px rgba(232,184,75,0.45), 0 2px 8px rgba(232,184,75,0.25)'
+              : 'none',
+          }}
         >
           ↑
         </button>

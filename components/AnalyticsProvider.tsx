@@ -88,6 +88,17 @@ export default function AnalyticsProvider({ children }: { children: React.ReactN
  *   - 'gathr_plus_trial_claimed' / 'gathr_plus_subscribed'
  */
 export function track(event: string, properties?: Record<string, unknown>) {
-  if (typeof window === 'undefined' || !POSTHOG_KEY || !initialized) return
+  if (typeof window === 'undefined') return
+  // Drop a Sentry breadcrumb so the user's last ~30 actions are attached to
+  // any error report. No-op if Sentry isn't configured.
+  try {
+    Sentry.addBreadcrumb({
+      category: 'analytics',
+      message: event,
+      level: 'info',
+      data: properties,
+    })
+  } catch { /* swallow */ }
+  if (!POSTHOG_KEY || !initialized) return
   try { posthog.capture(event, properties) } catch { /* swallow */ }
 }
