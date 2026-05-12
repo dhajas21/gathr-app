@@ -53,35 +53,39 @@ export default function PrivacyPage() {
             body: 'Your profile name, photo, city, and public events are visible to other Gathr users. Your email address is never displayed publicly. Safety tier badges are visible on your public profile once you have received reviews. We do not sell or rent your personal data.\n\nWe share limited operational data with the following service providers as necessary to run the platform:\n\n• Supabase — database, authentication, file storage, and serverless functions. All of your account data lives here.\n• Vercel — hosting and serving the web application. Vercel processes incoming requests but does not retain personal data beyond standard server logs.\n• Sentry — error and crash reporting. When the app encounters a bug, an error event (including the page URL, browser, a sanitised stack trace, and your authenticated user ID when applicable) is sent to Sentry so we can fix it. Session replays only fire on errors and are recorded with all visible text masked and all media blocked.\n• PostHog — product analytics. Pageviews and specific in-app actions (such as creating an event, RSVPing, or joining a community) are sent to PostHog with your user ID once you are signed in. Anonymous visitors do not have person profiles created. Autocapture is disabled; only events we have explicitly named are recorded.\n\nEach of these providers acts as a data processor on our behalf and is bound by their own privacy commitments. We do not share personal data with any third party for advertising purposes.',
           },
           {
-            title: '9. Google Sign-In',
+            title: '9. AI & Automated Processing',
+            body: 'Gathr does not use artificial intelligence, large language models (LLMs), or machine learning to process the content you create on the platform. Specifically:\n\n• Your messages, community posts, post comments, profile bio, and event descriptions are not sent to any AI or LLM service.\n• Your profile photos, event covers, community banners, and chat image attachments are not analysed by computer vision or generative AI.\n• Search queries you type are not sent to any third-party AI model — search is handled by a deterministic keyword and synonym parser that runs against our database. The "Quick filters" panel that appears for phrases like "music thursday night" is rules-based pattern matching, not AI.\n• People matching and event recommendations are produced by hand-written scoring functions that compare your stated interests, city, and activity to the interests, tags, and categories of events and other users. There is no AI model in the loop.\n• Safety tier badges (New / Verified / Trusted / Flagged) are computed by averaging post-event review responses with simple arithmetic — no AI ranking is applied.\n\nIf we ever introduce AI-assisted features in the future (for example, optional content moderation or smarter search), we will update this policy, name the provider, and describe what data is sent before the feature ships.',
+          },
+          {
+            title: '10. Google Sign-In',
             body: 'If you sign in with Google, we receive your name, email address, and profile photo from Google. We do not receive access to your Google contacts, Gmail, or any other Google services. You can revoke this access at any time via your Google account settings.',
           },
           {
-            title: '10. Gathr+ Subscription',
+            title: '11. Gathr+ Subscription',
             body: 'Gathr+ is the premium tier of Gathr. Paid plans are not yet live; until they are, Gathr+ access is granted only through (1) a one-time 7-day free trial, or (2) automatic level-milestone previews.\n\n7-Day Free Trial: When you start the trial we record `gathr_plus_expires_at` (the timestamp it ends) and `gathr_plus_trial_used = true` on your profile. The trial can only be claimed once per account; this is enforced server-side via a dedicated edge function (`claim-gathr-plus-trial`) so it cannot be bypassed.\n\nLevel-Milestone Previews: Reaching level 5 or level 10 automatically grants a time-limited Gathr+ preview (48 hours and 7 days respectively). These are one-time rewards per milestone — not a free trial linked to payment. We store the preview expiry timestamp on your profile. Once the preview expires, Gathr+ features are no longer accessible unless you subscribe.\n\nPaid Plans (when live): If you subscribe, we will record your subscription status and plan type on your profile. Billing will be handled through your device\'s app store or our web payment provider. We will not store full payment card details on our servers. You will be able to cancel your subscription at any time, and your Gathr+ features will remain active until the end of your current billing period.\n\nServer-side enforcement: Your Gathr+ status, trial usage flag, and expiry timestamp are protected database columns. They cannot be modified by direct API calls from your client — only Gathr-controlled edge functions can write to them, which ensures the one-time trial rule and your subscription status are tamper-resistant.',
           },
           {
-            title: '11. Data Storage & Security',
+            title: '12. Data Storage & Security',
             body: 'Your data is stored securely using Supabase, hosted on AWS infrastructure. We use row-level security policies to ensure users can only access data they are authorised to see, plus database-level safeguards on sensitive columns (billing status, safety scores, activity counts) that prevent client-side tampering. No system is completely secure, and we encourage you to use a strong, unique password.\n\nPush Notifications: Push notifications are opt-in. We do not request permission until you explicitly enable them from Settings → Push Notifications. If you enable them, we store a subscription record (browser endpoint and encryption keys) so we can send notifications to your device. You can disable them at any time from the same settings page, which removes the subscription record. When a notification is sent, only the title, body, and a link path (e.g. "/events/abc") are included in the push payload — never your interests, profile data, or message content beyond what is needed to display the notification. Hosts can additionally toggle "Notify me when people RSVP" off if they don\'t want pushes for new attendees; RSVP-type pushes are rate-limited to once per event every 30 minutes regardless of how many people RSVP, so popular events never spam.\n\nEvent Location Data: When you create an event, the address you provide is geocoded into latitude/longitude coordinates so the event can appear on the map. Geocoding happens server-side via our backend so your IP address is not exposed to third-party geocoding services. Coordinates are stored alongside the event and are visible only at the level the event itself is visible (public events show pins to everyone; private events do not appear on the public map).\n\nFeedback Submissions: When you send feedback through Settings → Send Feedback, we record the message you wrote, the category you picked, the URL path you were on, your user ID, and your browser user-agent string. This information is only used to help us reproduce bugs and prioritise improvements. Feedback rows are only readable by Gathr team members and by you (you can request your own feedback history at any time). You can submit up to 5 feedback messages per hour to prevent abuse.',
           },
           {
-            title: '12. Data Retention',
+            title: '13. Data Retention',
             body: 'We retain your account data for as long as your account is active. Post-event reviews you have submitted are retained to maintain the integrity of the safety score system. If you delete your account, your personal profile information is removed within 30 days. Submitted reviews are anonymised rather than deleted, as removing them would unfairly alter other users\' safety scores.',
           },
           {
-            title: '13. Your Rights',
+            title: '14. Your Rights',
             body: 'You have the right to access, correct, or delete your personal information at any time. You can update your profile in Settings. You can disable people matching and control your RSVP visibility in Settings → Privacy. To delete your account, go to Settings → Danger Zone — deletion is immediate and permanent. For a data export, contact us at the address below.',
           },
           {
-            title: '14. Children\'s Privacy',
+            title: '15. Children\'s Privacy',
             body: 'Gathr is not intended for users under the age of 13. We do not knowingly collect personal information from children under 13. If we become aware that a child under 13 has provided us with personal information, we will delete it promptly.',
           },
           {
-            title: '15. Changes to This Policy',
+            title: '16. Changes to This Policy',
             body: 'We may update this Privacy Policy from time to time. We will notify you of significant changes by posting the new policy in the app. Your continued use of Gathr after changes are posted constitutes acceptance of the updated policy.',
           },
           {
-            title: '16. Contact Us',
+            title: '17. Contact Us',
             body: 'If you have questions about this Privacy Policy, your personal data, or a safety concern, please contact us at: privacy@gathr.app',
           },
         ].map(section => (

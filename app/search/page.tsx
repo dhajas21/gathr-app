@@ -395,11 +395,11 @@ export default function SearchPage() {
               </div>
             )}
 
-            {/* AI hint */}
+            {/* Quick-filter hint — rules-based parser, not AI/LLM */}
             <div className="bg-[#1C241C] border border-[#E8B84B]/20 rounded-2xl p-3 mb-4 flex items-center gap-2">
-              <span className="text-base">✨</span>
+              <span className="text-base">⚡</span>
               <span className="text-xs text-[#E8B84B]/70 flex-1">Try &quot;live music thursday night&quot; or &quot;#yoga this weekend&quot;</span>
-              <span className="bg-[#E8B84B]/10 text-[#E8B84B] text-[9px] px-2 py-0.5 rounded">Smart</span>
+              <span className="bg-[#E8B84B]/10 text-[#E8B84B] text-[9px] px-2 py-0.5 rounded">Quick filters</span>
             </div>
 
             {/* Recommendations */}
@@ -482,7 +482,7 @@ export default function SearchPage() {
           <>
             {vibeResult && (vibeResult.detectedCategory || vibeResult.dayLabel || vibeResult.timeFilter) && (
               <div className="bg-gradient-to-r from-[#1A2A1A] to-[#0E1A0E] border border-[#E8B84B]/20 rounded-2xl p-3 mb-3">
-                <div className="text-[9px] uppercase tracking-wider text-[#E8B84B]/60 mb-1">✨ Smart Search</div>
+                <div className="text-[9px] uppercase tracking-wider text-[#E8B84B]/60 mb-1">⚡ Quick filters detected</div>
                 <div className="text-sm font-bold text-[#F0EDE6] mb-1">&quot;{query}&quot;</div>
                 <div className="flex flex-wrap gap-1.5">
                   {vibeResult.detectedCategory && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.detectedCategory}</span>}
