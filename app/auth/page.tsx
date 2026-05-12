@@ -241,8 +241,11 @@ function CTA({ onClick, loading, label }: { onClick: () => void; loading: boolea
       style={{ boxShadow: '0 4px 24px rgba(232,184,75,0.28)' }}>
       {loading ? (
         <span className="flex items-center justify-center gap-2">
-          <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-          Loading...
+          <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
+            <path d="M7 1.5A5.5 5.5 0 0 1 12.5 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          Loading…
         </span>
       ) : label}
     </button>

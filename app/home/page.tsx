@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, connectionPairOr } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { HomePageSkeleton } from '@/components/Skeleton'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { ALL_CITIES, CAT_GRADIENT, INTEREST_TO_CATS, cityToTimezone } from '@/lib/constants'
 import { CAT_EMOJI } from '@/lib/categoryEmoji'
@@ -315,21 +316,7 @@ export default function HomePage() {
 
   const filteredCities = ALL_CITIES.filter(c => !citySearch || c.toLowerCase().includes(citySearch.toLowerCase()))
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0D110D] flex flex-col items-center justify-center gap-6">
-      <div className="text-center">
-        <h1 className="font-extrabold text-[#F0EDE6] text-5xl tracking-tight leading-none">
-          Gathr<span className="text-[#E8B84B] animate-pulse">.</span>
-        </h1>
-      </div>
-      <div className="flex gap-3">
-        {['🎸', '🏃', '🍺', '💻', '🥾', '🎉'].map((emoji, i) => (
-          <span key={i} className="text-xl animate-pulse" style={{ animationDelay: i * 120 + 'ms', opacity: 0.5 }}>{emoji}</span>
-        ))}
-      </div>
-      <div className="w-10 h-0.5 bg-[#E8B84B]/40 rounded-full animate-pulse" />
-    </div>
-  )
+  if (loading) return <HomePageSkeleton />
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24"
