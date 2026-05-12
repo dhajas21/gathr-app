@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, connectionPairOr } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { PublicProfileSkeleton } from '@/components/Skeleton'
 import SafetyBadge from '@/components/SafetyBadge'
@@ -63,8 +63,8 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
       supabase.from('connections').select('*')
         .or('and(requester_id.eq.' + userId + ',addressee_id.eq.' + id + '),and(requester_id.eq.' + id + ',addressee_id.eq.' + userId + ')')
         .limit(1).maybeSingle(),
-      supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted'),
-      supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + id + ',addressee_id.eq.' + id).eq('status', 'accepted'),
+      supabase.from('connections').select('requester_id, addressee_id').or(connectionPairOr(userId)).eq('status', 'accepted'),
+      supabase.from('connections').select('requester_id, addressee_id').or(connectionPairOr(id)).eq('status', 'accepted'),
       supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('user_id', id),
     ])
 

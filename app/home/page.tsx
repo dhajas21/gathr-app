@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, connectionPairOr } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
@@ -123,7 +123,12 @@ export default function HomePage() {
           return updated
         })
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events' }, (payload) => {
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'events',
+        filter: 'city=eq.' + city,
+      }, (payload) => {
         const updated = payload.new as Event
         setEvents(prev => prev.map(e => e.id === updated.id ? { ...e, spots_left: updated.spots_left } : e))
         setSoonEvents(prev => prev.map(e => e.id === updated.id ? { ...e, spots_left: updated.spots_left } : e))
@@ -155,7 +160,7 @@ export default function HomePage() {
       supabase.from('profiles').select('name,city,interests,profile_mode,avatar_url').eq('id', userId).single(),
       supabase.from('events').select('id,title,category,start_datetime,end_datetime,location_name,city,spots_left,capacity,tags,visibility,is_featured,host_id,cover_url,latitude,longitude,ticket_type,ticket_price').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(50),
       supabase.from('rsvps').select('event_id').eq('user_id', userId).limit(200),
-      supabase.from('connections').select('requester_id, addressee_id').or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId).eq('status', 'accepted').limit(500),
+      supabase.from('connections').select('requester_id, addressee_id').or(connectionPairOr(userId)).eq('status', 'accepted').limit(500),
       supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false),
       supabase.from('event_bookmarks').select('event_id').eq('user_id', userId),
     ])

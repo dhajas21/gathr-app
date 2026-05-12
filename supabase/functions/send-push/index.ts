@@ -31,9 +31,13 @@ const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const INTERNAL_PUSH_TOKEN = Deno.env.get("INTERNAL_PUSH_TOKEN") ?? "";
+// VAPID requires a contact URL/email so push services (Mozilla/Apple/Google)
+// can reach a real human if a subscription misbehaves. Configurable via env
+// so we don't have a personal address baked into source.
+const VAPID_CONTACT = Deno.env.get("VAPID_CONTACT") ?? "mailto:support@gathr.app";
 
 webpush.setVapidDetails(
-  "mailto:dhattjaskaran21@gmail.com",
+  VAPID_CONTACT,
   VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY,
 );

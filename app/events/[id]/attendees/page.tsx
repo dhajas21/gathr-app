@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, connectionPairOr } from '@/lib/supabase'
 import SafetyBadge from '@/components/SafetyBadge'
 import { isValidUUID, optimizedImgSrc } from '@/lib/utils'
 
@@ -47,7 +47,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
       supabase.from('connections')
         .select('requester_id, addressee_id')
         .eq('status', 'accepted')
-        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
+        .or(connectionPairOr(userId)),
     ])
 
     const connectedIds = new Set<string>()

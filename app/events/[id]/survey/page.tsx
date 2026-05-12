@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, connectionPairOr } from '@/lib/supabase'
 import SafetyBadge from '@/components/SafetyBadge'
 import { isValidUUID, optimizedImgSrc } from '@/lib/utils'
 
@@ -62,7 +62,7 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
       supabase.from('rsvps').select('id').eq('event_id', evtId).eq('user_id', userId).maybeSingle(),
       supabase.from('rsvps').select('user_id').eq('event_id', evtId).neq('user_id', userId),
       supabase.from('user_reviews').select('reviewed_id').eq('reviewer_id', userId).eq('event_id', evtId),
-      supabase.from('connections').select('requester_id, addressee_id').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`).eq('status', 'accepted'),
+      supabase.from('connections').select('requester_id, addressee_id').or(connectionPairOr(userId)).eq('status', 'accepted'),
     ])
 
     if (eventRes.data) setEventTitle(eventRes.data.title)

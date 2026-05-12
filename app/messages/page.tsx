@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, connectionPairOr, buildThreadId } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { MessagesPageSkeleton } from '@/components/Skeleton'
 import { optimizedImgSrc } from '@/lib/utils'
@@ -19,7 +19,10 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true)
   const [hiddenThreadIds, setHiddenThreadIds] = useState<Set<string>>(new Set())
   const hiddenThreadIdsRef = useRef<Set<string>>(new Set())
+  const communityChatsRef = useRef<any[]>([])
   const router = useRouter()
+
+  useEffect(() => { communityChatsRef.current = communityChats }, [communityChats])
 
   const fetchCommunityChats = async (userId: string) => {
     const { data: memberships } = await supabase
@@ -70,31 +73,55 @@ export default function MessagesPage() {
       fetchData(uid)
       fetchCommunityChats(uid)
 
+      // Recipient-only filter. Sender-side updates are handled optimistically
+      // in the thread page, so we don't need the firehose of every message INSERT.
       channel = supabase
         .channel('messages-list-realtime')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: 'recipient_id=eq.' + uid,
+        }, () => {
           if (!mounted) return
-          const msg = payload.new as any
-          if (msg.sender_id === uid || msg.recipient_id === uid) fetchThreads(uid)
+          fetchThreads(uid)
         })
         .subscribe()
 
+      // Supabase realtime can't OR across columns, so we register two listeners
+      // for UPDATE (either side accepting) and one for INSERT (incoming request).
       connChannel = supabase
         .channel('messages-connections-realtime')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'connections' }, async (payload) => {
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'connections',
+          filter: 'requester_id=eq.' + uid,
+        }, async (payload) => {
           if (!mounted) return
           const c = payload.new as any
-          if (!((c.requester_id === uid || c.addressee_id === uid) && c.status === 'accepted')) return
-          const otherId = c.requester_id === uid ? c.addressee_id : c.requester_id
-          const { data: prof } = await supabase.from('profiles').select('id, name, avatar_url').eq('id', otherId).single()
+          if (c.status !== 'accepted') return
+          const { data: prof } = await supabase.from('profiles').select('id, name, avatar_url').eq('id', c.addressee_id).single()
           if (!mounted) return
           setConnections(prev => prev.filter(x => x.id !== c.id))
           setAcceptedConnections(prev => prev.some(x => x.id === c.id) ? prev : [...prev, { ...c, otherProfile: prof || null }])
         })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'connections' }, async (payload) => {
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'connections',
+          filter: 'addressee_id=eq.' + uid,
+        }, async (payload) => {
           if (!mounted) return
           const c = payload.new as any
-          if (c.addressee_id !== uid) return
+          if (c.status !== 'accepted') return
+          const { data: prof } = await supabase.from('profiles').select('id, name, avatar_url').eq('id', c.requester_id).single()
+          if (!mounted) return
+          setConnections(prev => prev.filter(x => x.id !== c.id))
+          setAcceptedConnections(prev => prev.some(x => x.id === c.id) ? prev : [...prev, { ...c, otherProfile: prof || null }])
+        })
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'connections',
+          filter: 'addressee_id=eq.' + uid,
+        }, async (payload) => {
+          if (!mounted) return
+          const c = payload.new as any
           const { data: prof } = await supabase.from('profiles').select('id, name, avatar_url').eq('id', c.requester_id).single()
           if (!mounted) return
           setConnections(prev => prev.some(x => x.id === c.id) ? prev : [...prev, { ...c, requester: prof || null }])
@@ -103,11 +130,16 @@ export default function MessagesPage() {
 
 
 
+      // Community-chat realtime: postgres_changes can't filter on IN(...), so
+      // we subscribe broadly and ignore messages from communities the user
+      // hasn't joined. RLS still gates row visibility server-side.
       commChatChannel = supabase
         .channel('messages-community-chats')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_chat_messages' }, async (payload) => {
           if (!mounted) return
           const msg = payload.new as any
+          const joined = communityChatsRef.current
+          if (joined.length > 0 && !joined.some((c: any) => c.communityId === msg.community_id)) return
           // Fetch only the sender profile (1 query) instead of refetching all 20 communities
           const { data: prof } = await supabase.from('profiles').select('name').eq('id', msg.user_id).single()
           if (!mounted) return
@@ -184,7 +216,7 @@ export default function MessagesPage() {
           requester:profiles!connections_requester_id_fkey(id, name, avatar_url),
           addressee:profiles!connections_addressee_id_fkey(id, name, avatar_url)
         `)
-        .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId)
+        .or(connectionPairOr(userId))
         .eq('status', 'accepted'),
       supabase.from('hidden_threads').select('thread_id').eq('user_id', userId),
     ])
@@ -376,7 +408,7 @@ export default function MessagesPage() {
           </div>
           <div className="flex gap-3.5 overflow-x-auto scrollbar-hide pb-1">
             {acceptedConnections.map(conn => {
-              const threadId = [conn.requester_id, conn.addressee_id].sort().join('_')
+              const threadId = buildThreadId(conn.requester_id, conn.addressee_id)
               const hasUnread = (unreadCounts[threadId] || 0) > 0
               return (
                 <button key={conn.id}
@@ -448,7 +480,7 @@ export default function MessagesPage() {
                 {acceptedConnections.slice(0, 5).map(conn => (
                   <button
                     key={conn.id}
-                    onClick={() => router.push('/messages/' + [conn.requester_id, conn.addressee_id].sort().join('_'))}
+                    onClick={() => router.push('/messages/' + buildThreadId(conn.requester_id, conn.addressee_id))}
                     className="w-full flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] transition-transform"
                   >
                     {optimizedImgSrc(conn.otherProfile?.avatar_url, 96) ? (
@@ -555,7 +587,7 @@ export default function MessagesPage() {
                       onClick={() => {
                         setShowCompose(false)
                         setComposeSearch('')
-                        router.push('/messages/' + [conn.requester_id, conn.addressee_id].sort().join('_'))
+                        router.push('/messages/' + buildThreadId(conn.requester_id, conn.addressee_id))
                       }}
                       className="w-full flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3 active:scale-[0.98] transition-transform">
                       {optimizedImgSrc(conn.otherProfile?.avatar_url, 96) ? (

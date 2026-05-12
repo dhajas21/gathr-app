@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, connectionPairOr } from '@/lib/supabase'
 import confetti from 'canvas-confetti'
 import BottomNav from '@/components/BottomNav'
 import { ProfilePageSkeleton } from '@/components/Skeleton'
@@ -177,7 +177,7 @@ export default function ProfilePage() {
       supabase.from('rsvps').select('event_id').eq('user_id', userId).limit(200),
       supabase.from('connections')
         .select('requester_id, addressee_id')
-        .or('requester_id.eq.' + userId + ',addressee_id.eq.' + userId)
+        .or(connectionPairOr(userId))
         .eq('status', 'accepted'),
       supabase.from('community_members').select('id', { count: 'exact', head: true }).eq('user_id', userId),
       supabase.from('event_drafts').select('id').eq('user_id', userId).limit(1),

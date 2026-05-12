@@ -41,10 +41,13 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('push', (event) => {
   if (!event.data) return
-  const { title, body, url } = event.data.json()
+  let payload
+  try { payload = event.data.json() }
+  catch { payload = { title: 'Gathr', body: 'You have a new notification', url: '/notifications' } }
+  const { title, body, url } = payload
   event.waitUntil(
     self.registration.showNotification(title || 'Gathr', {
-      body,
+      body: body || '',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       data: { url: url || '/' },
