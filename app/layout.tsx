@@ -1,6 +1,6 @@
+// app/layout.tsx
 import type { Metadata, Viewport } from "next"
-import { Geist } from "next/font/google"
-import { Syne } from "next/font/google"
+import { Geist, Geist_Mono, Syne, Bricolage_Grotesque, Fraunces } from "next/font/google"
 import { Suspense } from "react"
 import "./globals.css"
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar"
@@ -9,7 +9,28 @@ import OfflineBanner from "@/components/OfflineBanner"
 import AnalyticsProvider from "@/components/AnalyticsProvider"
 import { headers } from "next/headers"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist" })
+// ── Type system ─────────────────────────────────────────
+// Geist           — body / UI                              (existing)
+// Geist Mono      — eyebrows, labels, timestamps           (new)
+// Bricolage       — wordmark, display, section heads       (new)
+// Fraunces        — editorial moments (taglines, reveals)  (new)
+// Syne            — legacy, kept until .font-display calls
+//                   are migrated to Bricolage              (deprecated)
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" })
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" })
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-bricolage",
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+})
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  weight: ["400", "500", "600", "700", "800"],
+  style: ["normal", "italic"],
+  display: "swap",
+})
 const syne = Syne({ subsets: ["latin"], variable: "--font-syne", weight: ["700", "800"] })
 
 export const metadata: Metadata = {
@@ -32,7 +53,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const nonce = (await headers()).get('x-nonce') ?? ''
 
   return (
-    <html lang="en" className={`${geist.variable} ${syne.variable} h-full`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} ${fraunces.variable} ${syne.variable} h-full`}
+      suppressHydrationWarning>
       <head>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('gathr_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();` }} />
       </head>

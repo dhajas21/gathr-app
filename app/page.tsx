@@ -3,70 +3,109 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import BrandLoader from '@/components/BrandLoader'
+
+type Mode = 'checking' | 'splash-first' | 'splash-returning'
 
 export default function SplashPage() {
   const router = useRouter()
-  const [checking, setChecking] = useState(true)
+  const [mode, setMode] = useState<Mode>('checking')
 
   useEffect(() => {
+    let cancelled = false
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return
       if (session) {
         router.push('/home')
-      } else {
-        setChecking(false)
+        return
+      }
+      // No session — show splash. First visit ever gets the full sequence;
+      // every return gets the 600ms speedrun.
+      try {
+        const seen = localStorage.getItem('gathr_splash_seen')
+        if (seen) {
+          setMode('splash-returning')
+        } else {
+          setMode('splash-first')
+          localStorage.setItem('gathr_splash_seen', '1')
+        }
+      } catch {
+        // localStorage unavailable (private mode, etc.) — default to first-run.
+        setMode('splash-first')
       }
     })
+    return () => { cancelled = true }
   }, [router])
 
-  if (checking) return (
-    <div className="min-h-screen bg-[#0D110D] flex items-center justify-center">
-      <div className="text-[#E8B84B] text-2xl font-bold">Gathr.</div>
-    </div>
-  )
+  if (mode === 'checking') return <BrandLoader />
+
+  const variantClass = mode === 'splash-first' ? 'first-run' : 'returning'
 
   return (
-    <div className="min-h-screen bg-[#0D110D] flex flex-col items-center justify-between px-7 py-16 relative overflow-hidden">
+    <div className={`gathr-splash ${variantClass}`}>
+      {/* Ambient washes */}
+      <div className="green-wash" />
+      <div className="gold-wash" />
 
-      {/* Glow */}
-      <div className="absolute top-[-40px] left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full pointer-events-none"
-        style={{ background: 'var(--gradient-landing-overlay)' }} />
-
-      {/* Logo */}
-      <div className="flex flex-col items-center mt-16 relative z-10">
-        <div className="flex items-center gap-3.5 mb-4">
-          <div className="w-16 h-16 rounded-full bg-[#1E3A1E] border-[2.5px] border-[#E8B84B] flex items-center justify-center">
-            <span className="text-[#E8B84B] text-4xl font-bold" style={{ fontFamily: 'sans-serif' }}>G</span>
-          </div>
-          <span className="text-[#F0EDE6] text-4xl font-bold tracking-tight" style={{ fontFamily: 'sans-serif' }}>ATHR</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-px w-7 bg-[#E8B84B]/20"></div>
-          <span className="text-[10px] tracking-[0.18em] uppercase text-[#E8B84B]/45">Find your people</span>
-          <div className="h-px w-7 bg-[#E8B84B]/20"></div>
-        </div>
+      {/* Radar */}
+      <div className="radar" aria-hidden="true">
+        <div className="radar-sweep" />
+        <div className="radar-ping" />
+        <svg viewBox="0 0 580 580">
+          <circle cx="290" cy="290" r="280" stroke="rgba(232,184,75,.07)" strokeWidth="1" fill="none" />
+          <circle cx="290" cy="290" r="215" stroke="rgba(232,184,75,.06)" strokeWidth="1" fill="none" />
+          <circle cx="290" cy="290" r="150" stroke="rgba(232,184,75,.05)" strokeWidth="1" fill="none" />
+          <circle cx="290" cy="290" r="85"  stroke="rgba(232,184,75,.04)" strokeWidth="1" fill="none" />
+        </svg>
       </div>
 
-      {/* Middle spacer */}
-      <div />
+      {/* Centered stack: eyebrow / wordmark / tagline */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-6 z-10">
+        <div className="splash-eyebrow font-mono-ui text-[9.5px] uppercase text-[#E8B84B]/60 mb-4 flex items-center gap-2.5"
+             style={{ letterSpacing: '.32em' }}>
+          <span className="eyebrow-pulse" />
+          Right now, near you
+        </div>
 
-      {/* CTAs */}
-      <div className="w-full flex flex-col gap-3 relative z-10">
-        <button onClick={() => router.push('/onboarding')}
-          className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform"
-          style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
-          Get Started
-        </button>
-        <button onClick={() => router.push('/auth')}
-          className="w-full py-3.5 rounded-2xl bg-transparent border border-white/10 text-white/45 text-sm active:scale-95 transition-transform">
-          Sign In
-        </button>
-        <p className="text-[10px] text-white/15 text-center mt-2 leading-relaxed">
-          By continuing you agree to Gathr's{' '}
-          <a href="/terms" className="underline text-white/25">Terms of Service</a>
-          {' '}and{' '}
-          <a href="/privacy" className="underline text-white/25">Privacy Policy</a>
+        <h1
+          className="splash-wordmark font-display font-extrabold text-[#F0EDE6] leading-none flex items-baseline"
+          style={{
+            fontSize: 'clamp(72px, 22vw, 108px)',
+            letterSpacing: '-0.055em',
+            textShadow: '0 0 40px rgba(232,184,75,0.15)',
+          }}>
+          Gathr<span style={{ color: '#E8B84B', textShadow: '0 0 24px rgba(232,184,75,0.7)' }}>.</span>
+        </h1>
+
+        <p
+          className="splash-tagline font-editorial mt-6 text-[17px] text-[#F0EDE6]/70 text-center max-w-[280px] leading-snug font-medium"
+          style={{ fontStyle: 'italic', letterSpacing: '-0.01em' }}>
+          The room is filling up.
         </p>
       </div>
+
+      {/* CTAs */}
+      <div className="splash-ctas absolute bottom-[62px] left-6 right-6 flex flex-col gap-2.5 z-20">
+        <button
+          onClick={() => router.push('/onboarding')}
+          className="w-full py-4 rounded-full bg-[#E8B84B] text-[#0D110D] font-bold text-[13.5px] uppercase active:scale-[0.98] transition-transform font-display"
+          style={{ boxShadow: '0 0 32px rgba(232,184,75,.35)', letterSpacing: '.02em' }}>
+          Get started
+        </button>
+        <button
+          onClick={() => router.push('/auth')}
+          className="w-full py-3.5 rounded-full bg-transparent border border-white/[0.14] text-white/55 text-[13px] active:scale-[0.98] transition-transform">
+          Sign in
+        </button>
+      </div>
+
+      {/* Legal */}
+      <p className="splash-legal absolute bottom-[34px] left-6 right-6 text-[9.5px] text-white/[0.18] text-center leading-relaxed z-20">
+        By continuing you agree to Gathr's{' '}
+        <a href="/terms" className="underline text-white/[0.32]">Terms of Service</a>
+        {' '}and{' '}
+        <a href="/privacy" className="underline text-white/[0.32]">Privacy Policy</a>
+      </p>
     </div>
   )
 }

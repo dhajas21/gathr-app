@@ -286,3 +286,170 @@ input, select, textarea, button {
 
 /* Tour slide backgrounds */
 [data-theme="light"] .tour-slide-bg { background: var(--gradient-category-card) !important; }
+
+/* ─── Type families ────────────────────────────────────
+   New families wired in layout.tsx; these classes let you use them
+   from Tailwind class names like className="font-display" etc. */
+.font-display      { font-family: var(--font-bricolage), system-ui, sans-serif; }
+.font-editorial    { font-family: var(--font-fraunces), Georgia, serif; }
+.font-editorial-italic { font-family: var(--font-fraunces), Georgia, serif; font-style: italic; }
+.font-mono-ui      { font-family: var(--font-geist-mono), ui-monospace, monospace; }
+
+/* Override the legacy .font-display (Syne) so existing usages adopt Bricolage
+   automatically. Remove Syne import in layout.tsx once you've audited. */
+
+/* ─── Motion tokens ────────────────────────────────────
+   Use these instead of ad-hoc durations / easings. Names match Material 3 +
+   Apple HIG conventions, calibrated for Gathr's pace. */
+:root {
+  /* Durations */
+  --motion-fast:    140ms;  /* taps, hover, tooltip in/out */
+  --motion-base:    240ms;  /* default transition, button states */
+  --motion-medium:  400ms;  /* card mount, sheet slide, tab switch */
+  --motion-slow:    700ms;  /* hero reveal, page-level entrance */
+  --motion-splash:  2400ms; /* first-launch sequence */
+  --motion-resplash: 600ms; /* returning-user splash speedrun */
+
+  /* Easings — name describes feel, not the curve */
+  --ease-standard: cubic-bezier(.2, .7, .3, 1);      /* default */
+  --ease-decelerate: cubic-bezier(.2, .8, .2, 1);    /* enters */
+  --ease-accelerate: cubic-bezier(.4, 0, 1, 1);      /* exits */
+  --ease-emphasis:  cubic-bezier(.3, 1.5, .7, 1);    /* subtle overshoot — use sparingly */
+  --ease-radar:     cubic-bezier(.3, .05, .2, 1);    /* the splash radar sweep */
+
+  /* Spacing scale — for future migration off Tailwind defaults */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+}
+
+/* ─── Splash D — first launch + returning ──────────────
+   Keep these scoped to .gathr-splash so they can't leak. */
+.gathr-splash { position: fixed; inset: 0; background: #0B0F0B; overflow: hidden; }
+.gathr-splash .gold-wash {
+  position: absolute; bottom: -60px; left: -20%; right: -20%; height: 60%;
+  background: radial-gradient(ellipse at center, rgba(232,184,75,.20) 0%, rgba(232,184,75,.06) 35%, transparent 70%);
+  pointer-events: none;
+}
+.gathr-splash .green-wash {
+  position: absolute; top: -40px; right: -30%; width: 80%; height: 40%;
+  background: radial-gradient(ellipse at center, rgba(126,200,126,.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+.gathr-splash .radar {
+  position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%);
+  width: min(580px, 130vw); aspect-ratio: 1; pointer-events: none;
+}
+.gathr-splash .radar svg { width: 100%; height: 100%; position: absolute; inset: 0; }
+.gathr-splash .radar-sweep {
+  position: absolute; inset: 0; border-radius: 50%; opacity: 0; transform-origin: center;
+  background: conic-gradient(from 0deg,
+    transparent 0deg,
+    rgba(232,184,75,0)    60deg,
+    rgba(232,184,75,.35)  86deg,
+    rgba(232,184,75,.65)  90deg,
+    rgba(232,184,75,.35)  94deg,
+    rgba(232,184,75,0)   120deg,
+    transparent 360deg);
+  -webkit-mask: radial-gradient(circle, transparent 0%, transparent 4%, #000 8%, #000 100%);
+          mask: radial-gradient(circle, transparent 0%, transparent 4%, #000 8%, #000 100%);
+}
+.gathr-splash .radar-ping {
+  position: absolute; top: 50%; left: 50%; width: 8px; height: 8px;
+  margin: -4px 0 0 -4px; border-radius: 50%; background: #7EC87E;
+  box-shadow: 0 0 14px rgba(126,200,126,.85); opacity: 0;
+  transform: translate(140px, -80px);
+}
+
+/* First-run timeline — 2.4s total */
+.gathr-splash.first-run .radar-sweep { animation: gathr-radar var(--motion-splash) var(--ease-radar) .15s forwards; }
+.gathr-splash.first-run .radar-ping  { animation: gathr-ping 1s ease .9s forwards; }
+.gathr-splash.first-run .splash-eyebrow  { opacity: 0; animation: gathr-fadeIn .55s ease .2s forwards; }
+.gathr-splash.first-run .splash-wordmark { opacity: 0; transform: translateY(14px) scale(.96); animation: gathr-massive 1.05s var(--ease-decelerate) .55s forwards; }
+.gathr-splash.first-run .splash-tagline  { opacity: 0; animation: gathr-fadeIn .65s ease 1.4s forwards; }
+.gathr-splash.first-run .splash-ctas     { opacity: 0; transform: translateY(8px); animation: gathr-upFade var(--motion-slow) var(--ease-standard) 1.75s forwards; }
+.gathr-splash.first-run .splash-legal    { opacity: 0; animation: gathr-fadeIn .5s ease 2.05s forwards; }
+
+/* Returning-user timeline — 600ms, no radar */
+.gathr-splash.returning .radar-sweep,
+.gathr-splash.returning .radar-ping { display: none; }
+.gathr-splash.returning .splash-eyebrow  { opacity: 0; animation: gathr-fadeIn .35s ease 0s forwards; }
+.gathr-splash.returning .splash-wordmark { opacity: 0; transform: translateY(8px) scale(.98); animation: gathr-massiveQuick .5s var(--ease-decelerate) .05s forwards; }
+.gathr-splash.returning .splash-tagline  { opacity: 0; animation: gathr-fadeIn .3s ease .35s forwards; }
+.gathr-splash.returning .splash-ctas     { opacity: 0; animation: gathr-fadeIn .35s ease .45s forwards; }
+.gathr-splash.returning .splash-legal    { opacity: 0; animation: gathr-fadeIn .3s ease .55s forwards; }
+
+/* Pulse dot on the splash eyebrow */
+.gathr-splash .eyebrow-pulse {
+  width: 6px; height: 6px; border-radius: 50%; background: #E8B84B;
+  box-shadow: 0 0 10px rgba(232,184,75,.7);
+  animation: gathr-eyebrowPulse 1.4s ease-in-out infinite;
+}
+
+/* ─── Brand loader (replaces emoji loader) ─────────────
+   Used by the <BrandLoader /> component on page-level fetches. */
+.gathr-loader-dot {
+  color: #E8B84B; text-shadow: 0 0 18px rgba(232,184,75,.6);
+  animation: gathr-dotBreathe 1.4s ease-in-out infinite; display: inline-block;
+}
+.gathr-loader-pill {
+  width: 48px; height: 2px; border-radius: 1px;
+  background: rgba(232,184,75,.18); overflow: hidden;
+}
+.gathr-loader-pill::after {
+  content: ""; display: block; height: 100%; width: 30%;
+  background: #E8B84B; border-radius: 1px;
+  animation: gathr-sweep 1.4s ease-in-out infinite;
+}
+
+/* ─── Keyframes — splash + loader ──────────────────────
+   Existing keyframes (mystery-shimmer-sweep, soft-pulse, empty-float,
+   rsvp-ghost-up) live higher up — these are additive. */
+@keyframes gathr-radar {
+  0%   { opacity: 0; transform: rotate(0deg); }
+  10%  { opacity: 1; }
+  80%  { opacity: .7; transform: rotate(390deg); }
+  100% { opacity: 0; transform: rotate(390deg); }
+}
+@keyframes gathr-ping {
+  0%   { opacity: 0; transform: translate(140px,-80px) scale(.4); }
+  30%  { opacity: 1; transform: translate(140px,-80px) scale(1.4); }
+  60%  { opacity: .8; transform: translate(140px,-80px) scale(1); }
+  100% { opacity: 0; transform: translate(140px,-80px) scale(1); }
+}
+@keyframes gathr-massive      { to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes gathr-massiveQuick { to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes gathr-fadeIn       { to { opacity: 1; } }
+@keyframes gathr-upFade       { to { opacity: 1; transform: translateY(0); } }
+@keyframes gathr-eyebrowPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.25); opacity: .7; }
+}
+@keyframes gathr-dotBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); text-shadow: 0 0 28px rgba(232,184,75,.9); }
+}
+@keyframes gathr-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(330%); }
+}
+
+/* Honour reduced-motion preference — kill the radar + breathing, keep fades */
+@media (prefers-reduced-motion: reduce) {
+  .gathr-splash .radar-sweep,
+  .gathr-splash .radar-ping,
+  .gathr-loader-dot,
+  .gathr-loader-pill::after,
+  .gathr-splash .eyebrow-pulse { animation: none !important; }
+  .gathr-splash.first-run .splash-wordmark { animation-duration: .3s !important; }
+  .gathr-splash.first-run .splash-ctas,
+  .gathr-splash.first-run .splash-tagline,
+  .gathr-splash.first-run .splash-eyebrow,
+  .gathr-splash.first-run .splash-legal { animation-duration: .25s !important; animation-delay: 0s !important; }
+}
