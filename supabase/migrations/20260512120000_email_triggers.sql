@@ -6,17 +6,37 @@
 --   3. connection req → after a connections row is inserted (addressee notified)
 --   4. connection acc → after a connections row is updated to 'accepted'
 
+-- dispatch_email: superseded by migration 20260512140000_email_dispatch_use_vault.sql
+-- Token and URL are now read from Vault at call time — no secrets in function body.
 create or replace function dispatch_email(payload jsonb)
 returns void
 language plpgsql
 security definer
 as $$
+declare
+  v_token text;
+  v_url   text;
 begin
+  select decrypted_secret into v_token
+  from vault.decrypted_secrets
+  where name = 'internal_email_token'
+  limit 1;
+
+  select decrypted_secret into v_url
+  from vault.decrypted_secrets
+  where name = 'send_email_url'
+  limit 1;
+
+  if v_token is null or v_url is null then
+    raise log 'dispatch_email: vault secret missing, email not sent';
+    return;
+  end if;
+
   perform net.http_post(
-    url     := 'https://adhahiqpiqwlvkykhbtf.supabase.co/functions/v1/send-email',
+    url     := v_url,
     headers := jsonb_build_object(
       'Content-Type',     'application/json',
-      'X-Internal-Token', '140e586e772153ba402926e05a6de16bee4b4a7e64e04e37cad1c9a25380c647'
+      'X-Internal-Token', v_token
     ),
     body    := payload::text
   );
