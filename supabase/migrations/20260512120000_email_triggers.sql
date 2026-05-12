@@ -16,7 +16,7 @@ begin
     url     := 'https://adhahiqpiqwlvkykhbtf.supabase.co/functions/v1/send-email',
     headers := jsonb_build_object(
       'Content-Type',     'application/json',
-      'X-Internal-Token', '49c6a2343ee23fe25528f8b516ce47001c77b0c756b3205ebf028c5e066cee15'
+      'X-Internal-Token', '140e586e772153ba402926e05a6de16bee4b4a7e64e04e37cad1c9a25380c647'
     ),
     body    := payload::text
   );
