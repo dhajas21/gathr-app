@@ -1,155 +1,94 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-const tourSlides = [
-  {
-    icon: '🏠',
-    title: 'Your Home Feed',
-    highlight: 'Discover what\'s happening',
-    body: 'Browse events trending in your city, get picks personalised to your interests, see what friends are going to, and view events you\'ve created — all in one scrollable feed.',
-    tip: 'Swipe through five tabs: Trending, For You, Near Me, Friends, and Mine. Tap the map pin button (top right) to explore events on a map. Tap your city name to switch cities.',
-    bg: 'linear-gradient(135deg,#1E3A1E,#0E1A0E)',
-  },
-  {
-    icon: '＋',
-    title: 'Create an Event',
-    highlight: 'In under 2 minutes',
-    body: 'Hosting a run club, open mic, coffee chat, or dinner? Tap the gold + button. Pick from 40+ categories, set visibility to public, unlisted, or private, and choose a ticket type: Free, Paid, or Donation.',
-    tip: 'Your progress auto-saves as a draft — leave mid-way and it\'ll be waiting. A draft chip appears on your home screen for a quick shortcut back, and your draft is also in Profile → Events tab. Add a cover photo and interest tags so the right people find you.',
-    bg: 'linear-gradient(135deg,#2A2010,#1A1408)',
-  },
-  {
-    icon: '👥',
-    title: 'Groups & Communities',
-    highlight: 'Find your people',
-    body: 'Join communities built around shared interests — running crews, coffee clubs, tech meetups, and more. Members post text and photos to a shared feed, reply with comments, and every community has its own real-time group chat. Tap any post image to expand it full-screen.',
-    tip: 'Tap Groups in the bottom nav to browse and join. Create an event from inside a community to link it directly to that group. Owners can promote members to admin in Community Settings and moderate all content.',
-    bg: 'linear-gradient(135deg,#1A2A1E,#0E1A14)',
-  },
-  {
-    icon: '🔮',
-    title: 'Mystery Matches',
-    highlight: 'The reveal is the reward',
-    body: 'RSVP to any event and Gathr shows how many attendees share your vibe — but keeps them blurred until after you go. Full profiles unlock once the event ends and you\'ve attended. You\'ll get a notification in your bell icon when your matches are ready.',
-    tip: 'Gathr+ members see partial names and shared interests before the event, and can send an anonymous wave. A mutual wave gives both people an early first-name reveal. When you\'re ready to cancel an RSVP, tap the button and confirm — your spot is released only after you confirm. Upgrade anytime in Settings.',
-    bg: 'linear-gradient(135deg,#1E2A2E,#0E1A1E)',
-  },
-  {
-    icon: '🛡️',
-    title: 'Safety & Trust',
-    highlight: 'A community you can count on',
-    body: 'After every event you attended, you\'re invited to rate the people you crossed paths with — three quick anonymous questions. Ratings build a public safety tier: New, Verified, or Trusted. Flagged accounts are removed from match lists and reviewed by our team.',
-    tip: 'You\'ll receive a notification after attending an event — tap it to go straight to the review page. Safety flags go directly to our team — two flags from different users can restrict an account. Your own tier is visible on your profile.',
-    bg: 'linear-gradient(135deg,#1A1E2A,#0E1014)',
-  },
-  {
-    icon: '💬',
-    title: 'Connect & Message',
-    highlight: 'Real conversations',
-    body: 'See someone at an event you\'d like to know? Send a connection request. Once accepted, start a private DM thread — each conversation shows exactly where you two first met.',
-    tip: 'Pending connection requests appear in your Messages tab — accept or decline right there. Long-press (or right-click on desktop) one of your own messages to unsend it — photos and files are fully removed too. Swipe left on a conversation to delete it from your list.',
-    bg: 'linear-gradient(135deg,#2A1A1A,#1A0E0E)',
-  },
-  {
-    icon: '⭐',
-    title: 'Your Profile',
-    highlight: 'Level up, earn badges, unlock perks',
-    body: 'Hosting events, attending, making connections, and adding interests all earn XP. Level up through four tiers: Newcomer, Regular, Veteran, and Legend. Earn 28 achievements in bronze, silver, and gold — including Dual Mode for running both Social and Professional profiles at once.',
-    tip: 'Check your XP, level, and achievements in Profile → Stats. Pin your best badges to your public profile. Hit level 5 for a 48-hour Gathr+ preview — level 10 for 7 days. Or claim a one-time 7-day Gathr+ free trial from Settings → Gathr+. Turn on push notifications anytime in Settings.',
-    bg: 'linear-gradient(135deg,#2A2010,#1A1A08)',
-  },
-]
+// The full 7-slide tour is retired. Feature explanations (Create, Communities,
+// Safety, Messages, Profile, etc.) move to contextual first-time tooltips that
+// fire when the user actually touches each surface — far more useful than
+// walls of explanation upfront. This single slide reinforces the one thing
+// that matters before /home: the mystery match mechanic.
+
+function PersonSvg({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+    </svg>
+  )
+}
 
 export default function TourPage() {
-  const [current, setCurrent] = useState(0)
   const router = useRouter()
-
-  const slide = tourSlides[current]
-  const isLast = current === tourSlides.length - 1
-
-  const handleNext = () => {
-    if (isLast) {
-      router.push('/home')
-    } else {
-      setCurrent(current + 1)
-    }
-  }
-
-  const handleBack = () => {
-    if (current > 0) setCurrent(current - 1)
-  }
 
   return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
-
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-14 pb-2">
-        <div className="text-base font-bold text-[#F0EDE6]" style={{ fontFamily: 'sans-serif' }}>
-          Gathr<span className="text-[#E8B84B]">.</span> <span className="text-xs font-normal text-white/30 ml-1">Quick Tour</span>
+        <div className="flex items-baseline gap-2">
+          <span className="font-display font-extrabold text-[18px] text-[#F0EDE6] tracking-[-0.02em]">
+            Gathr<span className="text-[#E8B84B]">.</span>
+          </span>
+          <span className="font-mono-ui text-[9.5px] tracking-[.18em] uppercase text-white/30 ml-1">One thing</span>
         </div>
-        <button onClick={() => router.push('/home')} className="text-xs text-white/40">
-          Skip tour
+        <button onClick={() => router.push('/home')} className="text-xs text-white/35">
+          Skip →
         </button>
       </div>
 
-      {/* Progress */}
-      <div className="flex gap-1 px-5 mb-2">
-        {tourSlides.map((_, i) => (
-          <div key={i} className={'flex-1 h-[3px] rounded-full transition-all duration-300 ' + (i <= current ? 'bg-[#E8B84B]' : 'bg-white/10')} />
-        ))}
+      {/* Content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-7 text-center gap-6 pb-6">
+        {/* Mystery match viz — one revealed, two blurred */}
+        <div
+          className="w-[200px] h-[140px] rounded-3xl border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center gap-3"
+          style={{ background: 'linear-gradient(160deg,#1E2A2E,#0E1A1E)' }}>
+          <div className="flex gap-2">
+            {[false, true, false].map((revealed, i) => (
+              <div key={i}
+                className="relative w-[34px] h-[34px] rounded-[12px] flex items-center justify-center overflow-hidden"
+                style={{
+                  background: revealed ? 'linear-gradient(135deg,#2A4A2A,#1E3A1E)' : '#161E16',
+                  border: revealed ? '1px solid rgba(126,200,126,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                  transform: revealed ? 'translateY(-6px)' : 'translateY(0)',
+                }}>
+                <PersonSvg className={revealed ? 'text-[#7EC87E]/60' : 'text-white/[0.18]'} />
+                {!revealed && <div className="mystery-shimmer absolute inset-0" />}
+              </div>
+            ))}
+          </div>
+          <p className="font-mono-ui text-[8px] tracking-[.16em] uppercase text-[#E8B84B]/50">
+            RSVP unlocks the reveal
+          </p>
+        </div>
+
+        {/* Copy */}
+        <div>
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <span className="w-[5px] h-[5px] rounded-full bg-[#E8B84B] flex-shrink-0"
+              style={{ boxShadow: '0 0 8px rgba(232,184,75,.6)' }} />
+            <span className="font-mono-ui text-[9.5px] tracking-[.28em] uppercase text-[#E8B84B]/60">
+              The mystery match
+            </span>
+          </div>
+          <h1 className="font-display font-extrabold text-[26px] text-[#F0EDE6] leading-[1.05] tracking-[-0.03em]">
+            When you RSVP,<br />the match starts.
+          </h1>
+          <p className="font-editorial-italic text-[14.5px] text-white/55 max-w-[260px] mx-auto leading-[1.4] mt-3">
+            You'll see how many people going share your vibe instantly — full profiles unlock after you attend.
+          </p>
+          <p className="font-mono-ui text-[9.5px] tracking-[.18em] uppercase text-[#E8B84B]/40 mt-5">
+            Everything else, you'll discover.
+          </p>
+        </div>
       </div>
 
-      {/* Slide */}
-      <div className="flex-1 flex flex-col items-center px-7 pt-6">
-
-        <div className="tour-slide-bg w-full h-40 rounded-3xl flex items-center justify-center text-6xl mb-6 relative overflow-hidden"
-          style={{ background: slide.bg }}>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D]/30 to-transparent"></div>
-          <span className="relative z-10">{slide.icon}</span>
-          <div className="absolute bottom-3 right-3 bg-[#0D110D]/60 border border-white/10 rounded-lg px-2 py-0.5 text-[9px] text-white/40">
-            {current + 1} / {tourSlides.length}
-          </div>
-        </div>
-
-        <h1 className="text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-1" style={{ fontFamily: 'sans-serif' }}>
-          {slide.title}
-        </h1>
-        <p className="text-base font-bold text-[#E8B84B] text-center mb-3">{slide.highlight}</p>
-        <p className="text-sm text-white/50 text-center leading-relaxed max-w-[280px] font-light mb-5">{slide.body}</p>
-
-        <div className="w-full bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl p-3.5 flex items-start gap-3">
-          <div className="w-8 h-8 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center text-sm flex-shrink-0">💡</div>
-          <div>
-            <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 mb-1 font-medium">Pro tip</div>
-            <div className="text-xs text-white/50 leading-relaxed">{slide.tip}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="px-5 pb-10 pt-4">
-        <div className="flex gap-3">
-          {current > 0 && (
-            <button onClick={handleBack}
-              className="flex-1 py-3.5 rounded-2xl bg-[#1C241C] border border-white/10 text-white/50 text-sm font-medium active:scale-95 transition-transform">
-              ← Back
-            </button>
-          )}
-          <button onClick={handleNext}
-            className={'py-3.5 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform ' + (current > 0 ? 'flex-[2]' : 'w-full')}
-            style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
-            {isLast ? 'Start Using Gathr →' : 'Next →'}
-          </button>
-        </div>
-
-        <div className="flex justify-center gap-1.5 mt-4">
-          {tourSlides.map((_, i) => (
-            <button key={i} onClick={() => setCurrent(i)}
-              className={'h-[5px] rounded-full transition-all duration-300 ' + (i === current ? 'w-5 bg-[#E8B84B]' : 'w-[5px] bg-white/15')} />
-          ))}
-        </div>
+      {/* CTA */}
+      <div className="px-5 pb-10 flex-shrink-0">
+        <button
+          onClick={() => router.push('/home')}
+          className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold font-display active:scale-95 transition-transform"
+          style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
+          Time to Gathr →
+        </button>
       </div>
     </div>
   )
