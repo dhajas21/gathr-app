@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
         </div>
       ) : (
         <div className="w-full">
-          <h2 className="text-lg font-bold text-[#F0EDE6] mb-1">Set new password</h2>
+          <h2 className="font-display text-lg font-bold text-[#F0EDE6] mb-1">Set new password</h2>
           <p className="text-xs text-white/40 mb-5">Choose something you'll remember.</p>
 
           <div className="space-y-3">

@@ -18,7 +18,7 @@ interface Event {
   tags: string[]; visibility: string; is_featured: boolean; host_id: string; rsvp_count?: number
 }
 
-const TABS = ['🔥 Trending', '✦ For You', '🏙 Near Me', '👥 Friends', '📌 Mine']
+const TABS = ['Trending', 'For You', 'Near Me', 'Friends', 'Mine']
 
 export default function HomePage() {
   const [user, setUser] = useState<any>(null)
@@ -371,7 +371,7 @@ export default function HomePage() {
       )}
       {cityToast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[90] bg-[#1C241C] border border-[#E8B84B]/25 text-[#E8B84B] text-xs font-semibold px-4 py-2 rounded-full shadow-lg pointer-events-none">
-          📍 {cityToast}
+          {cityToast}
         </div>
       )}
       {bookmarkToast && (
@@ -434,7 +434,12 @@ export default function HomePage() {
 
         {hasDraft && (
           <div className="w-full flex items-center gap-2.5 bg-[#1C1E10] border border-[#E8B84B]/25 rounded-2xl px-3.5 py-2.5 mb-1">
-            <div className="w-7 h-7 bg-[#E8B84B]/10 rounded-lg flex items-center justify-center text-sm flex-shrink-0">✏️</div>
+            <div className="w-7 h-7 bg-[#E8B84B]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </div>
             <button onClick={() => router.push('/create')} className="flex-1 min-w-0 text-left active:opacity-70 transition-opacity">
               <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium leading-none mb-0.5">Unsaved Draft</div>
               <div className="text-xs text-[#F0EDE6] font-medium">Resume creating your event →</div>

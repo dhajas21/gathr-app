@@ -109,8 +109,13 @@ export default function AuthPage() {
 
             {resetSent ? (
               <div className="text-center">
-                <div className="text-5xl mb-5">📬</div>
-                <h2 className="text-xl font-bold text-[#F0EDE6] mb-2">Check your inbox</h2>
+                <div className="w-16 h-16 bg-[#1C241C] border border-[#E8B84B]/20 rounded-3xl flex items-center justify-center mx-auto mb-5">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                </div>
+                <h2 className="font-display text-xl font-bold text-[#F0EDE6] mb-2">Check your inbox</h2>
                 <p className="text-sm text-white/40 mb-1">Reset link sent to</p>
                 <p className="text-sm font-medium text-white/60 mb-6">{email}</p>
                 <p className="text-xs text-white/25 leading-relaxed">Didn't get it? Check your spam folder or{' '}
@@ -119,7 +124,7 @@ export default function AuthPage() {
               </div>
             ) : (
               <>
-                <h2 className="text-2xl font-bold text-[#F0EDE6] mb-1">Reset password</h2>
+                <h2 className="font-display text-2xl font-bold text-[#F0EDE6] mb-1">Reset password</h2>
                 <p className="text-sm text-white/35 mb-7">We'll send a link to your email. Check your spam if it doesn't arrive in a minute.</p>
                 <div className="space-y-3">
                   <input className={inputClass} placeholder="Email address" type="email" value={email}
@@ -133,8 +138,13 @@ export default function AuthPage() {
           </div>
         ) : isSignUp && resetSent ? (
           <div className="flex flex-col min-h-[60vh] justify-center text-center">
-            <div className="text-5xl mb-5">📬</div>
-            <h2 className="text-xl font-bold text-[#F0EDE6] mb-2">Check your inbox</h2>
+            <div className="w-16 h-16 bg-[#1C241C] border border-[#E8B84B]/20 rounded-3xl flex items-center justify-center mx-auto mb-5">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </div>
+            <h2 className="font-display text-xl font-bold text-[#F0EDE6] mb-2">Check your inbox</h2>
             <p className="text-sm text-white/40 mb-1">Confirmation link sent to</p>
             <p className="text-sm font-medium text-white/60 mb-6">{email}</p>
             <p className="text-xs text-white/25 leading-relaxed">
