@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase, connectionPairOr } from '@/lib/supabase'
-import confetti from 'canvas-confetti'
+// canvas-confetti is dynamic-imported in the handlers below to keep it
+// out of the main bundle. It's only used on level-up / achievement moments.
+type ConfettiFn = (opts: Record<string, unknown>) => void
+let confettiCache: ConfettiFn | null = null
+const fireConfetti = (opts: Record<string, unknown>) => {
+  if (confettiCache) { try { confettiCache(opts) } catch {} ; return }
+  import('canvas-confetti').then(mod => {
+    confettiCache = (mod.default as unknown) as ConfettiFn
+    try { confettiCache(opts) } catch {}
+  }).catch(() => {})
+}
 import BottomNav from '@/components/BottomNav'
 import { ProfilePageSkeleton } from '@/components/Skeleton'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -93,8 +103,10 @@ export default function ProfilePage() {
   const confettiTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const router = useRouter()
 
+  const lastLoadAtRef = useRef<number>(0)
   useEffect(() => {
     const loadData = () => {
+      lastLoadAtRef.current = Date.now()
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }
         setUser(session.user)
@@ -104,10 +116,18 @@ export default function ProfilePage() {
 
     loadData()
 
-    const handleVisibility = () => { if (document.visibilityState === 'visible') loadData() }
+    // Only refetch on visibility change if the data is at least 60s stale.
+    // Previously this refetched on every tab focus which was wasteful for users
+    // who switch back to Gathr every few seconds.
+    const STALE_MS = 60_000
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() - lastLoadAtRef.current < STALE_MS) return
+      loadData()
+    }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => { document.removeEventListener('visibilitychange', handleVisibility) }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     if (loading) return
@@ -126,7 +146,7 @@ export default function ProfilePage() {
         }).catch(() => {})
         setCelebrateLevel(levelVal)
         setShowLevelUp(true)
-        confettiTimersRef.current.push(setTimeout(() => { try { confetti({ zIndex: 9999, particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] }) } catch {} }, 50))
+        confettiTimersRef.current.push(setTimeout(() => fireConfetti({ zIndex: 9999, particleCount: 160, spread: 75, origin: { y: 0.55 }, colors: ['#E8B84B', '#7EC87E', '#F0EDE6', '#E8B84B', '#FFD700'] }), 50))
       }
       localStorage.setItem('gathr_user_level', String(levelVal))
 
@@ -147,7 +167,7 @@ export default function ProfilePage() {
           setShowAchievementUnlock(true)
           const count = Math.min(fresh.length, 4)
           for (let i = 0; i < count; i++) {
-            confettiTimersRef.current.push(setTimeout(() => { try { confetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] }) } catch {} }, i * 450 + 50))
+            confettiTimersRef.current.push(setTimeout(() => fireConfetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] }), i * 450 + 50))
           }
         }
       }

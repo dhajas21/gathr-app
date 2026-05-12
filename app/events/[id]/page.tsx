@@ -10,7 +10,16 @@ import { CAT_EMOJI } from '@/lib/categoryEmoji'
 import { optimizedImgSrc, formatDateVerbose, formatTime, isValidUUID } from '@/lib/utils'
 import { track } from '@/components/AnalyticsProvider'
 import FadeIn from '@/components/FadeIn'
-import confetti from 'canvas-confetti'
+// canvas-confetti is dynamic-imported in the RSVP success handler to keep
+// it out of the main bundle for users who never RSVP.
+let confettiCache: ((opts: Record<string, unknown>) => void) | null = null
+const fireConfetti = (opts: Record<string, unknown>) => {
+  if (confettiCache) { try { confettiCache(opts) } catch {} ; return }
+  import('canvas-confetti').then(mod => {
+    confettiCache = mod.default as unknown as (opts: Record<string, unknown>) => void
+    try { confettiCache(opts) } catch {}
+  }).catch(() => {})
+}
 
 interface Event {
   id: string
@@ -251,7 +260,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       setTotalAttendees(prev => Math.max(0, prev - 1))
       setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
     } else {
-      try { confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#E8B84B', '#F0EDE6', '#7EC87E'] }) } catch {}
+      fireConfetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#E8B84B', '#F0EDE6', '#7EC87E'] })
       track('event_rsvp_joined', { event_id: event.id, category: event.category, city: event.city })
       const { data } = await supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', event.id).limit(12)
       if (data) setAttendees(data as any)

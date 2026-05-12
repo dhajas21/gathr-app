@@ -272,7 +272,7 @@ export default function HomePage() {
       default:
         setFilteredEvents(events)
     }
-  }, [activeTab, events, profile, rsvpEventIds, connectionIds, friendRsvpEventIds, user, userLocation])
+  }, [activeTab, events, profile, rsvpEventIds, connectionIds, friendRsvpEventIds, user?.id, userLocation])
 
   const getEmptyMessage = () => {
     switch (activeTab) {
