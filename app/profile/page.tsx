@@ -20,8 +20,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import UndoToast from '@/components/UndoToast'
 import FadeIn from '@/components/FadeIn'
 import { optimizedImgSrc, formatDateLong } from '@/lib/utils'
-import { cityToTimezone } from '@/lib/constants'
-import { catEmoji } from '@/lib/categoryEmoji'
+import { cityToTimezone, CAT_GRADIENT } from '@/lib/constants'
 
 
 
@@ -77,6 +76,14 @@ function computeAchievements(
     { icon: '🛡️', title: 'Trusted Member', desc: 'Reach Verified safety tier', tier: 'silver', val: (safetyTier === 'verified' || safetyTier === 'trusted') ? 1 : 0, req: 1 },
     { icon: '💠', title: 'Community Pillar', desc: 'Reach Trusted safety tier', tier: 'gold', val: safetyTier === 'trusted' ? 1 : 0, req: 1 },
   ]
+}
+
+function TierIcon({ level, size = 24 }: { level: number; size?: number }) {
+  const p = { fill: 'none', stroke: 'rgba(232,184,75,0.7)', strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  if (level >= 10) return <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M2 19h20M3 19 5 9l4.5 4.5L12 4l2.5 9.5L19 9l2 10"/></svg>
+  if (level >= 5)  return <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+  if (level >= 3)  return <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+  return <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M12 22v-8M12 14c-2 0-5-2-5-6a5 5 0 0 1 10 0c0 4-3 6-5 6z"/></svg>
 }
 
 export default function ProfilePage() {
@@ -477,9 +484,8 @@ export default function ProfilePage() {
                 {hostedEvents.slice(0, 3).map(event => (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
-                    <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-                      {catEmoji(event.category)}
-                    </div>
+                    <div className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden relative"
+                      style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
                       <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))}</div>
@@ -521,9 +527,8 @@ export default function ProfilePage() {
                 {hostedEvents.map(event => (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
-                    <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">
-                      {catEmoji(event.category)}
-                    </div>
+                    <div className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
+                      style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
                       <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>
@@ -540,9 +545,8 @@ export default function ProfilePage() {
                 {attendedEvents.map(event => (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
-                    <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">
-                      {catEmoji(event.category)}
-                    </div>
+                    <div className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
+                      style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
                       <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>
@@ -555,7 +559,11 @@ export default function ProfilePage() {
 
             {hostedEvents.length === 0 && attendedEvents.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="text-4xl">📅</div>
+                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </div>
                 <p className="text-white/40 text-sm">No events yet</p>
                 <button onClick={() => router.push('/create')}
                   className="mt-2 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">
@@ -575,7 +583,7 @@ export default function ProfilePage() {
                   <div className="text-3xl font-bold text-[#E8B84B]">Level {level}</div>
                 </div>
                 <div className="w-14 h-14 rounded-2xl bg-[#E8B84B]/10 border border-[#E8B84B]/20 flex items-center justify-center">
-                  <span className="text-2xl">{level >= 10 ? '👑' : level >= 5 ? '🔥' : level >= 3 ? '⭐' : '🌱'}</span>
+                  <TierIcon level={level} size={26} />
                 </div>
               </div>
               <div className="mb-1.5 flex items-center justify-between">
@@ -591,15 +599,27 @@ export default function ProfilePage() {
             <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-4">
               <div className="text-[9px] uppercase tracking-widest text-white/20 mb-3 font-medium">Activity</div>
               <div className="grid grid-cols-2 gap-2.5">
-                {[
-                  { icon: '🎉', num: hostedCount, label: 'Events Hosted', xp: hostedCount * 10 },
-                  { icon: '📅', num: attendedCount, label: 'Events Attended', xp: attendedCount * 5 },
-                  { icon: '🤝', num: connections.length, label: 'Connections', xp: connections.length * 3 },
-                  { icon: '✦', num: interests.length, label: 'Interests', xp: interests.length * 2 },
-                ].map(item => (
+                {([
+                  {
+                    num: hostedCount, label: 'Events Hosted', xp: hostedCount * 10,
+                    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.55)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M12 14v4M10 16h4"/></svg>,
+                  },
+                  {
+                    num: attendedCount, label: 'Events Attended', xp: attendedCount * 5,
+                    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.55)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>,
+                  },
+                  {
+                    num: connections.length, label: 'Connections', xp: connections.length * 3,
+                    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.55)" strokeWidth="1.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+                  },
+                  {
+                    num: interests.length, label: 'Interests', xp: interests.length * 2,
+                    icon: <span style={{ fontSize: 15, color: 'rgba(232,184,75,0.55)', lineHeight: 1 }}>✦</span>,
+                  },
+                ] as { num: number; label: string; xp: number; icon: React.ReactNode }[]).map(item => (
                   <div key={item.label} className="bg-[#0D110D] border border-white/10 rounded-xl p-3">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-base">{item.icon}</span>
+                      {item.icon}
                       <span className="text-[9px] text-[#E8B84B]/60">+{item.xp} XP</span>
                     </div>
                     <div className="text-xl font-bold text-[#E8B84B]">{item.num}</div>
@@ -635,11 +655,11 @@ export default function ProfilePage() {
                         {unlocked ? (
                           <div className="flex flex-col items-end gap-1">
                             <span className={'text-[9px] px-2 py-0.5 rounded border font-medium ' + tierColor(ach.tier, true) + ' ' + tierBorder(ach.tier, true)}>
-                              {ach.tier === 'gold' ? '🥇' : ach.tier === 'silver' ? '🥈' : '🥉'}
+                              {ach.tier === 'gold' ? 'Gold' : ach.tier === 'silver' ? 'Silver' : 'Bronze'}
                             </span>
                             <button onClick={() => handleTogglePin(ach.title)}
                               className={'text-[8px] px-1.5 py-0.5 rounded border transition-all ' + (pinnedBadges.includes(ach.title) ? 'border-[#E8B84B]/40 text-[#E8B84B] bg-[#E8B84B]/10' : 'border-white/10 text-white/25')}>
-                              {pinnedBadges.includes(ach.title) ? '📌 Pinned' : pinnedBadges.length >= 3 ? '—' : 'Pin'}
+                              {pinnedBadges.includes(ach.title) ? 'Pinned' : pinnedBadges.length >= 3 ? '—' : 'Pin'}
                             </button>
                           </div>
                         ) : (
@@ -689,7 +709,12 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="text-4xl">🤝</div>
+                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </div>
                 <p className="text-white/40 text-sm text-center">No connections yet</p>
                 <p className="text-white/25 text-xs text-center max-w-[220px]">Find people at events and communities and connect with them</p>
                 <button onClick={() => router.push('/communities')}
@@ -708,7 +733,11 @@ export default function ProfilePage() {
           <div className="bg-gradient-to-br from-[#1A2A1A] to-[#0D110D] border border-[#7EC87E]/30 rounded-3xl p-7 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="text-center mb-5">
               <div className="text-5xl mb-3" style={{ filter: 'drop-shadow(0 0 16px rgba(126,200,126,0.5))' }}>
-                {newAchievements.length === 1 ? newAchievements[0].icon : '🏅'}
+                {newAchievements.length === 1 ? newAchievements[0].icon : (
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(126,200,126,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+                  </svg>
+                )}
               </div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-[#7EC87E]/60 mb-1">
                 {newAchievements.length === 1 ? 'Achievement Unlocked' : newAchievements.length + ' Achievements Unlocked'}
@@ -726,7 +755,7 @@ export default function ProfilePage() {
                   (newAchievements[0].tier === 'gold' ? 'text-[#E8B84B] border-[#E8B84B]/30 bg-[#E8B84B]/10' :
                    newAchievements[0].tier === 'silver' ? 'text-[#A0AEC0] border-[#A0AEC0]/30 bg-[#A0AEC0]/10' :
                    'text-[#CD7F32] border-[#CD7F32]/30 bg-[#CD7F32]/10')}>
-                  {newAchievements[0].tier === 'gold' ? '🥇 Gold' : newAchievements[0].tier === 'silver' ? '🥈 Silver' : '🥉 Bronze'}
+                  {newAchievements[0].tier === 'gold' ? 'Gold' : newAchievements[0].tier === 'silver' ? 'Silver' : 'Bronze'}
                 </span>
               </div>
             )}
@@ -739,7 +768,9 @@ export default function ProfilePage() {
                       <div className="text-sm font-semibold text-[#F0EDE6]">{a.title}</div>
                       <div className="text-[10px] text-white/40">{a.desc}</div>
                     </div>
-                    <span className="text-sm">{a.tier === 'gold' ? '🥇' : a.tier === 'silver' ? '🥈' : '🥉'}</span>
+                    <span className={'text-[9px] px-2 py-0.5 rounded font-semibold ' + (a.tier === 'gold' ? 'text-[#E8B84B]' : a.tier === 'silver' ? 'text-[#A0AEC0]' : 'text-[#CD7F32]')}>
+                      {a.tier === 'gold' ? 'Gold' : a.tier === 'silver' ? 'Silver' : 'Bronze'}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -752,21 +783,23 @@ export default function ProfilePage() {
               } catch {}
             }}
               className="w-full py-3 rounded-2xl bg-[#7EC87E] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform">
-              Awesome! 🎉
+              Awesome!
             </button>
           </div>
         </div>
       )}
 
       {showLevelUp && (() => {
-        const tier = celebrateLevel >= 10 ? { name: 'Legend', icon: '👑', tagline: 'You\'ve reached the top. Gathr royalty.' }
-          : celebrateLevel >= 6 ? { name: 'Veteran', icon: '🔥', tagline: 'A fixture in the scene. People notice.' }
-          : celebrateLevel >= 3 ? { name: 'Regular', icon: '⭐', tagline: 'You\'re showing up. Keep the momentum.' }
-          : { name: 'Newcomer', icon: '🌱', tagline: 'Your journey on Gathr is just getting started.' }
+        const tier = celebrateLevel >= 10 ? { name: 'Legend', tagline: 'You\'ve reached the top. Gathr royalty.' }
+          : celebrateLevel >= 6 ? { name: 'Veteran', tagline: 'A fixture in the scene. People notice.' }
+          : celebrateLevel >= 3 ? { name: 'Regular', tagline: 'You\'re showing up. Keep the momentum.' }
+          : { name: 'Newcomer', tagline: 'Your journey on Gathr is just getting started.' }
         return (
           <div className="fixed inset-0 bg-black/85 z-[60] flex items-center justify-center p-6" onClick={() => { setShowLevelUp(false); setTrialGranted(null) }}>
             <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/35 rounded-3xl p-7 w-full max-w-sm text-center shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="text-7xl mb-4" style={{ filter: 'drop-shadow(0 0 20px rgba(232,184,75,0.5))' }}>{tier.icon}</div>
+              <div className="mb-4 flex justify-center" style={{ filter: 'drop-shadow(0 0 20px rgba(232,184,75,0.5))' }}>
+                <TierIcon level={celebrateLevel} size={72} />
+              </div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-[#E8B84B]/50 mb-1">Level Up</div>
               <div className="text-4xl font-bold text-[#E8B84B] mb-1">Level {celebrateLevel}</div>
               <div className="inline-block bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-full px-3 py-0.5 text-xs font-semibold text-[#E8B84B] mb-3">{tier.name}</div>
@@ -785,12 +818,12 @@ export default function ProfilePage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => {
-                    const msg = `🎉 Just hit Level ${celebrateLevel} (${tier.name}) on Gathr! ${tier.icon}`
+                    const msg = `Just hit Level ${celebrateLevel} (${tier.name}) on Gathr!`
                     if (navigator.share) navigator.share({ title: 'Gathr Level Up!', text: msg })
                     else navigator.clipboard.writeText(msg)
                   }}
                   className="flex-1 py-3 rounded-2xl bg-[#1C241C] border border-white/10 text-white/60 text-sm font-medium active:scale-95 transition-transform">
-                  Share 🔗
+                  Share
                 </button>
                 <button onClick={() => { setShowLevelUp(false); setTrialGranted(null) }}
                   className="flex-1 py-3 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold active:scale-95 transition-transform">
