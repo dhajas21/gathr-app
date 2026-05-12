@@ -190,6 +190,9 @@ input, select, textarea, button {
 [data-theme="light"] .border-\[\#7EC87E\]\/25 { border-color: rgba(46,107,54,0.32) !important; }
 [data-theme="light"] .border-\[\#7EC87E\]\/30 { border-color: rgba(46,107,54,0.36) !important; }
 [data-theme="light"] .border-\[\#7EC87E\]\/40 { border-color: rgba(46,107,54,0.45) !important; }
+/* Solid accent borders — tab underlines, radio-button rings, active-chip outlines */
+[data-theme="light"] .border-\[\#E8B84B\]  { border-color: #8E6E13 !important; }
+[data-theme="light"] .border-\[\#7EC87E\]  { border-color: #2E6B36 !important; }
 [data-theme="light"] .border-\[\#E8B84B\]\/10 { border-color: rgba(142,110,19,0.22) !important; }
 [data-theme="light"] .border-\[\#E8B84B\]\/15 { border-color: rgba(142,110,19,0.25) !important; }
 [data-theme="light"] .border-\[\#E8B84B\]\/20 { border-color: rgba(142,110,19,0.30) !important; }

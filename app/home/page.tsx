@@ -351,7 +351,7 @@ export default function HomePage() {
           onClick={() => router.push('/search')}>
           <span className="text-white/30 text-sm">🔍</span>
           <span className="text-white/30 text-sm flex-1">Search events, people, vibes...</span>
-          <span className="bg-[#1E3A1E] border border-[#E8B84B]/15 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">✨ AI</span>
+          <span className="bg-[#1E3A1E] border border-[#E8B84B]/15 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">⚡ Search</span>
         </div>
 
         {soonEvents.length > 0 && (
