@@ -251,7 +251,8 @@ export default function SetupPage() {
               <span className="text-sm text-white/30">🔍</span>
               <input type="text" value={citySearch} onChange={e => setCitySearch(e.target.value)}
                 placeholder="Search cities..."
-                className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none" />
+                className="flex-1 bg-transparent text-[#F0EDE6] placeholder-white/30 outline-none"
+                style={{ fontSize: '16px' }} />
             </div>
             <div className="w-full max-h-[240px] overflow-y-auto space-y-2">
               {filteredCities.map(c => (

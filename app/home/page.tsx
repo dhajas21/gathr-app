@@ -615,8 +615,8 @@ export default function HomePage() {
       </div>
 
       {showCityPicker && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => { setShowCityPicker(false); setCitySearch('') }}>
-          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center" onClick={() => { setShowCityPicker(false); setCitySearch('') }}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()} style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4 flex-shrink-0"></div>
             <h3 className="text-base font-bold text-[#F0EDE6] mb-1 flex-shrink-0">Change Location</h3>
             <p className="text-xs text-white/40 mb-3 flex-shrink-0">Events and recommendations update by city</p>
@@ -624,7 +624,8 @@ export default function HomePage() {
               <span className="text-sm text-white/30">🔍</span>
               <input type="text" value={citySearch} onChange={e => setCitySearch(e.target.value)}
                 placeholder="Search or type a city..."
-                className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none" />
+                className="flex-1 bg-transparent text-[#F0EDE6] placeholder-white/30 outline-none"
+                style={{ fontSize: '16px' }} />
               {citySearch && <button onClick={() => setCitySearch('')} className="text-xs text-white/30">✕</button>}
             </div>
             <div className="overflow-y-auto flex-1 space-y-2">
