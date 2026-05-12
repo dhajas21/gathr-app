@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { optimizedImgSrc, isValidUUID } from '@/lib/utils'
+import { optimizedImgSrc, isValidUUID, formatTime } from '@/lib/utils'
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 const THREAD_RE = new RegExp('^' + UUID + '_' + UUID + '$', 'i')
@@ -74,10 +74,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
       if (uploadErrorTimerRef.current) clearTimeout(uploadErrorTimerRef.current)
     }
-  }, [threadId, user])
+  }, [threadId, user?.id])
 
   useEffect(() => {
     if (!threadId) return
+    // Guard async setState calls after unmount (e.g. user navigating away
+    // while a realtime INSERT is mid-flight).
+    let mounted = true
     const channel = supabase
       .channel('thread-' + threadId)
       .on('postgres_changes', {
@@ -86,6 +89,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         table: 'messages',
         filter: 'thread_id=eq.' + threadId
       }, async (payload) => {
+        if (!mounted) return
         const msg = payload.new as any
         setMessages(prev => {
           if (prev.some(m => m.id === msg.id)) return prev
@@ -102,12 +106,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         table: 'messages',
         filter: 'thread_id=eq.' + threadId
       }, (payload) => {
+        if (!mounted) return
         const deleted = payload.old as any
         if (deleted?.id) setMessages(prev => prev.filter(m => m.id !== deleted.id))
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => { mounted = false; supabase.removeChannel(channel) }
   }, [threadId])
 
   const clearUploadError = (delay: number) => {
@@ -327,8 +332,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }
   }
 
-  const formatTime = (dt: string) =>
-    new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
   const SUPABASE_STORAGE_ORIGIN = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '') + '/storage/v1/object/public/'
   const isSafeUrl = (url: string) => url.startsWith(SUPABASE_STORAGE_ORIGIN)
