@@ -132,6 +132,9 @@ input, select, textarea, button {
 [data-theme="light"] .bg-\[\#2A4A2A\]\/15 { background-color: rgba(216,237,216,0.3) !important; }
 [data-theme="light"] .bg-\[\#1A2A1A\] { background-color: #F2F7F2 !important; }
 [data-theme="light"] .bg-\[\#2A4A2A\]\/60 { background-color: rgba(216,237,216,0.6) !important; }
+[data-theme="light"] .bg-\[\#0E1E0E\]\/90 { background-color: rgba(216,237,216,0.85) !important; }
+[data-theme="light"] .bg-\[\#0E1E0E\]\/80 { background-color: rgba(216,237,216,0.7) !important; }
+[data-theme="light"] .bg-\[\#0E1E0E\]      { background-color: #EDF6ED !important; }
 
 /* Gold gradient backgrounds */
 [data-theme="light"] .bg-\[\#2A2010\]      { background-color: #FFF6DC !important; }

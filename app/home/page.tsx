@@ -529,8 +529,12 @@ export default function HomePage() {
                       <div className="flex items-center gap-1">
                         {isRsvpd && <span className="bg-[#7EC87E]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Going ✓</span>}
                         {isHost && !isRsvpd && <span className="bg-[#E8B84B]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Hosting</span>}
-                        <button onClick={(e) => handleBookmark(e, event.id)}
-                          className={'w-6 h-6 rounded-lg flex items-center justify-center text-[11px] transition-all ' + (isBookmarked ? 'bg-[#E8B84B]/25 text-[#E8B84B]' : 'bg-black/30 text-white/50')}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleBookmark(e, event.id) }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onTouchStart={(e) => e.stopPropagation()}
+                          aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark event'}
+                          className={'w-8 h-8 rounded-lg flex items-center justify-center text-[13px] transition-all ' + (isBookmarked ? 'bg-[#E8B84B]/25 text-[#E8B84B]' : 'bg-black/30 text-white/55')}>
                           🔖
                         </button>
                       </div>
