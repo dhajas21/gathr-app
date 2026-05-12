@@ -6,8 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { HostDashboardSkeleton } from '@/components/Skeleton'
 import { formatDateLong, formatTime, optimizedImgSrc } from '@/lib/utils'
-import { cityToTimezone } from '@/lib/constants'
-import { catEmoji } from '@/lib/categoryEmoji'
+import { cityToTimezone, CAT_GRADIENT } from '@/lib/constants'
 
 export default function HostDashboardPage() {
   const [events, setEvents] = useState<any[]>([])
@@ -238,10 +237,11 @@ export default function HostDashboardPage() {
                   return (
                     <div key={event.id} className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3">
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0 overflow-hidden relative">
-                          {optimizedImgSrc(event.cover_url, 96)
-                            ? <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                            : catEmoji(event.category)}
+                        <div className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
+                          style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }}>
+                          {optimizedImgSrc(event.cover_url, 96) && (
+                            <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold text-[#F0EDE6] truncate">{event.title}</div>
@@ -310,8 +310,11 @@ export default function HostDashboardPage() {
                     return (
                       <div key={event.id} className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0 overflow-hidden relative">
-                            {optimizedImgSrc(event.cover_url, 96) ? <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} /> : catEmoji(event.category)}
+                          <div className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
+                            style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }}>
+                            {optimizedImgSrc(event.cover_url, 96) && (
+                              <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-semibold text-[#F0EDE6] truncate">{event.title}</div>
@@ -355,8 +358,11 @@ export default function HostDashboardPage() {
                     return (
                       <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                         className="bg-[#1C241C] border border-white/10 rounded-2xl p-3 flex items-center gap-3 cursor-pointer active:opacity-70">
-                        <div className="w-9 h-9 bg-[#1A2A1A] rounded-xl flex items-center justify-center text-base flex-shrink-0 overflow-hidden relative opacity-60">
-                          {optimizedImgSrc(event.cover_url, 96) ? <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} /> : catEmoji(event.category)}
+                        <div className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden relative opacity-60"
+                          style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }}>
+                          {optimizedImgSrc(event.cover_url, 96) && (
+                            <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-white/50 truncate">{event.title}</div>
@@ -424,7 +430,7 @@ export default function HostDashboardPage() {
                     return (
                       <div key={cat}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-white/60">{catEmoji(cat)} {cat}</span>
+                          <span className="text-xs text-white/60">{cat}</span>
                           <span className="text-xs font-bold text-[#E8B84B]">{count} RSVPs</span>
                         </div>
                         <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">

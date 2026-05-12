@@ -7,7 +7,6 @@ import BottomNav from '@/components/BottomNav'
 import { BookmarksPageSkeleton } from '@/components/Skeleton'
 import { CAT_GRADIENT, cityToTimezone } from '@/lib/constants'
 import { optimizedImgSrc, formatDateShort, formatTime } from '@/lib/utils'
-import { catEmoji } from '@/lib/categoryEmoji'
 
 export default function BookmarksPage() {
   const [events, setEvents] = useState<any[]>([])
@@ -51,12 +50,11 @@ export default function BookmarksPage() {
   const EventCard = ({ event }: { event: any }) => (
     <div key={event.id} onClick={() => router.push('/events/' + event.id)}
       className="bg-[#1C241C] rounded-2xl overflow-hidden border border-white/10 cursor-pointer active:scale-[0.98] transition-transform">
-      <div className="category-gradient-card h-28 flex items-center justify-center text-4xl relative"
+      <div className="category-gradient-card h-28 relative overflow-hidden"
         style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
-        {optimizedImgSrc(event.cover_url, 800)
-          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-          : <span className="relative z-10">{catEmoji(event.category)}</span>
-        }
+        {optimizedImgSrc(event.cover_url, 800) && (
+          <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80" />
       </div>
       <div className="p-3.5">
