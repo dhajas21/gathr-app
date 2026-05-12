@@ -102,6 +102,7 @@ export const ALL_CITIES = [
   'Portland', 'Eugene', 'Salem',
   'Vancouver', 'Victoria', 'Surrey', 'Burnaby',
   'San Francisco', 'Los Angeles', 'San Diego', 'Sacramento',
+  'Phoenix',
 ]
 
 export const CAT_GRADIENT: Record<string, string> = {

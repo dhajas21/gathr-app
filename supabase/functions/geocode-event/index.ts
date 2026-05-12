@@ -51,6 +51,7 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
   'Los Angeles': { lat: 34.0522, lng: -118.2437 },
   'San Diego': { lat: 32.7157, lng: -117.1611 },
   Sacramento: { lat: 38.5816, lng: -121.4944 },
+  Phoenix: { lat: 33.4484, lng: -112.0740 },
 }
 
 Deno.serve(async (req) => {
