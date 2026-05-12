@@ -6,7 +6,6 @@ import { supabase, connectionPairOr } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { EventDetailSkeleton } from '@/components/Skeleton'
 import MysteryMatchCard from '@/components/MysteryMatchCard'
-import { CAT_EMOJI } from '@/lib/categoryEmoji'
 import { optimizedImgSrc, formatDateVerbose, formatTime, isValidUUID, tzAbbreviation } from '@/lib/utils'
 import { cityToTimezone } from '@/lib/constants'
 import { track } from '@/components/AnalyticsProvider'
@@ -517,7 +516,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   if (blocked) return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col items-center justify-center px-6 gap-4 text-center">
-      <div className="w-16 h-16 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center text-3xl mb-2">🔒</div>
+      <div className="w-16 h-16 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mb-2">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
       <h2 className="text-lg font-bold text-[#F0EDE6]">Private Event</h2>
       <p className="text-sm text-white/40 max-w-[240px]">You need an invite link from the host to access this event.</p>
       <button onClick={() => router.push('/home')}
@@ -536,7 +539,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     <FadeIn className="min-h-screen bg-[#0D110D] flex flex-col">
 
       {/* Hero */}
-      <div className="relative h-52 flex items-center justify-center text-6xl flex-shrink-0"
+      <div className="relative h-52 flex-shrink-0"
         style={{background: 'var(--gradient-event-hero)'}}>
         {optimizedImgSrc((event as any).cover_url, 900) && (
           <img src={optimizedImgSrc((event as any).cover_url, 900)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -550,26 +553,33 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <div className="flex gap-2">
             {isHost && (
               <button onClick={() => router.push('/events/' + event.id + '/edit')}
-                className="w-9 h-9 bg-[#E8B84B]/20 border border-[#E8B84B]/30 rounded-xl flex items-center justify-center text-sm">
-                ✏️
+                className="w-9 h-9 bg-[#E8B84B]/20 border border-[#E8B84B]/30 rounded-xl flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
               </button>
             )}
             {isHost && (event.visibility === 'private' || event.visibility === 'unlisted') && inviteCode && (
               <button onClick={handleCopyInvite} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center text-base transition-all active:scale-95 ' + (inviteCopied ? 'border-[#7EC87E]/40 text-[#7EC87E]' : 'border-[#E8B84B]/30')}>
-                {inviteCopied ? '✓' : '🔗'}
+                {inviteCopied ? '✓' : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                  </svg>
+                )}
               </button>
             )}
             <button onClick={handleShare} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center text-base transition-all active:scale-95 ' + (copied ? 'border-[#7EC87E]/40 text-[#7EC87E]' : 'border-white/15')}>
               {copied ? '✓' : '↑'}
             </button>
-            <button onClick={handleBookmark} className={'w-9 h-9 border rounded-xl flex items-center justify-center text-base transition-all active:scale-95 ' + (bookmarked ? 'bg-[#E8B84B]/20 border-[#E8B84B]/40' : 'bg-[#0D110D]/70 border-white/15')}>🔖</button>
+            <button onClick={handleBookmark} className={'w-9 h-9 border rounded-xl flex items-center justify-center transition-all active:scale-95 ' + (bookmarked ? 'bg-[#E8B84B]/20 border-[#E8B84B]/40 text-[#E8B84B]' : 'bg-[#0D110D]/70 border-white/15 text-white/60')}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmarked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+            </button>
           </div>
         </div>
-        {!(event as any).cover_url && (
-          <span className="relative z-5">
-            {CAT_EMOJI[event.category] || '🎉'}
-          </span>
-        )}
         <div className="absolute bottom-3 left-4 flex gap-2 z-10">
           {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2 py-0.5 rounded-full">Featured</span>}
           <span className="bg-[#0E1E0E]/90 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded-full border border-[#7EC87E]/20">◉ {event.visibility}</span>
@@ -586,7 +596,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         {/* Date + Location */}
         <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center text-xs flex-shrink-0">📅</div>
+            <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.6)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
             <div>
               {(() => { const tz = cityToTimezone(event.city); const abbr = tzAbbreviation(event.start_datetime, tz); return (
                 <>
@@ -603,7 +617,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </button>
           </div>
           <button onClick={handleOpenMaps} className="flex items-center gap-3 w-full text-left active:opacity-70 transition-opacity">
-            <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center text-xs flex-shrink-0">📍</div>
+            <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.6)" strokeWidth="1.75" strokeLinecap="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-[#F0EDE6]">{event.location_name}</div>
               <div className="text-xs text-white/45">{event.location_address || event.city}</div>
@@ -642,7 +660,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
           {attendees.length === 0 ? (
             <div className="flex items-center gap-2 py-1">
-              <div className="text-2xl">👋</div>
               <p className="text-xs text-white/35">Be the first to RSVP!</p>
             </div>
           ) : (
@@ -828,8 +845,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         {/* Tickets */}
         {event.ticket_type && event.ticket_type !== 'free' && (
           <div className="bg-[#1C241C] border border-[#E8B84B]/20 rounded-2xl p-3.5 mb-3 flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
-              {event.ticket_type === 'paid' ? '🎟' : '🎁'}
+            <div className="w-9 h-9 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              {event.ticket_type === 'paid' ? (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 5H3a1 1 0 0 0-1 1v3.5a2.5 2.5 0 0 1 0 5V18a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5a2.5 2.5 0 0 1 0-5V6a1 1 0 0 0-1-1z"/>
+                </svg>
+              ) : (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/>
+                  <path d="M12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                </svg>
+              )}
             </div>
             <div>
               <div className="text-sm font-semibold text-[#F0EDE6]">
@@ -881,7 +907,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
           {comments.length === 0 ? (
             <div className="flex items-center gap-2 py-1">
-              <div className="text-2xl">💬</div>
               <p className="text-xs text-white/35">No comments yet — ask a question!</p>
             </div>
           ) : (
@@ -971,7 +996,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <button onClick={handleRsvp} disabled={rsvpLoading || isFull}
                 className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]' : isFull ? 'bg-[#1C241C] border border-white/10 text-white/40' : 'bg-[#E8B84B] text-[#0D110D]'}`}
                 style={{boxShadow: rsvped || isFull ? 'none' : '0 5px 22px rgba(232,184,75,0.3)'}}>
-                {rsvpLoading ? (rsvped ? 'Cancelling...' : 'Joining...') : rsvped ? '✓ You\'re going · Cancel RSVP' : isFull ? '🚫 Event Full' : event.ticket_type === 'paid' ? `🎟 Get Ticket${event.ticket_price ? ` · $${event.ticket_price.toFixed(2)}` : ''}` : event.ticket_type === 'donation' ? '🎁 Join · Donation welcome' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
+                {rsvpLoading ? (rsvped ? 'Cancelling...' : 'Joining...') : rsvped ? '✓ You\'re going · Cancel RSVP' : isFull ? 'Event Full' : event.ticket_type === 'paid' ? `Get Ticket${event.ticket_price ? ` · $${event.ticket_price.toFixed(2)}` : ''}` : event.ticket_type === 'donation' ? 'Join · Donation welcome' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
               </button>
             )
           })()}
@@ -982,9 +1007,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       {isHost && (
         <div className="fixed bottom-24 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
           <button onClick={() => router.push('/events/' + event.id + '/edit')}
-            className="w-full py-4 rounded-2xl font-bold text-base bg-[#E8B84B] text-[#0D110D] active:scale-95 transition-all"
+            className="w-full py-4 rounded-2xl font-bold text-base bg-[#E8B84B] text-[#0D110D] active:scale-95 transition-all flex items-center justify-center gap-2"
             style={{boxShadow: '0 5px 22px rgba(232,184,75,0.3)'}}>
-            ✏️ Edit Event
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit Event
           </button>
         </div>
       )}
@@ -998,7 +1027,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <div className="space-y-3">
               <button onClick={handleGoogleCalendar}
                 className="w-full flex items-center gap-3 bg-[#0D110D] border border-white/10 rounded-2xl px-4 py-3.5 active:opacity-70">
-                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-lg flex-shrink-0">📅</div>
+                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </div>
                 <div className="text-left">
                   <div className="text-sm font-semibold text-[#F0EDE6]">Google Calendar</div>
                   <div className="text-xs text-white/35 mt-0.5">Opens in browser</div>
@@ -1006,7 +1039,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </button>
               <button onClick={handleAppleCalendar}
                 className="w-full flex items-center gap-3 bg-[#0D110D] border border-white/10 rounded-2xl px-4 py-3.5 active:opacity-70">
-                <div className="w-9 h-9 rounded-xl bg-[#1C1C1E] border border-white/10 flex items-center justify-center text-lg flex-shrink-0">🗓</div>
+                <div className="w-9 h-9 rounded-xl bg-[#1C1C1E] border border-white/10 flex items-center justify-center flex-shrink-0">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </div>
                 <div className="text-left">
                   <div className="text-sm font-semibold text-[#F0EDE6]">Apple Calendar</div>
                   <div className="text-xs text-white/35 mt-0.5">Downloads .ics file</div>
@@ -1023,7 +1060,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4"></div>
             <div className="text-center mb-5">
-              <div className="text-3xl mb-3">🎟</div>
               <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Cancel your RSVP?</h3>
               <p className="text-xs text-white/40">Your spot will be released back to the event.</p>
             </div>
@@ -1047,7 +1083,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4"></div>
             <div className="text-center mb-5">
-              <div className="text-3xl mb-3">⚠️</div>
+              <div className="w-11 h-11 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(239,68,68,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
               <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Cancel this event?</h3>
               <p className="text-xs text-white/40">This will remove all RSVPs and cannot be undone.</p>
             </div>
