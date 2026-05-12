@@ -9,7 +9,7 @@ const tourSlides = [
     title: 'Your Home Feed',
     highlight: 'Discover what\'s happening',
     body: 'Browse events trending in your city, get picks personalised to your interests, see what friends are going to, and view events you\'ve created — all in one scrollable feed.',
-    tip: 'Swipe through five tabs: Trending, For You, Near Me, Friends, and Mine. Tap the map icon to explore events as pins on a map. Tap your city name to switch cities.',
+    tip: 'Swipe through five tabs: Trending, For You, Near Me, Friends, and Mine. Tap the map pin button (top right) to explore events on a map. Tap your city name to switch cities.',
     bg: 'linear-gradient(135deg,#1E3A1E,#0E1A0E)',
   },
   {
