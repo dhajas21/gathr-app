@@ -317,7 +317,7 @@ export default function SearchPage() {
       {/* Search bar */}
       <div className="px-4 pt-14 pb-2">
         <div className="flex items-center gap-2 bg-[#1C241C] border border-[#E8B84B]/35 rounded-2xl px-4 py-2.5">
-          <span className="text-sm text-white/30">🔍</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/30 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input
             ref={inputRef}
             type="text"
@@ -329,7 +329,9 @@ export default function SearchPage() {
           />
           {query && (
             <button onClick={() => { setQuery(''); setSearched(false); setVibeResult(null) }}
-              className="text-xs text-white/30">✕</button>
+              className="text-white/30 flex items-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           )}
         </div>
       </div>
@@ -496,7 +498,9 @@ export default function SearchPage() {
 
             {totalResults === 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <div className="text-4xl">🔍</div>
+                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mb-1">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </div>
                 <p className="text-white/40 text-sm text-center">No results for &quot;{query}&quot;</p>
                 <p className="text-white/25 text-xs text-center max-w-[220px]">Try different words or browse by category above</p>
               </div>

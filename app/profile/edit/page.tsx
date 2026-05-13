@@ -248,18 +248,18 @@ export default function EditProfilePage() {
         <div>
           <label className="text-xs text-white/50 mb-2 block">Interests <span className="text-white/25">({interests.length}/10)</span></label>
           <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5 mb-3">
-            <span className="text-sm text-white/30">🔍</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/30 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <input ref={interestInputRef} type="text" value={interestSearch} onChange={e => setInterestSearch(e.target.value)}
               placeholder="Search interests..."
               className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none" />
-            {interestSearch && <button onClick={() => { setInterestSearch(''); interestInputRef.current?.focus() }} className="text-[10px] text-white/30">✕</button>}
+            {interestSearch && <button onClick={() => { setInterestSearch(''); interestInputRef.current?.focus() }} className="text-white/30 flex items-center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
           </div>
           {interests.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
               {interests.map(i => (
                 <button key={i} onClick={() => toggleInterest(i)}
                   className="px-3 py-1.5 rounded-xl text-xs border bg-[#2A4A2A]/50 border-[#7EC87E]/30 text-[#7EC87E] flex items-center gap-1">
-                  {i} <span className="text-[#7EC87E]/60 text-[10px]">✕</span>
+                  {i} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-60"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               ))}
             </div>

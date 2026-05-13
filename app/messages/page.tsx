@@ -469,7 +469,9 @@ export default function MessagesPage() {
       {/* Direct messages */}
       {threads.length === 0 && communityChats.length === 0 ? (
         <div className="flex flex-col items-center pt-10 pb-20 px-4">
-          <div className="text-4xl mb-3">💬</div>
+          <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mb-3">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
           <p className="text-[#F0EDE6] opacity-50 text-sm text-center mb-1">No messages yet</p>
           {acceptedConnections.length === 0 ? (
             <p className="text-white/25 text-xs text-center max-w-[220px]">Connect with people at events and start a conversation</p>
@@ -561,7 +563,7 @@ export default function MessagesPage() {
           </div>
           <div className="px-4 pt-3 pb-2">
             <div className="flex items-center gap-2 bg-[#1C241C] border border-white/10 rounded-xl px-3 py-2.5">
-              <span className="text-white/30 text-sm">🔍</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/30 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
               <input
                 autoFocus
                 value={composeSearch}
@@ -691,7 +693,7 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, onDel
         </button>
         <button onClick={handleDelete}
           className="flex-1 flex flex-col items-center justify-center gap-1 bg-[#3A1E1E]">
-          <span className="text-base">🗑</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E85B5B" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           <span className="text-[9px] font-medium text-[#E85B5B]">Delete</span>
         </button>
       </div>
