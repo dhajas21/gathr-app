@@ -128,6 +128,16 @@ input, select, textarea, button {
   background: var(--gradient-category-card) !important;
 }
 
+/* ─── Community banner gradient ─────────────────────── */
+/* background set via --comm-bg CSS variable; light mode always uses
+   the CSS-variable soft-green so stored dark gradients don't stay dark */
+.comm-banner {
+  background: var(--comm-bg, var(--gradient-community-banner));
+}
+[data-theme="light"] .comm-banner {
+  background: var(--gradient-community-banner) !important;
+}
+
 /* ─── Gradient CSS variables ───────────────────────── */
 :root {
   --gradient-profile-header: linear-gradient(160deg,#1A2E1A 0%,#0D110D 65%);
@@ -291,6 +301,11 @@ input, select, textarea, button {
 [data-theme="light"] .to-\[\#0E1A0E\]   { --tw-gradient-to:   #E8F2E8 !important; }
 [data-theme="light"] .to-\[\#181F18\]   { --tw-gradient-to:   #F2F7F2 !important; }
 [data-theme="light"] .bg-white\/\[0\.025\] { background-color: rgba(0,0,0,0.03) !important; }
+
+/* Placeholder text — white-opacity placeholders on white inputs become invisible in light mode */
+[data-theme="light"] .placeholder-white\/25::placeholder { color: rgba(0,0,0,0.30) !important; }
+[data-theme="light"] .placeholder-white\/30::placeholder { color: rgba(0,0,0,0.36) !important; }
+[data-theme="light"] .placeholder-white\/40::placeholder { color: rgba(0,0,0,0.45) !important; }
 
 /* Swipe-to-delete action button (delete = dark red) */
 [data-theme="light"] .bg-\[\#3A1E1E\] { background-color: #FDEAEA !important; }

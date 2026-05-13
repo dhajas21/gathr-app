@@ -143,7 +143,7 @@ export default function CommunitiesPage() {
         <p className="text-xs text-white/40">Groups built around shared interests</p>
 
         <div className={`flex items-center gap-2 bg-[#1C241C] border rounded-2xl px-4 py-2.5 mt-3 transition-all ${searchFocused ? 'border-[#E8B84B]/35' : 'border-white/10'}`}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0 text-white/35">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
           <input
@@ -157,7 +157,9 @@ export default function CommunitiesPage() {
             className="flex-1 bg-transparent text-[#F0EDE6] placeholder-white/30 outline-none"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="text-xs text-white/30">✕</button>
+            <button onClick={() => setSearch('')} className="text-white/35 flex-shrink-0">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           )}
         </div>
       </div>
@@ -188,18 +190,18 @@ export default function CommunitiesPage() {
               {joined.map(comm => (
                 <div key={comm.id} onClick={() => router.push(`/communities/${comm.id}`)}
                   className="bg-[#1C241C] border border-white/10 rounded-2xl p-3 flex items-center gap-3 cursor-pointer active:scale-[0.98] transition-transform">
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: comm.banner_gradient || 'var(--gradient-community-banner)' }}>
+                  <div className="comm-banner w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={comm.banner_gradient ? { '--comm-bg': comm.banner_gradient } as React.CSSProperties : {}}>
                     {comm.icon
                       ? <span className="text-lg">{comm.icon}</span>
-                      : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-white/40"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     }
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-[#F0EDE6]">{comm.name}</div>
                     <div className="text-[10px] text-white/40 mt-0.5">{comm.member_count} members</div>
                   </div>
-                  <div className="text-xs text-white/20">›</div>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
               ))}
             </div>
@@ -230,11 +232,11 @@ export default function CommunitiesPage() {
             <div className="space-y-3 mb-5">
               {suggestedDiscover.map(comm => (
                 <div key={comm.id} className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl overflow-hidden">
-                  <div className="h-14 flex items-center justify-center relative"
-                    style={{ background: comm.banner_gradient || 'var(--gradient-community-banner)' }}>
+                  <div className="comm-banner h-16 flex items-center justify-center relative"
+                    style={comm.banner_gradient ? { '--comm-bg': comm.banner_gradient } as React.CSSProperties : {}}>
                     {comm.icon
                       ? <span className="text-2xl">{comm.icon}</span>
-                      : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      : <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-white/45"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     }
                     <div className="absolute top-1.5 right-2">
                       <span className="text-[8px] bg-[#E8B84B]/20 text-[#E8B84B] px-2 py-0.5 rounded-full border border-[#E8B84B]/20 font-medium">✦ For you</span>
@@ -271,7 +273,7 @@ export default function CommunitiesPage() {
         {filteredDiscover.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/30">
                 <path d="M12 22v-8M12 14c-2 0-5-2-5-6a5 5 0 0 1 10 0c0 4-3 6-5 6z"/>
               </svg>
             </div>
@@ -285,11 +287,11 @@ export default function CommunitiesPage() {
           <div className="space-y-3">
             {filteredDiscover.map(comm => (
               <div key={comm.id} className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
-                <div className="h-14 flex items-center justify-center"
-                  style={{ background: comm.banner_gradient || 'var(--gradient-community-banner)' }}>
+                <div className="comm-banner h-14 flex items-center justify-center"
+                  style={comm.banner_gradient ? { '--comm-bg': comm.banner_gradient } as React.CSSProperties : {}}>
                   {comm.icon
                     ? <span className="text-2xl">{comm.icon}</span>
-                    : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-white/40"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                   }
                 </div>
                 <div className="p-3">

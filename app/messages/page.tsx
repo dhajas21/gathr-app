@@ -366,7 +366,7 @@ export default function MessagesPage() {
             )}
             <button onClick={() => setShowCompose(true)}
               className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#F0EDE6]/60"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/55"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
           </div>
         </div>
@@ -454,11 +454,11 @@ export default function MessagesPage() {
               <button key={chat.communityId}
                 onClick={() => router.push('/communities/' + chat.communityId + '?tab=chat')}
                 className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-white/[0.02] transition-colors">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 border border-white/10"
-                  style={{ background: chat.community?.banner_gradient || 'var(--gradient-community-banner)' }}>
+                <div className="comm-banner w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 border border-white/10"
+                  style={chat.community?.banner_gradient ? { '--comm-bg': chat.community.banner_gradient } as React.CSSProperties : {}}>
                   {chat.community?.icon
                     ? <span>{chat.community.icon}</span>
-                    : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.75" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="text-white/45"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                   }
                 </div>
                 <div className="flex-1 min-w-0 text-left">
@@ -482,7 +482,7 @@ export default function MessagesPage() {
       {threads.length === 0 && communityChats.length === 0 ? (
         <div className="flex flex-col items-center pt-10 pb-20 px-4">
           <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mb-3">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-white/30"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </div>
           <p className="text-[#F0EDE6] opacity-50 text-sm text-center mb-1">No messages yet</p>
           {acceptedConnections.length === 0 ? (
@@ -581,7 +581,7 @@ export default function MessagesPage() {
           <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
             <button onClick={() => { setShowCompose(false); setComposeSearch('') }}
               className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-[#F0EDE6]/60"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-white/55"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             <h2 className="text-base font-bold text-[#F0EDE6]">New Message</h2>
           </div>
@@ -602,7 +602,7 @@ export default function MessagesPage() {
             {acceptedConnections.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-12 h-12 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-white/30"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
                 <p className="text-white/40 text-sm">No connections yet</p>
                 <p className="text-white/25 text-xs mt-1">Connect with people at events first</p>
