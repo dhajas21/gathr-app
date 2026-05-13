@@ -96,7 +96,7 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 Bellingham, Seattle, Bellevue, Tacoma, Olympia, Spokane, Portland, Eugene, Salem, Vancouver BC, Victoria, Surrey, Burnaby, San Francisco, Los Angeles, San Diego, Sacramento, Phoenix
 
 ### Light Mode / Dark Mode
-Full dual-theme support — the app ships with a dark default and a warm cream light mode. Theme toggle in Settings. 145+ CSS overrides ensure every element reads correctly in both modes.
+Full dual-theme support — the app ships with a dark default and a warm cream light mode. Theme toggle in Settings. 155+ CSS overrides ensure every element reads correctly in both modes.
 
 ---
 
