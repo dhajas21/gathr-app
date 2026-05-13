@@ -415,7 +415,7 @@ export default function SearchPage() {
             )}
 
             {/* Quick-filter hint — rules-based parser, not AI/LLM */}
-            <div className="bg-gradient-to-r from-[#1C241C] to-[#181F18] border border-[#E8B84B]/20 rounded-2xl p-3.5 mb-4 flex items-start gap-3 shadow-[0_0_24px_rgba(232,184,75,0.05)]">
+            <div className="search-tip-card bg-gradient-to-r from-[#1C241C] to-[#181F18] border border-[#E8B84B]/20 rounded-2xl p-3.5 mb-4 flex items-start gap-3 shadow-[0_0_24px_rgba(232,184,75,0.05)]">
               <div className="w-7 h-7 bg-[#E8B84B]/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               </div>

@@ -292,6 +292,16 @@ input, select, textarea, button {
 [data-theme="light"] .to-\[\#181F18\]   { --tw-gradient-to:   #F2F7F2 !important; }
 [data-theme="light"] .bg-white\/\[0\.025\] { background-color: rgba(0,0,0,0.03) !important; }
 
+/* Swipe-to-delete action button (delete = dark red) */
+[data-theme="light"] .bg-\[\#3A1E1E\] { background-color: #FDEAEA !important; }
+/* Connection request banner at 30% opacity */
+[data-theme="light"] .bg-\[\#1E3A1E\]\/30 { background-color: rgba(237,246,237,0.50) !important; }
+/* Search Quick-filters tip card — amber tint on cream so card is clearly visible */
+[data-theme="light"] .search-tip-card {
+  background: rgba(232,184,75,0.09) !important;
+  border-color: rgba(142,110,19,0.28) !important;
+}
+
 /* Prevent iOS Safari viewport zoom on input focus.
    iOS zooms when a focused element's font-size < 16px. Scoped to touch
    devices so desktop Tailwind text-sm styling is unaffected. */

@@ -7,7 +7,7 @@ import BottomNav from '@/components/BottomNav'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { HomePageSkeleton } from '@/components/Skeleton'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-import { ALL_CITIES, CAT_GRADIENT, INTEREST_TO_CATS, cityToTimezone } from '@/lib/constants'
+import { ALL_CITIES, CAT_GRADIENT, CAT_EMOJI, INTEREST_TO_CATS, cityToTimezone } from '@/lib/constants'
 import { isToday, isTomorrow, formatTime, formatDate, optimizedImgSrc } from '@/lib/utils'
 import OnboardingTooltip from '@/components/OnboardingTooltip'
 
@@ -468,6 +468,11 @@ export default function HomePage() {
                     <div className="category-gradient-card h-20 relative overflow-hidden"
                       style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
                       <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-70"></div>
+                      {CAT_EMOJI[event.category] && (
+                        <div className="absolute inset-0 flex items-center justify-center text-2xl opacity-30 pointer-events-none select-none">
+                          {CAT_EMOJI[event.category]}
+                        </div>
+                      )}
                       {isRsvpd && <div className="absolute top-1.5 right-1.5 bg-[#7EC87E] text-[#0D110D] text-[8px] font-bold px-1.5 py-0.5 rounded-full">Going ✓</div>}
                       <div className="absolute bottom-1.5 left-2 right-2">
                         {(() => { const tz = cityToTimezone(event.city); return (
@@ -496,9 +501,9 @@ export default function HomePage() {
               style={{ '--cat-bg': CAT_GRADIENT[featuredEvent.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
               {optimizedImgSrc((featuredEvent as any).cover_url, 800) && <img src={optimizedImgSrc((featuredEvent as any).cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
-              {!optimizedImgSrc((featuredEvent as any).cover_url, 800) && (
-                <div className="absolute bottom-3 left-3 font-mono-ui text-[9px] tracking-[.18em] uppercase text-[#E8B84B]/55">
-                  {featuredEvent.category}
+              {!optimizedImgSrc((featuredEvent as any).cover_url, 800) && CAT_EMOJI[featuredEvent.category] && (
+                <div className="absolute inset-0 flex items-center justify-center text-5xl opacity-25 pointer-events-none select-none">
+                  {CAT_EMOJI[featuredEvent.category]}
                 </div>
               )}
               <div className="absolute top-3 left-3">
@@ -609,9 +614,9 @@ export default function HomePage() {
                     style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
                     {optimizedImgSrc((event as any).cover_url, 800) && <img src={optimizedImgSrc((event as any).cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80"></div>
-                    {!optimizedImgSrc((event as any).cover_url, 800) && (
-                      <div className="absolute bottom-2 left-3 font-mono-ui text-[9px] tracking-[.16em] uppercase text-[#E8B84B]/50">
-                        {event.category}
+                    {!optimizedImgSrc((event as any).cover_url, 800) && CAT_EMOJI[(event as any).category] && (
+                      <div className="absolute inset-0 flex items-center justify-center text-4xl opacity-25 pointer-events-none select-none">
+                        {CAT_EMOJI[(event as any).category]}
                       </div>
                     )}
                     <div className="absolute top-2 left-2 right-2 flex justify-between items-start">

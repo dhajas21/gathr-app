@@ -489,7 +489,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                       : 'max-w-[78%] px-3 py-2 text-sm leading-relaxed ' + (
                         mine
                           ? 'bg-[#E8B84B] text-[#0D110D] rounded-2xl rounded-br-sm font-medium'
-                          : 'bg-[#1C241C] text-[#F0EDE6] rounded-2xl rounded-bl-sm'
+                          : 'bg-[#1C241C] border border-white/10 text-[#F0EDE6] rounded-2xl rounded-bl-sm'
                       )
                   }
                   onTouchStart={() => {
@@ -527,7 +527,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
       {isOtherTyping && (
         <div className="px-4 pb-1 flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-[#1C241C] border border-white/[0.07] rounded-2xl rounded-bl-sm px-3 py-2">
+          <div className="flex items-center gap-1.5 bg-[#1C241C] border border-white/10 rounded-2xl rounded-bl-sm px-3 py-2">
             <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '0ms' }} />
             <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '150ms' }} />
             <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '300ms' }} />

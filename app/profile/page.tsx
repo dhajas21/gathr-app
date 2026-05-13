@@ -81,30 +81,39 @@ function computeAchievements(
 function TierIcon({ level, size = 24 }: { level: number; size?: number }) {
   if (level >= 10) {
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24">
+      <svg width={size} height={size} viewBox="0 0 24 24"
+        style={{ filter: 'drop-shadow(0 0 7px rgba(232,184,75,0.9)) drop-shadow(0 0 14px rgba(232,184,75,0.4))' }}>
         <path d="M2 20h20v-2H2z" fill="#E8B84B"/>
-        <path d="M4 18l1-9 4 5 3-9 3 9 4-5 1 9H4z" fill="#E8B84B"/>
+        <path d="M3 18L4 9l5 5.5 3-9.5 3 9.5L20 9l1 9H3z" fill="#E8B84B"/>
+        <path d="M7 18l1-5 4 4.5 4-4.5 1 5" fill="rgba(255,255,255,0.15)"/>
       </svg>
     )
   }
   if (level >= 5) {
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24">
+      <svg width={size} height={size} viewBox="0 0 24 24"
+        style={{ filter: 'drop-shadow(0 0 6px rgba(232,184,75,0.85)) drop-shadow(0 0 12px rgba(232,184,75,0.35))' }}>
         <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" fill="#E8B84B"/>
+        <polygon points="13,2 8,14 12,14 11.5,18 15,10 12,10" fill="rgba(255,255,255,0.2)"/>
       </svg>
     )
   }
   if (level >= 3) {
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24">
+      <svg width={size} height={size} viewBox="0 0 24 24"
+        style={{ filter: 'drop-shadow(0 0 5px rgba(232,184,75,0.80)) drop-shadow(0 0 10px rgba(232,184,75,0.30))' }}>
         <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="#E8B84B"/>
+        <polygon points="12,2 13.5,8.26 17,9.27 14,13 12,17.77 10,13 7,9.27 10.5,8.26" fill="rgba(255,255,255,0.18)"/>
       </svg>
     )
   }
+  // Level 1–2: sprout
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24">
+    <svg width={size} height={size} viewBox="0 0 24 24"
+      style={{ filter: 'drop-shadow(0 0 4px rgba(126,200,126,0.70))' }}>
       <path d="M12 22v-9" stroke="#7EC87E" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-      <path d="M12 13c-2-2-6-1.5-6 1.5s3 4.5 6 4.5 6-1.5 6-4.5-4-3.5-6-1.5z" fill="#7EC87E"/>
+      <path d="M12 13c-2.5-2.5-7-1.5-7 2s3.5 5 7 5 7-1.5 7-5-4.5-4.5-7-2z" fill="#7EC87E"/>
+      <path d="M12 13c0-3-3-5-3-8a3 3 0 0 1 6 0c0 3-3 5-3 8z" fill="#7EC87E"/>
     </svg>
   )
 }

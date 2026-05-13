@@ -155,6 +155,19 @@ export const CAT_GRADIENT: Record<string, string> = {
   'Social': 'linear-gradient(135deg,#1E3A1E,#2A1A0E)',
 }
 
+export const CAT_EMOJI: Record<string, string> = {
+  'Music': '🎸', 'DJ & Electronic': '🎧', 'Hip Hop & R&B': '🎤', 'Jazz & Blues': '🎷', 'Live Concerts & Festivals': '🎪',
+  'Fitness': '🏃', 'Yoga & Pilates': '🧘', 'Running & Cycling': '🚴', 'Climbing & Hiking': '🧗', 'Combat Sports & CrossFit': '🥊',
+  'Food & Drink': '🍺', 'Coffee & Brunch': '☕', 'Wine & Cocktails': '🍷', 'Cooking & Culinary': '🍳', 'Street Food & Markets': '🌮',
+  'Tech & Coding': '💻', 'Startups & Entrepreneurship': '🚀', 'AI & Innovation': '🤖', 'Gaming & Esports': '🎮', 'Web3 & Crypto': '⛓',
+  'Outdoors & Adventure': '🥾', 'Hiking & Camping': '⛺', 'Water Sports': '🏄', 'Snow Sports': '🎿',
+  'Arts & Culture': '🎨', 'Photography & Film': '📷', 'Theatre & Comedy': '🎭', 'Fashion & Style': '👗', 'Literature & Writing': '📚',
+  'Social & Parties': '🎉', 'Nightlife': '🌙', 'Networking': '🤝', 'Business & Finance': '📈',
+  'Wellness & Mindfulness': '🌿', 'Dance & Movement': '💃', 'Spirituality': '✨', 'Volunteering & Activism': '🌱',
+  'Education & Workshops': '🎓', 'Sports & Recreation': '⚽', 'Pets & Animals': '🐾', 'Science & Innovation': '🔬', 'Markets & Pop-ups': '🏪',
+  'Tech': '💻', 'Outdoors': '🥾', 'Social': '🎉',
+}
+
 export const INTEREST_TO_CATS: Record<string, string[]> = {
   'music': ['Music', 'Live Concerts & Festivals'], 'live music': ['Music', 'Live Concerts & Festivals'],
   'concerts': ['Live Concerts & Festivals'], 'festivals': ['Live Concerts & Festivals'],
