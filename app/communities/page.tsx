@@ -46,6 +46,7 @@ export default function CommunitiesPage() {
   const [joined, setJoined] = useState<any[]>([])
   const [discover, setDiscover] = useState<any[]>([])
   const [joiningId, setJoiningId] = useState<string | null>(null)
+  const [joinError, setJoinError] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
   const [search, setSearch] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
@@ -92,6 +93,9 @@ export default function CommunitiesPage() {
     })
     if (!error) {
       await fetchCommunities(user.id)
+    } else {
+      setJoinError('Could not join — please try again.')
+      setTimeout(() => setJoinError(''), 3500)
     }
     setJoiningId(null)
   }
@@ -129,6 +133,12 @@ export default function CommunitiesPage() {
         <div className="fixed top-0 left-0 right-0 h-0.5 z-[100]" style={{ background: 'rgba(232,184,75,0.25)' }}>
           <div className={'h-full bg-[#E8B84B] ' + (refreshing ? 'animate-pulse w-full' : 'transition-none')}
             style={!refreshing ? { width: pullProgress * 100 + '%' } : undefined} />
+        </div>
+      )}
+
+      {joinError && (
+        <div className="fixed top-14 left-4 right-4 z-50 px-4 py-2.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center shadow-lg">
+          {joinError}
         </div>
       )}
 

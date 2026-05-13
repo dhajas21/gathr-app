@@ -103,8 +103,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
       const eventIds = rsvps.map((r: any) => r.event_id)
       const { data: attended } = await supabase
         .from('events').select('*').in('id', eventIds).eq('visibility', 'public')
-        .gte('start_datetime', new Date().toISOString())
-        .order('start_datetime', { ascending: true }).limit(10)
+        .order('start_datetime', { ascending: false }).limit(20)
       if (attended) setAttendedEvents(attended)
     }
 
@@ -175,7 +174,9 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
           {optimizedImgSrc(profile.avatar_url, 128) ? (
             <img src={optimizedImgSrc(profile.avatar_url, 128)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3"  loading="lazy" />
           ) : (
-            <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-2xl mb-3">🧑</div>
+            <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-xl font-bold text-[#E8B84B] mb-3">
+              {profile.name ? profile.name.trim().split(' ').filter(Boolean).slice(0, 2).map((n: string) => n[0].toUpperCase()).join('') : '?'}
+            </div>
           )}
           <div className="flex items-center gap-2 flex-wrap">
             <div className="font-bold text-[#F0EDE6] text-lg">{profile.name}</div>
@@ -258,7 +259,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                   {optimizedImgSrc(p.avatar_url, 64) ? (
                     <img src={optimizedImgSrc(p.avatar_url, 64)!} alt="" className="w-6 h-6 rounded-lg object-cover"  loading="lazy" />
                   ) : (
-                    <div className="w-6 h-6 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-[10px]">🧑</div>
+                    <div className="w-6 h-6 bg-[#2A4A2A] rounded-lg flex items-center justify-center text-[9px] font-bold text-[#E8B84B]">{p.name ? p.name.trim()[0].toUpperCase() : '?'}</div>
                   )}
                   <span className="text-xs text-[#7EC87E]/80">{p.name}</span>
                 </button>
@@ -300,19 +301,25 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
               )}
               {activeTab === 'going' && (
                 attendedEvents.length === 0 ? (
-                  <p className="text-xs text-white/30 text-center py-4">No upcoming events</p>
+                  <p className="text-xs text-white/30 text-center py-4">No events yet</p>
                 ) : (
-                  attendedEvents.map(event => (
-                    <div key={event.id} onClick={() => router.push('/events/' + event.id)}
-                      className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
-                      <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">{categoryEmoji(event.category)}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
-                        <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>
+                  attendedEvents.map(event => {
+                    const isPast = new Date(event.start_datetime) < new Date()
+                    return (
+                      <div key={event.id} onClick={() => router.push('/events/' + event.id)}
+                        className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
+                        <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0">{categoryEmoji(event.category)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
+                          <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>
+                        </div>
+                        {isPast
+                          ? <span className="text-[9px] bg-white/5 text-white/30 px-2 py-0.5 rounded border border-white/10 flex-shrink-0">Attended</span>
+                          : <span className="text-[9px] bg-[#7EC87E]/10 text-[#7EC87E] px-2 py-0.5 rounded border border-[#7EC87E]/20 flex-shrink-0">Going</span>
+                        }
                       </div>
-                      <span className="text-[9px] bg-[#7EC87E]/10 text-[#7EC87E] px-2 py-0.5 rounded border border-[#7EC87E]/20 flex-shrink-0">Going</span>
-                    </div>
-                  ))
+                    )
+                  })
                 )
               )}
             </div>

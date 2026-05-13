@@ -79,6 +79,7 @@ export default function SetupPage() {
   const [saveStep, setSaveStep] = useState<'photo' | 'profile' | null>(null)
   const [saveError, setSaveError] = useState('')
   const [photoError, setPhotoError] = useState('')
+  const [nameError, setNameError] = useState('')
   const [isResuming, setIsResuming] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -143,11 +144,21 @@ export default function SetupPage() {
     )
   }
 
+  const handleNext = () => {
+    if (step === 0 && !firstName.trim()) {
+      setNameError('Please enter your first name.')
+      return
+    }
+    setNameError('')
+    setStep(step + 1)
+  }
+
   const handleFinish = async (destination = '/home') => {
     if (!user || saving) return
     setSaving(true)
     setSaveStep(avatarFile ? 'photo' : 'profile')
     let avatarUrl: string | null = null
+    let avatarFailed = false
     if (avatarFile) {
       const ext = avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg'
       const path = `${user.id}/${Date.now()}.${ext}`
@@ -155,6 +166,8 @@ export default function SetupPage() {
       if (!error) {
         const { data: urlData } = supabase.storage.from('profile-photos').getPublicUrl(path)
         if (urlData?.publicUrl) avatarUrl = urlData.publicUrl
+      } else {
+        avatarFailed = true
       }
     }
     setSaveStep('profile')
@@ -172,6 +185,11 @@ export default function SetupPage() {
     setSaveStep(null)
     if (updateError) {
       setSaveError('Something went wrong — please try again.')
+      return
+    }
+    if (avatarFailed) {
+      setSaveError("Photo didn't upload — profile saved. Add it later in Settings.")
+      setTimeout(() => router.push(destination), 2500)
       return
     }
     router.push(destination)
@@ -247,9 +265,9 @@ export default function SetupPage() {
             <div className="w-full space-y-3">
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-xs text-white/40 mb-1.5 block">First name</label>
-                  <input className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
-                    placeholder="Jane" value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={30} autoCapitalize="words" />
+                  <label className="text-xs text-white/40 mb-1.5 block">First name <span className="text-[#E8B84B]/60">*</span></label>
+                  <input className={`w-full bg-[#1C241C] border rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none text-sm ${nameError ? 'border-red-500/50 focus:border-red-500/70' : 'border-white/10 focus:border-[#E8B84B]/40'}`}
+                    placeholder="Jane" value={firstName} onChange={e => { setFirstName(e.target.value); if (nameError) setNameError('') }} maxLength={30} autoCapitalize="words" />
                 </div>
                 <div className="flex-1">
                   <label className="text-xs text-white/40 mb-1.5 block">Last name</label>
@@ -263,6 +281,11 @@ export default function SetupPage() {
                   placeholder="Runner · Builder · Coffee lover" value={bio} onChange={e => setBio(e.target.value)} maxLength={100} />
               </div>
             </div>
+            {nameError && (
+              <div className="mt-3 text-xs text-red-400 bg-red-500/8 border border-red-500/20 rounded-xl px-3 py-2 w-full text-center">
+                {nameError}
+              </div>
+            )}
           </>
         )}
 
@@ -493,7 +516,7 @@ export default function SetupPage() {
       <div className="px-5 pb-10 pt-2 flex flex-col gap-2">
         {!isLast ? (
           <>
-            <button onClick={() => setStep(step + 1)}
+            <button onClick={handleNext}
               className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold font-display active:scale-95 transition-transform"
               style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
               Continue →
