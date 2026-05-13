@@ -317,9 +317,15 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-[#0D110D] pb-24">
 
-      {/* Search bar */}
+      {/* Header + Search bar */}
       <div className="px-4 pt-14 pb-2">
-        <div className="flex items-center gap-2 bg-[#1C241C] border border-[#E8B84B]/35 rounded-2xl px-4 py-2.5">
+        {!searched && (
+          <div className="mb-3">
+            <h1 className="font-display font-bold text-[#F0EDE6] text-2xl leading-tight">Discover</h1>
+            <p className="text-xs text-white/30 mt-0.5">Events, people &amp; communities near you</p>
+          </div>
+        )}
+        <div className="flex items-center gap-2 bg-[#1C241C] border border-[#E8B84B]/30 rounded-2xl px-4 py-3 transition-all focus-within:border-[#E8B84B]/60 focus-within:shadow-[0_0_0_3px_rgba(232,184,75,0.1),0_4px_24px_rgba(232,184,75,0.08)]">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/30 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input
             ref={inputRef}
@@ -342,27 +348,33 @@ export default function SearchPage() {
 
       {/* Result tabs */}
       {searched && (
-        <div className="flex border-b border-white/10 px-4 overflow-x-auto">
-          {(['All', 'Events', 'People', 'Communities', 'Tags'] as const).map(tab => {
-            const count = tab === 'Events' ? events.length : tab === 'People' ? people.length : tab === 'Communities' ? communities.length : tab === 'Tags' ? tagResults.length : 0
-            return (
-              <button key={tab} onClick={() => setActiveTab(tab)}
-                className={'flex-1 py-2.5 text-xs text-center border-b-2 -mb-px whitespace-nowrap ' + (activeTab === tab ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
-                {tab}{count > 0 ? ' · ' + count : ''}
-              </button>
-            )
-          })}
+        <div className="border-b border-white/10 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+          <div className="flex px-4 min-w-max">
+            {(['All', 'Events', 'People', 'Communities', 'Tags'] as const).map(tab => {
+              const count = tab === 'Events' ? events.length : tab === 'People' ? people.length : tab === 'Communities' ? communities.length : tab === 'Tags' ? tagResults.length : 0
+              return (
+                <button key={tab} onClick={() => setActiveTab(tab)}
+                  className={'px-3 py-2.5 text-xs text-center border-b-2 -mb-px whitespace-nowrap transition-colors ' + (activeTab === tab ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
+                  {tab}{count > 0 ? <span className="ml-1 text-[10px] opacity-70">{count}</span> : ''}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
       {/* Category chips */}
-      <div className="flex gap-2 overflow-x-auto px-4 py-3">
-        {CATEGORIES.map(cat => (
-          <button key={cat} onClick={() => setActiveCategory(cat)}
-            className={'px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-all ' + (activeCategory === cat ? 'bg-[#E8B84B] text-[#0D110D] border-[#E8B84B] font-semibold' : 'bg-[#1C241C] text-white/45 border-white/10')}>
-            {cat}
-          </button>
-        ))}
+      <div className="relative">
+        <div className="flex gap-2 overflow-x-auto px-4 py-3 [&::-webkit-scrollbar]:hidden">
+          {CATEGORIES.map(cat => (
+            <button key={cat} onClick={() => setActiveCategory(cat)}
+              className={'px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-all flex-shrink-0 ' + (activeCategory === cat ? 'bg-[#E8B84B] text-[#0D110D] border-[#E8B84B] font-semibold shadow-[0_0_14px_rgba(232,184,75,0.45)]' : 'bg-[#1C241C] text-white/45 border-white/10')}>
+              {cat}
+            </button>
+          ))}
+          <div className="w-6 flex-shrink-0" />
+        </div>
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#0D110D] to-transparent" />
       </div>
 
       <div className="px-4">
@@ -403,23 +415,31 @@ export default function SearchPage() {
             )}
 
             {/* Quick-filter hint — rules-based parser, not AI/LLM */}
-            <div className="bg-[#1C241C] border border-[#E8B84B]/20 rounded-2xl p-3 mb-4 flex items-center gap-2">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              <span className="text-xs text-[#E8B84B]/70 flex-1">Try &quot;live music thursday night&quot; or &quot;#yoga this weekend&quot;</span>
-              <span className="bg-[#E8B84B]/10 text-[#E8B84B] text-[9px] px-2 py-0.5 rounded">Quick filters</span>
+            <div className="bg-gradient-to-r from-[#1C241C] to-[#181F18] border border-[#E8B84B]/20 rounded-2xl p-3.5 mb-4 flex items-start gap-3 shadow-[0_0_24px_rgba(232,184,75,0.05)]">
+              <div className="w-7 h-7 bg-[#E8B84B]/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-semibold text-[#E8B84B]/80 mb-1">Smart search</div>
+                <div className="text-xs text-white/40 leading-relaxed">Try <span className="text-white/60">&quot;live music thursday night&quot;</span> or <span className="text-white/60">&quot;#yoga this weekend&quot;</span></div>
+              </div>
             </div>
 
             {/* Recommendations */}
             {recommendations.length > 0 && (
               <>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base">✦</span>
-                  <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium">Recommended for you</div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-[#E8B84B]/10 rounded-md flex items-center justify-center">
+                      <span className="text-[10px] text-[#E8B84B]">✦</span>
+                    </div>
+                    <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium">Picked for you</div>
+                  </div>
                 </div>
                 <div className="space-y-2 mb-5">
                   {recommendations.map(event => (
                     <div key={event.id} onClick={() => router.push('/events/' + event.id)}
-                      className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
+                      className={'flex gap-3 bg-[#1C241C] border rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform ' + (event.score >= 5 ? 'border-[#E8B84B]/20 shadow-[0_2px_16px_rgba(232,184,75,0.07)]' : 'border-white/10')}>
                       <div className="category-gradient-card w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
                         {optimizedImgSrc(event.cover_url, 800) && (
                           <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -428,7 +448,12 @@ export default function SearchPage() {
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
                         <div className="text-[10px] text-white/40 mt-0.5">{formatDate(event.start_datetime, cityToTimezone(event.city))}</div>
-                        {event.score >= 5 && <div className="text-[9px] text-[#E8B84B] mt-1">✦ Great match</div>}
+                        {event.score >= 5 && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-[8px] text-[#E8B84B]">✦</span>
+                            <span className="text-[9px] text-[#E8B84B]/80">Strong match</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -437,7 +462,7 @@ export default function SearchPage() {
             )}
 
             {/* Browse by category */}
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2.5">
               <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Browse by category</div>
               <button onClick={() => setShowAllCats(v => !v)} className="text-[10px] text-[#E8B84B]">
                 {showAllCats ? 'Less ↑' : 'See all →'}
@@ -458,27 +483,17 @@ export default function SearchPage() {
                 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding',
                 'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness',
               ]).map(cat => {
+                const isActive = activeCategory === cat
                 return (
                   <button key={cat} onClick={() => setActiveCategory(cat)}
-                    className={'flex items-center gap-2 p-3 rounded-2xl border transition-all active:scale-95 ' + (activeCategory === cat ? 'border-[#E8B84B]/30 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
-                    <span className={showAllCats ? 'text-base' : 'text-lg'}>{BROWSE_CAT_EMOJI[cat] || '🎉'}</span>
-                    <span className={'font-medium text-[#F0EDE6] text-left leading-tight ' + (showAllCats ? 'text-[10px]' : 'text-sm')}>{cat}</span>
+                    className={'flex items-center gap-2.5 rounded-2xl border transition-all active:scale-[0.97] ' + (showAllCats ? 'p-2' : 'p-2.5') + ' ' + (isActive ? 'border-[#E8B84B]/35 bg-[#E8B84B]/5 shadow-[0_0_16px_rgba(232,184,75,0.12)]' : 'border-white/8 bg-[#1C241C]')}>
+                    <div className={'category-gradient-card rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden ' + (showAllCats ? 'w-7 h-7' : 'w-9 h-9')} style={{ '--cat-bg': CAT_GRADIENT[cat] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
+                      <span className={showAllCats ? 'text-sm' : 'text-base'}>{BROWSE_CAT_EMOJI[cat] || '✦'}</span>
+                    </div>
+                    <span className={'font-medium text-left leading-tight ' + (showAllCats ? 'text-[9px]' : 'text-xs') + ' ' + (isActive ? 'text-[#F0EDE6]' : 'text-white/60')}>{cat}</span>
                   </button>
                 )
               })}
-            </div>
-
-            {/* Trending */}
-            <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2 font-medium">Trending searches</div>
-            <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
-              {['live music this weekend', 'coffee meetup tomorrow', 'running club', '#startups', 'outdoor adventure'].map((term, i) => (
-                <button key={term} onClick={() => setQuery(term)}
-                  className={'flex items-center gap-2 w-full px-3 py-2.5 text-left ' + (i < 4 ? 'border-b border-white/10' : '')}>
-                  <span className="text-xs text-white/25 w-4">{i + 1}</span>
-                  <span className="text-sm text-[#F0EDE6] flex-1">{term}</span>
-                  <span className="text-[10px] text-white/20">→</span>
-                </button>
-              ))}
             </div>
           </>
         )}
@@ -560,10 +575,10 @@ export default function SearchPage() {
                         <div className="text-[10px] text-white/40 mt-0.5">{person.bio_social || person.city || ''}</div>
                       </div>
                       <button onClick={(e) => handleConnect(e, person.id)}
-                        className={'text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border flex-shrink-0 transition-all ' + (
+                        className={'text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border flex-shrink-0 transition-all active:scale-95 ' + (
                           connectionStatuses[person.id] === 'accepted' ? 'bg-[#2A4A2A]/40 border-[#7EC87E]/20 text-[#7EC87E]'
                           : connectionStatuses[person.id] === 'pending' ? 'bg-transparent border-[#E8B84B]/20 text-[#E8B84B]/60'
-                          : 'bg-[#E8B84B]/10 border-[#E8B84B]/20 text-[#E8B84B]'
+                          : 'bg-[#E8B84B]/10 border-[#E8B84B]/25 text-[#E8B84B] shadow-[0_0_10px_rgba(232,184,75,0.15)]'
                         )}>
                         {connectionStatuses[person.id] === 'accepted' ? '✓ Connected' : connectionStatuses[person.id] === 'pending' ? 'Sent' : '+ Connect'}
                       </button>
