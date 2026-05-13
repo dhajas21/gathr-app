@@ -68,6 +68,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({})
   const [commentingId, setCommentingId] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -266,8 +267,14 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     setActionLoading(false)
   }
 
-  const handleLeave = async () => {
+  const handleLeave = () => {
     if (!user || actionLoading || memberRole === 'owner') return
+    setShowLeaveConfirm(true)
+  }
+
+  const handleConfirmLeave = async () => {
+    if (!user || actionLoading) return
+    setShowLeaveConfirm(false)
     setActionLoading(true)
     const { error } = await supabase.from('community_members').delete().eq('community_id', communityId).eq('user_id', user.id)
     if (!error) {
@@ -1165,6 +1172,27 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
       )}
 
       <BottomNav />
+
+      {/* Leave community confirm sheet */}
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end justify-center" onClick={() => setShowLeaveConfirm(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
+            <div className="text-center mb-5">
+              <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Leave this community?</h3>
+              <p className="text-xs text-white/40">You can rejoin anytime, but you'll lose your member status.</p>
+            </div>
+            <button onClick={handleConfirmLeave} disabled={actionLoading}
+              className="w-full py-3.5 rounded-2xl bg-[#3A1E1E] border border-red-500/20 text-red-400 font-bold text-sm mb-3 disabled:opacity-50">
+              {actionLoading ? 'Leaving…' : 'Yes, Leave Community'}
+            </button>
+            <button onClick={() => setShowLeaveConfirm(false)}
+              className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm">
+              Stay
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Image lightbox */}
       {lightboxUrl && (

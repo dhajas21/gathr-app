@@ -87,9 +87,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [inviteCode, setInviteCode] = useState('')
   const [inviteCopied, setInviteCopied] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [rsvpError, setRsvpError] = useState('')
   const commentInputRef = useRef<HTMLInputElement>(null)
   const inviteCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const rsvpErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -259,6 +261,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       setRsvped(false)
       setTotalAttendees(prev => Math.max(0, prev - 1))
       setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
+      const msg = error.code === '23505' ? 'You already have an RSVP for this event.' : 'Couldn\'t join — please try again.'
+      setRsvpError(msg)
+      if (rsvpErrorTimerRef.current) clearTimeout(rsvpErrorTimerRef.current)
+      rsvpErrorTimerRef.current = setTimeout(() => setRsvpError(''), 4000)
     } else {
       fireConfetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#E8B84B', '#F0EDE6', '#7EC87E'] })
       track('event_rsvp_joined', { event_id: event.id, category: event.category, city: event.city })
@@ -1009,6 +1015,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       {/* RSVP CTA */}
       {!isHost && (
         <div className="fixed bottom-24 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
+          {rsvpError && (
+            <div className="mb-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center">
+              {rsvpError}
+            </div>
+          )}
           {(() => {
             const isFull = event.capacity > 0 && event.spots_left === 0 && !rsvped
             return (
