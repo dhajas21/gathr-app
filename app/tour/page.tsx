@@ -37,24 +37,36 @@ export default function TourPage() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-7 text-center gap-6 pb-6">
-        {/* Mystery match viz — one revealed, two blurred */}
+        {/* Mystery match viz — golden centre sil, consistent with onboarding SlideMatch */}
         <div
-          className="w-[200px] h-[140px] rounded-3xl border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center gap-3"
+          className="w-[200px] h-[150px] rounded-3xl border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center gap-3"
           style={{ background: 'linear-gradient(160deg,#1E2A2E,#0E1A1E)' }}>
-          <div className="flex gap-2">
-            {[0, 1, 2].map((i) => (
-              <div key={i}
-                className="relative w-[34px] h-[34px] rounded-[12px] flex items-center justify-center overflow-hidden"
-                style={{
-                  background: i === 1 ? 'linear-gradient(135deg,#2A2A1A,#1A1A0E)' : '#161E16',
-                  border: i === 1 ? '1px solid rgba(232,184,75,0.35)' : '1px solid rgba(255,255,255,0.06)',
-                  transform: i === 1 ? 'translateY(-6px)' : 'translateY(0)',
-                }}>
-                <PersonSvg className="text-white/[0.18]" />
-                <div className="mystery-shimmer absolute inset-0" />
-              </div>
-            ))}
+          <div className="flex gap-2 items-end">
+            {/* Left — neutral */}
+            <div className="relative w-[34px] h-[34px] rounded-[12px] bg-[#161E16] border border-white/[0.06] flex items-center justify-center overflow-hidden flex-shrink-0">
+              <PersonSvg className="text-white/[0.18]" />
+              <div className="mystery-shimmer absolute inset-0" />
+            </div>
+
+            {/* Centre — golden, floating */}
+            <div
+              className="relative w-[34px] h-[34px] rounded-[12px] flex items-center justify-center overflow-hidden flex-shrink-0 match-float-bob"
+              style={{
+                background: 'linear-gradient(140deg,#2E1E00,#1A1200)',
+                border: '1.5px solid rgba(232,184,75,.52)',
+                boxShadow: '0 8px 24px rgba(232,184,75,.22),inset 0 1px 0 rgba(232,184,75,.2)',
+              }}>
+              <PersonSvg className="text-[#E8B84B]/[0.28]" />
+              <div className="mystery-shimmer-gold absolute inset-0" />
+            </div>
+
+            {/* Right — neutral */}
+            <div className="relative w-[34px] h-[34px] rounded-[12px] bg-[#161E16] border border-white/[0.06] flex items-center justify-center overflow-hidden flex-shrink-0">
+              <PersonSvg className="text-white/[0.18]" />
+              <div className="mystery-shimmer absolute inset-0" style={{ animationDelay: '.5s' }} />
+            </div>
           </div>
+
           <p className="font-mono-ui text-[8px] tracking-[.16em] uppercase text-[#E8B84B]/50">
             Attending reveals the match
           </p>
