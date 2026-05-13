@@ -37,6 +37,8 @@ export const CITY_NAMES = CITIES.map(c => c.name)
 
 export const DEFAULT_CITY = CITIES[0]
 
+export const FOUNDER_ID = '5a42bff2-b3b8-47f8-adc9-4ca2ca8b1a34'
+
 export const getCityCoords = (cityName: string) =>
   CITIES.find(c => c.name === cityName) ?? DEFAULT_CITY
 

@@ -9,6 +9,8 @@ import SafetyBadge from '@/components/SafetyBadge'
 import { isValidUUID, formatDateLong, optimizedImgSrc } from '@/lib/utils'
 import { cityToTimezone } from '@/lib/constants'
 
+import { FOUNDER_ID } from '@/lib/constants'
+
 const ACHIEVEMENT_LOOKUP: Record<string, { icon: string; tier: 'bronze' | 'silver' | 'gold' }> = {
   'First Event': { icon: '🎉', tier: 'bronze' }, 'Rising Host': { icon: '🎙', tier: 'silver' },
   'Host with the Most': { icon: '🏆', tier: 'gold' }, 'Community Builder': { icon: '🌆', tier: 'gold' },
@@ -194,9 +196,14 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
               <span className="text-[10px] px-2.5 py-1 rounded-lg bg-[#2A4A2A]/40 border border-[#7EC87E]/20 text-[#7EC87E]">💼 Professional</span>
             )}
           </div>
-          {profile.pinned_badges && profile.pinned_badges.length > 0 && (
+          {(profile.id === FOUNDER_ID || (profile.pinned_badges && profile.pinned_badges.length > 0)) && (
             <div className="flex gap-1.5 mt-2 flex-wrap">
-              {profile.pinned_badges.map((title: string) => {
+              {profile.id === FOUNDER_ID && (
+                <span className="text-[10px] px-2 py-1 rounded-lg border font-medium text-[#E8B84B] border-[#E8B84B]/50 bg-gradient-to-r from-[#2A1E04] to-[#100C02] shadow-[0_0_10px_rgba(232,184,75,0.25)]">
+                  ✦ Gathr Founder
+                </span>
+              )}
+              {(profile.pinned_badges || []).map((title: string) => {
                 const meta = ACHIEVEMENT_LOOKUP[title]
                 if (!meta) return null
                 const style = meta.tier === 'gold'

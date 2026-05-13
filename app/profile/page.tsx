@@ -20,7 +20,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import UndoToast from '@/components/UndoToast'
 import FadeIn from '@/components/FadeIn'
 import { optimizedImgSrc, formatDateLong } from '@/lib/utils'
-import { cityToTimezone, CAT_GRADIENT } from '@/lib/constants'
+import { cityToTimezone, CAT_GRADIENT, FOUNDER_ID } from '@/lib/constants'
 
 
 
@@ -417,8 +417,13 @@ export default function ProfilePage() {
               <span className="text-[9px] text-white/30">{xp} XP</span>
             </div>
           </div>
-          {pinnedBadges.length > 0 && (
+          {(user?.id === FOUNDER_ID || pinnedBadges.length > 0) && (
             <div className="flex gap-1.5 mt-2 flex-wrap">
+              {user?.id === FOUNDER_ID && (
+                <span className="text-[10px] px-2 py-1 rounded-lg border font-medium text-[#E8B84B] border-[#E8B84B]/50 bg-gradient-to-r from-[#2A1E04] to-[#100C02] shadow-[0_0_10px_rgba(232,184,75,0.25)]">
+                  ✦ Gathr Founder
+                </span>
+              )}
               {pinnedBadges.map(title => {
                 const ach = ACHIEVEMENTS.find(a => a.title === title)
                 if (!ach) return null
@@ -660,6 +665,16 @@ export default function ProfilePage() {
                 <span className="text-[10px] text-[#E8B84B]">{unlockedCount} / {ACHIEVEMENTS.length}</span>
               </div>
               <div className="space-y-2.5">
+                {user?.id === FOUNDER_ID && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl border border-[#E8B84B]/50 bg-gradient-to-br from-[#2A1E04] to-[#100C02] shadow-[0_0_18px_rgba(232,184,75,0.18)]">
+                    <span className="text-xl">✦</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-[#E8B84B]">Gathr Founder</div>
+                      <div className="text-[10px] text-white/35 mt-0.5">Founder &amp; CEO</div>
+                    </div>
+                    <span className="text-[9px] px-2 py-0.5 rounded border font-medium text-[#E8B84B] border-[#E8B84B]/40 flex-shrink-0">Exclusive</span>
+                  </div>
+                )}
                 {ACHIEVEMENTS.map(ach => {
                   const unlocked = ach.val >= ach.req
                   const progress = Math.min(ach.val / ach.req, 1)
