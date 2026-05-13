@@ -16,6 +16,7 @@ export default function MessagesPage() {
   const [communityChats, setCommunityChats] = useState<any[]>([])
   const [showCompose, setShowCompose] = useState(false)
   const [composeSearch, setComposeSearch] = useState('')
+  const [showSwipeTip, setShowSwipeTip] = useState(false)
   const [loading, setLoading] = useState(true)
   const [hiddenThreadIds, setHiddenThreadIds] = useState<Set<string>>(new Set())
   const hiddenThreadIdsRef = useRef<Set<string>>(new Set())
@@ -23,6 +24,12 @@ export default function MessagesPage() {
   const router = useRouter()
 
   useEffect(() => { communityChatsRef.current = communityChats }, [communityChats])
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem('gathr_swipe_tip_seen')) setShowSwipeTip(true)
+    } catch {}
+  }, [])
 
   const fetchCommunityChats = async (userId: string) => {
     const { data: memberships } = await supabase
@@ -516,6 +523,16 @@ export default function MessagesPage() {
         </div>
       ) : threads.length > 0 ? (
         <div className="mt-2">
+          {showSwipeTip && (
+            <div className="mx-4 mb-2 flex items-center gap-2.5 bg-[#1C241C] border border-white/10 rounded-2xl px-3 py-2.5">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+              <span className="flex-1 text-[10px] text-white/40 leading-snug">Swipe left on a conversation to mark read or delete</span>
+              <button onClick={() => { setShowSwipeTip(false); try { localStorage.setItem('gathr_swipe_tip_seen', '1') } catch {} }}
+                className="text-white/20 flex-shrink-0 pl-1">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          )}
           {communityChats.length > 0 && (
             <div className="text-[9px] uppercase tracking-widest text-white/20 px-4 py-2 font-medium">Direct Messages</div>
           )}

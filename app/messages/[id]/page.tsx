@@ -399,7 +399,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         {optimizedImgSrc(other?.avatar_url, 96) ? (
           <img src={optimizedImgSrc(other.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
         ) : (
-          <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-base flex-shrink-0">🧑</div>
+          <div className="w-9 h-9 bg-[#1E3A1E] rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-semibold text-[#7EC87E]">
+            {other?.name?.charAt(0) || '?'}
+          </div>
         )}
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-[#F0EDE6]">{other?.name || 'Chat'}</div>
@@ -408,8 +410,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           </div>
         </div>
         <button onClick={() => other && router.push('/profile/' + other.id)}
-          className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-sm">
-          👤
+          className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.75" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
         </button>
       </div>
 
@@ -428,7 +430,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
         {messages.length === 0 && !hasMore && other && (
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4">
-            <div className="text-4xl">👋</div>
+            <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
             <div className="text-center">
               <p className="text-sm font-semibold text-[#F0EDE6]">Say hi to {other.name?.split(' ')[0] || 'them'}</p>
               <p className="text-xs text-white/35 mt-1 max-w-[240px] leading-relaxed">
@@ -548,9 +552,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         <button
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="w-8 h-8 bg-[#1C241C] border border-white/10 rounded-lg flex items-center justify-center text-sm flex-shrink-0 active:scale-95 transition-transform disabled:opacity-40"
+          className="w-8 h-8 bg-[#1C241C] border border-white/10 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform disabled:opacity-40"
         >
-          📎
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         </button>
         <div className="flex-1 bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-2.5">
           <input
@@ -567,7 +571,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
             onKeyDown={handleKeyDown}
             placeholder={'Message ' + (other?.name || '') + '...'}
             maxLength={2000}
-            className="w-full bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none"
+            style={{ fontSize: '16px' }}
+            className="w-full bg-transparent text-[#F0EDE6] placeholder-white/30 outline-none"
           />
         </div>
         <button

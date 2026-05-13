@@ -935,7 +935,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                         <img src={optimizedImgSrc(req.profile.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
                       ) : (
                         <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-                          {req.profile?.name?.charAt(0) || '🧑'}
+                          {req.profile?.name?.charAt(0) || '?'}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
@@ -973,7 +973,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       <img src={optimizedImgSrc(member.profile.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
                     ) : (
                       <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-                        {member.profile?.name?.charAt(0) || '🧑'}
+                        {member.profile?.name?.charAt(0) || '?'}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
