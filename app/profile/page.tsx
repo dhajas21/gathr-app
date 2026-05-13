@@ -394,7 +394,9 @@ export default function ProfilePage() {
           {optimizedImgSrc(profile?.avatar_url, 128) ? (
             <img src={optimizedImgSrc(profile?.avatar_url, 128)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3"  loading="lazy" />
           ) : (
-            <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-2xl mb-3">🧑‍💻</div>
+            <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center mb-3">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(126,200,126,0.5)" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+            </div>
           )}
           <div className="font-bold text-[#F0EDE6] text-lg">{profile?.name || 'Your Name'}</div>
           <div className="text-xs text-white/45 mt-1">@{profile?.name?.toLowerCase().replace(/\s/g, '')} · {profile?.city || 'Bellingham, WA'}</div>
@@ -403,14 +405,16 @@ export default function ProfilePage() {
           )}
           <div className="flex gap-2 mt-3">
             <button onClick={() => handleToggleMode('social')}
-              className={'text-[10px] px-2.5 py-1 rounded-lg border transition-all active:scale-95 ' +
+              className={'flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg border transition-all active:scale-95 ' +
                 (isSocial ? 'bg-[#2A4A2A]/60 border-[#7EC87E]/40 text-[#7EC87E]' : 'bg-white/5 border-white/10 text-white/30')}>
-              👋 Social
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Social
             </button>
             <button onClick={() => handleToggleMode('professional')}
-              className={'text-[10px] px-2.5 py-1 rounded-lg border transition-all active:scale-95 ' +
+              className={'flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg border transition-all active:scale-95 ' +
                 (isProfessional ? 'bg-[#2A4A2A]/60 border-[#7EC87E]/40 text-[#7EC87E]' : 'bg-white/5 border-white/10 text-white/30')}>
-              💼 Professional
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+              Professional
             </button>
             <div className="ml-auto flex items-center gap-1.5 bg-[#2A2010]/60 border border-[#E8B84B]/20 rounded-lg px-2.5 py-1">
               <span className="text-[10px] text-[#E8B84B] font-bold">Lv.{level}</span>
@@ -727,8 +731,8 @@ export default function ProfilePage() {
                       {optimizedImgSrc(conn.avatar_url, 96) ? (
                         <img src={optimizedImgSrc(conn.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
                       ) : (
-                        <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-                          {conn.name?.charAt(0) || '🧑'}
+                        <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base font-semibold text-[#7EC87E] flex-shrink-0">
+                          {conn.name?.charAt(0) || '?'}
                         </div>
                       )}
                       <div className="min-w-0">

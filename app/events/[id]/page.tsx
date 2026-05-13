@@ -746,7 +746,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               {/* Incoming wave teaser */}
               {incomingWaveCount > 0 && eventState === 'upcoming' && (
                 <div className="mb-3 bg-[#E8B84B]/5 border border-[#E8B84B]/20 rounded-xl p-2.5 flex items-center gap-2.5">
-                  <span className="text-xl flex-shrink-0">👋</span>
+                  <div className="w-8 h-8 rounded-lg bg-[#E8B84B]/10 flex items-center justify-center flex-shrink-0">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.8)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                  </div>
                   <div className="flex-1">
                     <div className="text-[10px] font-semibold text-[#E8B84B]">
                       {incomingWaveCount === 1 ? 'Someone is curious about meeting you' : `${incomingWaveCount} people are curious about meeting you`}
@@ -896,8 +898,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             {optimizedImgSrc(host.avatar_url, 96) ? (
               <img src={optimizedImgSrc(host.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-[#E8B84B]/20"  loading="lazy" />
             ) : (
-              <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-lg flex-shrink-0 border border-[#E8B84B]/20">
-                🧑‍💻
+              <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center flex-shrink-0 border border-[#E8B84B]/20">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(126,200,126,0.5)" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
               </div>
             )}
             <div>

@@ -159,16 +159,25 @@ export default function NotificationsPage() {
     return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIconSvg = (type: string): React.ReactNode => {
+    const s = { width: 11, height: 11, viewBox: '0 0 24 24', fill: 'none', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
     switch (type) {
-      case 'connection_request': return '👋'
-      case 'connection_accepted': return '🤝'
-      case 'after_event_match': return '✨'
-      case 'rsvp': return '📅'
-      case 'event_comment': return '💬'
-      case 'message': return '✉️'
-      case 'event_reminder': return '⏰'
-      default: return '🔔'
+      case 'connection_request':
+        return <svg {...s} stroke="#E8B84B"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      case 'connection_accepted':
+        return <svg {...s} stroke="#7EC87E"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+      case 'after_event_match':
+        return <svg {...s} stroke="#E8B84B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      case 'rsvp':
+        return <svg {...s} stroke="#7EC87E"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      case 'event_comment':
+        return <svg {...s} stroke="#7EC87E"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      case 'message':
+        return <svg {...s} stroke="#7EC87E"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      case 'event_reminder':
+        return <svg {...s} stroke="#E8B84B"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      default:
+        return <svg {...s} stroke="#E8B84B"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     }
   }
 
@@ -211,11 +220,11 @@ export default function NotificationsPage() {
             <img src={optimizedImgSrc(actor.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10"  loading="lazy" />
           ) : (
             <div className="w-10 h-10 bg-[#1E2E1E] rounded-xl flex items-center justify-center text-lg border border-white/10">
-              {actor?.name?.charAt(0) || getTypeIcon(notif.type)}
+              {actor?.name?.charAt(0) || '?'}
             </div>
           )}
           <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#1C241C] border border-[#0D110D] flex items-center justify-center text-[10px]">
-            {getTypeIcon(notif.type)}
+            {getTypeIconSvg(notif.type)}
           </div>
         </div>
 
@@ -306,7 +315,9 @@ export default function NotificationsPage() {
 
       {notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-3 px-4">
-          <div className="text-4xl">🔔</div>
+          <div className="w-14 h-14 rounded-2xl bg-[#1C241C] border border-white/10 flex items-center justify-center mb-1">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(126,200,126,0.45)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
           <p className="text-white/40 text-sm text-center">No activity yet</p>
           <p className="text-white/25 text-xs text-center max-w-[240px]">RSVPs, connection requests, comments, and messages will show up here.</p>
         </div>
