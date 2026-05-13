@@ -43,6 +43,26 @@ input, select, textarea, button {
   animation: mystery-shimmer-sweep 3.6s ease-in-out infinite;
 }
 
+/* Onboarding hero — animated float for the golden silhouette */
+@keyframes match-float-bob {
+  0%, 100% { transform: translateY(-22px); }
+  50%       { transform: translateY(-27px); }
+}
+.match-float-bob {
+  animation: match-float-bob 3s ease-in-out infinite;
+}
+
+/* More vivid gold shimmer for the highlighted mystery sil */
+.mystery-shimmer-gold {
+  background: linear-gradient(
+    100deg,
+    transparent 15%,
+    rgba(232, 184, 75, 0.32) 50%,
+    transparent 85%
+  );
+  animation: mystery-shimmer-sweep 2s ease-in-out infinite;
+}
+
 /* Gentle heartbeat for time-sensitive elements (trial countdowns, expiry warnings) */
 @keyframes soft-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }

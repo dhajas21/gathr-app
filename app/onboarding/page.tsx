@@ -68,12 +68,14 @@ const SAMPLE_EVENTS = [
 function SlideMatch() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-5 px-7 text-center">
+      {/* Event card */}
       <div className="w-full max-w-[300px] bg-[#1C241C] border border-white/[0.06] rounded-[20px] p-[18px] relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-[60px] rounded-t-[20px]"
           style={{ background: 'linear-gradient(135deg,#1E3A1E 0%,#2A1A0E 100%)' }} />
         <div className="relative">
           <div className="w-10 h-10 rounded-xl bg-black/40 flex items-center justify-center mb-2.5">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.55)" strokeWidth="1.5" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="rgba(232,184,75,0.55)" strokeWidth="1.5" strokeLinecap="round">
               <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
             </svg>
           </div>
@@ -83,26 +85,65 @@ function SlideMatch() {
           <p className="font-mono-ui text-[9.5px] tracking-[.1em] uppercase text-white/40 mb-3.5">
             Sat · 8 PM · Bellingham
           </p>
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#E8B84B]/[0.06] border border-[#E8B84B]/20">
-            <div>
-              <p className="font-mono-ui text-[9px] uppercase tracking-[.14em] text-[#E8B84B]/65 mb-2.5">
-                People going share your vibe
-              </p>
-              <div className="flex gap-2">
-                {[0, 1, 2].map(i => (
-                  <div key={i}
-                    className="relative w-[50px] h-[50px] rounded-[14px] bg-[#161E16] border border-white/[0.06] flex items-center justify-center overflow-hidden">
-                    <PersonSvg className="text-white/[0.18]" />
-                    <div className="mystery-shimmer absolute inset-0" />
-                    <span className="absolute bottom-[3px] right-[3px]"><LockSvg /></span>
-                  </div>
-                ))}
+
+          {/* ── Match block — Variant B ── */}
+          <div className="rounded-xl bg-[#E8B84B]/[0.05] border border-[#E8B84B]/[0.16] pt-7 px-3.5 pb-3">
+
+            {/* Three silhouettes — centre is golden and floats up */}
+            <div className="flex gap-3 justify-center items-end pb-1.5">
+
+              {/* Left — neutral, locked */}
+              <div className="relative w-[52px] h-[52px] rounded-[16px] bg-[#111811] border border-white/[0.06] flex items-center justify-center overflow-hidden flex-shrink-0">
+                <PersonSvg className="text-white/[0.18]" />
+                <div className="mystery-shimmer absolute inset-0" />
+                <span className="absolute bottom-[3px] right-[3px]"><LockSvg /></span>
+              </div>
+
+              {/* Centre — golden, elevated, animated */}
+              <div
+                className="relative w-[52px] h-[52px] rounded-[16px] flex items-center justify-center overflow-hidden flex-shrink-0 match-float-bob"
+                style={{
+                  background: 'linear-gradient(140deg,#2E1E00,#1A1200)',
+                  border: '1.5px solid rgba(232,184,75,.52)',
+                  boxShadow: '0 10px 36px rgba(232,184,75,.22),0 0 60px rgba(232,184,75,.09),inset 0 1px 0 rgba(232,184,75,.2)',
+                }}>
+                <div className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'radial-gradient(ellipse at 42% 36%,rgba(232,184,75,.2) 0%,transparent 60%)' }} />
+                <PersonSvg className="text-[#E8B84B]/[0.28]" />
+                <div className="mystery-shimmer-gold absolute inset-0" />
+                <span className="absolute bottom-[3px] right-[3px]"><LockSvg /></span>
+              </div>
+
+              {/* Right — neutral, locked */}
+              <div className="relative w-[52px] h-[52px] rounded-[16px] bg-[#111811] border border-white/[0.06] flex items-center justify-center overflow-hidden flex-shrink-0">
+                <PersonSvg className="text-white/[0.18]" />
+                <div className="mystery-shimmer absolute inset-0" style={{ animationDelay: '.5s' }} />
+                <span className="absolute bottom-[3px] right-[3px]"><LockSvg /></span>
               </div>
             </div>
-            <div className="font-display font-bold text-[28px] text-[#E8B84B] tracking-tight leading-none ml-3">3</div>
+
+            {/* Count + reveal label */}
+            <div className="flex flex-col items-center gap-1.5 mt-3">
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-display font-extrabold text-[22px] text-[#F0EDE6] leading-none tracking-tight">3</span>
+                <span className="font-mono-ui text-[8px] uppercase tracking-[.14em] text-white/30">
+                  people share your vibe
+                </span>
+              </div>
+              <div className="w-8 h-px bg-[#E8B84B]/20" />
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono-ui text-[8px] uppercase tracking-[.2em] text-[#E8B84B]/55">
+                  Attending reveals the match
+                </span>
+                <span className="text-[#E8B84B]/50 text-[9px]">✦</span>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
+
+      {/* Copy */}
       <div className="space-y-1.5">
         <Eyebrow label="The Mystery Match" />
         <h1 className="font-display font-extrabold text-[30px] text-[#F0EDE6] leading-[.95] tracking-[-0.04em] pt-1">
@@ -112,7 +153,7 @@ function SlideMatch() {
           You just don't know who yet.
         </p>
         <p className="text-[13px] text-white/45 leading-[1.55] max-w-[250px] mx-auto pt-1">
-          Gathr shows how many people at each event share your vibe — and reveals who they are only after the event ends.
+          Gathr shows you how many people going share your vibe — and reveals them at the start of the event.
         </p>
       </div>
     </div>

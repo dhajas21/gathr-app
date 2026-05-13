@@ -42,21 +42,21 @@ export default function TourPage() {
           className="w-[200px] h-[140px] rounded-3xl border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center gap-3"
           style={{ background: 'linear-gradient(160deg,#1E2A2E,#0E1A1E)' }}>
           <div className="flex gap-2">
-            {[false, true, false].map((revealed, i) => (
+            {[0, 1, 2].map((i) => (
               <div key={i}
                 className="relative w-[34px] h-[34px] rounded-[12px] flex items-center justify-center overflow-hidden"
                 style={{
-                  background: revealed ? 'linear-gradient(135deg,#2A4A2A,#1E3A1E)' : '#161E16',
-                  border: revealed ? '1px solid rgba(126,200,126,0.4)' : '1px solid rgba(255,255,255,0.06)',
-                  transform: revealed ? 'translateY(-6px)' : 'translateY(0)',
+                  background: i === 1 ? 'linear-gradient(135deg,#2A2A1A,#1A1A0E)' : '#161E16',
+                  border: i === 1 ? '1px solid rgba(232,184,75,0.35)' : '1px solid rgba(255,255,255,0.06)',
+                  transform: i === 1 ? 'translateY(-6px)' : 'translateY(0)',
                 }}>
-                <PersonSvg className={revealed ? 'text-[#7EC87E]/60' : 'text-white/[0.18]'} />
-                {!revealed && <div className="mystery-shimmer absolute inset-0" />}
+                <PersonSvg className="text-white/[0.18]" />
+                <div className="mystery-shimmer absolute inset-0" />
               </div>
             ))}
           </div>
           <p className="font-mono-ui text-[8px] tracking-[.16em] uppercase text-[#E8B84B]/50">
-            RSVP unlocks the reveal
+            Attending reveals the match
           </p>
         </div>
 
