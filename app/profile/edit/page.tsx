@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { POPULAR_INTERESTS, ALL_INTERESTS, CITY_NAMES } from '@/lib/constants'
+import ImageCropModal from '@/components/ImageCropModal'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_FILE_SIZE = 2 * 1024 * 1024
@@ -12,7 +13,8 @@ export default function EditProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [userId, setUserId] = useState('')
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [bio, setBio] = useState('')
   const [city, setCity] = useState('Bellingham')
   const [interests, setInterests] = useState<string[]>([])
@@ -21,6 +23,8 @@ export default function EditProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [uploadError, setUploadError] = useState('')
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [cropMime, setCropMime] = useState('image/jpeg')
   const [saveError, setSaveError] = useState('')
   const [interestSearch, setInterestSearch] = useState('')
   const [rsvpVisibility, setRsvpVisibility] = useState('public')
@@ -35,7 +39,9 @@ export default function EditProfilePage() {
       supabase.from('profiles').select('name,bio_social,city,interests,profile_mode,rsvp_visibility,avatar_url').eq('id', session.user.id).single()
         .then(({ data }) => {
           if (data) {
-            setName(data.name || '')
+            const parts = (data.name || '').trim().split(' ')
+            setFirstName(parts[0] || '')
+            setLastName(parts.slice(1).join(' ') || '')
             setBio(data.bio_social || '')
             setCity(data.city || 'Bellingham')
             setInterests(data.interests || [])
@@ -55,10 +61,17 @@ export default function EditProfilePage() {
     if (!file) return
     if (!ALLOWED_TYPES.includes(file.type)) { setUploadError('Only JPG, PNG, and WebP allowed'); return }
     if (file.size > MAX_FILE_SIZE) { setUploadError('Image must be under 2MB'); return }
-    setAvatarFile(file)
+    setCropMime(file.type)
     const reader = new FileReader()
-    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string)
+    reader.onload = (ev) => setCropSrc(ev.target?.result as string)
     reader.readAsDataURL(file)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const handleCropConfirm = (blob: Blob, previewUrl: string) => {
+    setCropSrc(null)
+    setAvatarPreview(previewUrl)
+    setAvatarFile(new File([blob], `avatar.${cropMime.split('/')[1]}`, { type: cropMime }))
   }
 
   const removeAvatar = () => {
@@ -115,7 +128,7 @@ export default function EditProfilePage() {
       finalAvatarUrl = null
     }
     const { error } = await supabase.from('profiles').update({
-      name: name.trim(), bio_social: bio.trim(), city, interests, profile_mode: mode, avatar_url: finalAvatarUrl, rsvp_visibility: rsvpVisibility,
+      name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '), bio_social: bio.trim(), city, interests, profile_mode: mode, avatar_url: finalAvatarUrl, rsvp_visibility: rsvpVisibility,
     }).eq('id', userId)
     setSaving(false)
     if (error) { setSaveError('Failed to save changes. Please try again.'); return }
@@ -144,6 +157,17 @@ export default function EditProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-10">
+
+      {cropSrc && (
+        <ImageCropModal
+          src={cropSrc}
+          mimeType={cropMime}
+          aspect={1}
+          circular
+          onConfirm={handleCropConfirm}
+          onCancel={() => { setCropSrc(null) }}
+        />
+      )}
 
       <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
         <button onClick={() => router.back()}
@@ -187,9 +211,15 @@ export default function EditProfilePage() {
           {uploadError && <div className="text-xs text-[#E85B5B] mt-2 flex items-center gap-1.5"><span>⚠️</span> {uploadError}</div>}
         </div>
 
-        <div>
-          <label className="text-xs text-white/50 mb-1.5 block">Display name</label>
-          <input className={inputClass} placeholder="Your name" value={name} onChange={e => setName(e.target.value)} maxLength={50} />
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="text-xs text-white/50 mb-1.5 block">First name</label>
+            <input className={inputClass} placeholder="Jane" value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={30} autoCapitalize="words" />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs text-white/50 mb-1.5 block">Last name</label>
+            <input className={inputClass} placeholder="Smith" value={lastName} onChange={e => setLastName(e.target.value)} maxLength={30} autoCapitalize="words" />
+          </div>
         </div>
 
         <div>
@@ -296,7 +326,7 @@ export default function EditProfilePage() {
             {saveError}
           </div>
         )}
-        <button onClick={handleSave} disabled={saving || !name.trim()}
+        <button onClick={handleSave} disabled={saving || !firstName.trim()}
           className="w-full bg-[#E8B84B] text-[#0D110D] rounded-2xl py-4 font-bold text-sm disabled:opacity-50 mt-2 active:scale-95 transition-transform"
           style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
           {saving ? (

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { POPULAR_INTERESTS, ALL_INTERESTS, CITY_NAMES } from '@/lib/constants'
+import ImageCropModal from '@/components/ImageCropModal'
 
 const STEPS = ['photo', 'mode', 'interests', 'city', 'privacy', 'done']
 
@@ -61,7 +62,8 @@ function SpinnerIcon() {
 export default function SetupPage() {
   const [user, setUser] = useState<any>(null)
   const [step, setStep] = useState(0)
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [bio, setBio] = useState('')
   const [mode, setMode] = useState('both')
   const [interests, setInterests] = useState<string[]>([])
@@ -71,10 +73,13 @@ export default function SetupPage() {
   const [interestSearch, setInterestSearch] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [cropMime, setCropMime] = useState('image/jpeg')
   const [saving, setSaving] = useState(false)
   const [saveStep, setSaveStep] = useState<'photo' | 'profile' | null>(null)
   const [saveError, setSaveError] = useState('')
   const [photoError, setPhotoError] = useState('')
+  const [isResuming, setIsResuming] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -82,10 +87,27 @@ export default function SetupPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
-      supabase.from('profiles').select('name, city').eq('id', session.user.id).maybeSingle()
+      supabase
+        .from('profiles')
+        .select('name, bio_social, avatar_url, profile_mode, interests, city, rsvp_visibility')
+        .eq('id', session.user.id)
+        .maybeSingle()
         .then(({ data }) => {
-          if (data?.name) setName(data.name)
-          if (data?.city) setCity(data.city)
+          if (!data) return
+          if (data.name) {
+            const parts = data.name.trim().split(' ')
+            setFirstName(parts[0] || '')
+            setLastName(parts.slice(1).join(' ') || '')
+          }
+          if (data.bio_social)     setBio(data.bio_social)
+          if (data.avatar_url)     setAvatarPreview(data.avatar_url)
+          if (data.profile_mode)   setMode(data.profile_mode)
+          if (data.interests?.length) setInterests(data.interests)
+          if (data.city)           setCity(data.city)
+          if (data.rsvp_visibility) setRsvpVisibility(data.rsvp_visibility)
+          if (data.name) {
+            setStep(2); setIsResuming(true)
+          }
         })
     })
   }, [router])
@@ -102,10 +124,17 @@ export default function SetupPage() {
       setPhotoError('Image must be under 2 MB.')
       return
     }
-    setAvatarFile(file)
+    setCropMime(file.type)
     const reader = new FileReader()
-    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string)
+    reader.onload = (ev) => setCropSrc(ev.target?.result as string)
     reader.readAsDataURL(file)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const handleCropConfirm = (blob: Blob, previewUrl: string) => {
+    setCropSrc(null)
+    setAvatarPreview(previewUrl)
+    setAvatarFile(new File([blob], `avatar.${cropMime.split('/')[1]}`, { type: cropMime }))
   }
 
   const toggleInterest = (interest: string) => {
@@ -131,7 +160,7 @@ export default function SetupPage() {
     setSaveStep('profile')
     const { error: updateError } = await supabase.from('profiles').upsert({
       id: user.id,
-      name: name.trim() || undefined,
+      name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' ') || undefined,
       bio_social: bio.trim() || undefined,
       profile_mode: mode,
       interests,
@@ -157,6 +186,17 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
+
+      {cropSrc && (
+        <ImageCropModal
+          src={cropSrc}
+          mimeType={cropMime}
+          aspect={1}
+          circular
+          onConfirm={handleCropConfirm}
+          onCancel={() => setCropSrc(null)}
+        />
+      )}
 
       <div className="px-5 pt-14">
         <div className="flex gap-1 mb-2">
@@ -205,10 +245,17 @@ export default function SetupPage() {
               </div>
             )}
             <div className="w-full space-y-3">
-              <div>
-                <label className="text-xs text-white/40 mb-1.5 block">Your name</label>
-                <input className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
-                  placeholder="Full name" value={name} onChange={e => setName(e.target.value)} maxLength={50} />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="text-xs text-white/40 mb-1.5 block">First name</label>
+                  <input className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
+                    placeholder="Jane" value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={30} autoCapitalize="words" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-white/40 mb-1.5 block">Last name</label>
+                  <input className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm"
+                    placeholder="Smith" value={lastName} onChange={e => setLastName(e.target.value)} maxLength={30} autoCapitalize="words" />
+                </div>
               </div>
               <div>
                 <label className="text-xs text-white/40 mb-1.5 block">One-line bio <span className="text-white/20">(optional)</span></label>
@@ -261,7 +308,24 @@ export default function SetupPage() {
         {/* ── Step 2: Interests ─────────────────────────────────── */}
         {step === 2 && (
           <>
-            <IconBox><TargetIcon /></IconBox>
+            {isResuming ? (
+              <div className="flex items-center gap-3 w-full mb-5 bg-[#E8B84B]/[0.07] border border-[#E8B84B]/20 rounded-2xl px-4 py-3">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="" className="w-9 h-9 rounded-xl object-cover border border-[#E8B84B]/30 flex-shrink-0" />
+                ) : (
+                  <div className="w-9 h-9 rounded-xl bg-[#E8B84B]/10 border border-[#E8B84B]/20 flex items-center justify-center flex-shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(232,184,75,0.5)"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-[#E8B84B]">Welcome back{firstName ? `, ${firstName}` : ''}</p>
+                  <p className="text-[11px] text-white/45 leading-snug">Just one thing left — tell us what you&apos;re into.</p>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.4)" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            ) : (
+              <IconBox><TargetIcon /></IconBox>
+            )}
             <h1 className="font-display text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2">
               What are you<br /><span className="text-[#E8B84B]">into?</span>
             </h1>
@@ -392,7 +456,7 @@ export default function SetupPage() {
               <SparkIcon size={28} opacity={0.8} />
             </div>
             <h1 className="font-display text-2xl font-bold text-[#F0EDE6] leading-tight mb-2">
-              You're all set,<br /><span className="text-[#E8B84B]">{name || 'friend'}.</span>
+              You're all set,<br /><span className="text-[#E8B84B]">{firstName || 'friend'}.</span>
             </h1>
             <p className="text-sm text-white/45 mb-8 max-w-[220px] font-light">Time to find your people and discover what's happening near you.</p>
             <div className="w-full space-y-2.5 text-left">

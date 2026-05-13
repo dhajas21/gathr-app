@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import ImageCropModal from '@/components/ImageCropModal'
 
 const CATEGORIES = [
   'Social', 'Fitness & Running', 'Wellness', 'Tech & Startups', 'Arts & Creativity',
@@ -26,6 +27,8 @@ export default function CreateCommunityPage() {
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [cropMime, setCropMime] = useState('image/jpeg')
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -42,10 +45,17 @@ export default function CreateCommunityPage() {
     if (!file) return
     if (!ALLOWED_TYPES.includes(file.type)) { setUploadError('Only JPG, PNG, and WebP images are allowed'); return }
     if (file.size > MAX_FILE_SIZE) { setUploadError('Image must be under 8MB'); return }
-    setBannerFile(file)
+    setCropMime(file.type)
     const reader = new FileReader()
-    reader.onload = (ev) => setBannerPreview(ev.target?.result as string)
+    reader.onload = (ev) => setCropSrc(ev.target?.result as string)
     reader.readAsDataURL(file)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const handleCropConfirm = (blob: Blob, previewUrl: string) => {
+    setCropSrc(null)
+    setBannerPreview(previewUrl)
+    setBannerFile(new File([blob], `banner.${cropMime.split('/')[1]}`, { type: cropMime }))
   }
 
   const removeBanner = () => {
@@ -102,6 +112,16 @@ export default function CreateCommunityPage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-10">
+
+      {cropSrc && (
+        <ImageCropModal
+          src={cropSrc}
+          mimeType={cropMime}
+          aspect={16 / 9}
+          onConfirm={handleCropConfirm}
+          onCancel={() => setCropSrc(null)}
+        />
+      )}
 
       <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
         <button onClick={() => router.back()}

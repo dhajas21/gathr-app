@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { CITY_NAMES, getCityCoords, EVENT_CATEGORIES, cityToTimezone } from '@/lib/constants'
 import { isValidUUID, fromZonedTime } from '@/lib/utils'
 import { track } from '@/components/AnalyticsProvider'
+import ImageCropModal from '@/components/ImageCropModal'
 
 function formatDraftAge(d: Date) {
   const diff = Date.now() - d.getTime()
@@ -41,6 +42,8 @@ export default function CreateEventPage() {
   const [ticketPrice, setTicketPrice] = useState('')
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [cropMime, setCropMime] = useState('image/jpeg')
   const coverRef = useRef<HTMLInputElement>(null)
   const draftToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -176,10 +179,17 @@ export default function CreateEventPage() {
     if (!file) return
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setError('Only JPG, PNG, and WebP images are allowed'); return }
     if (file.size > 5 * 1024 * 1024) { setError('Cover photo must be under 5 MB'); return }
-    setCoverFile(file)
+    setCropMime(file.type)
     const reader = new FileReader()
-    reader.onload = (ev) => setCoverPreview(ev.target?.result as string)
+    reader.onload = (ev) => setCropSrc(ev.target?.result as string)
     reader.readAsDataURL(file)
+    if (coverRef.current) coverRef.current.value = ''
+  }
+
+  const handleCropConfirm = (blob: Blob, previewUrl: string) => {
+    setCropSrc(null)
+    setCoverPreview(previewUrl)
+    setCoverFile(new File([blob], `cover.${cropMime.split('/')[1]}`, { type: cropMime }))
   }
 
   const addTag = () => {
@@ -301,6 +311,16 @@ export default function CreateEventPage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
+
+      {cropSrc && (
+        <ImageCropModal
+          src={cropSrc}
+          mimeType={cropMime}
+          aspect={16 / 9}
+          onConfirm={handleCropConfirm}
+          onCancel={() => setCropSrc(null)}
+        />
+      )}
 
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4 border-b border-white/10">
