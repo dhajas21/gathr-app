@@ -473,7 +473,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       text: event.title,
       dates: fmt(event.start_datetime) + '/' + fmt(event.end_datetime),
       details: event.description || '',
-      location: [event.location_name, event.location_address].filter(Boolean).join(', '),
+      location: [event.location_name, (rsvped || user?.id === event.host_id) ? event.location_address : null].filter(Boolean).join(', '),
     })
     window.open('https://calendar.google.com/calendar/render?' + p.toString(), '_blank')
     setShowCalendarModal(false)
@@ -490,7 +490,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       'DTEND:' + fmt(event.end_datetime),
       'SUMMARY:' + event.title.replace(/[;\r\n]/g, ' '),
       'DESCRIPTION:' + (event.description || '').replace(/\r\n|\r|\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,'),
-      'LOCATION:' + [event.location_name, event.location_address].filter(Boolean).join(', '),
+      'LOCATION:' + [event.location_name, (rsvped || user?.id === event.host_id) ? event.location_address : null].filter(Boolean).join(', '),
       'END:VEVENT',
       'END:VCALENDAR',
     ].join('\r\n')
@@ -616,18 +616,35 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               + Calendar
             </button>
           </div>
-          <button onClick={handleOpenMaps} className="flex items-center gap-3 w-full text-left active:opacity-70 transition-opacity">
-            <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center flex-shrink-0">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.6)" strokeWidth="1.75" strokeLinecap="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          {(rsvped || isHost) ? (
+            <button onClick={handleOpenMaps} className="flex items-center gap-3 w-full text-left active:opacity-70 transition-opacity">
+              <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.6)" strokeWidth="1.75" strokeLinecap="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-[#F0EDE6]">{event.location_name}</div>
+                <div className="text-xs text-white/45">{event.location_address || event.city}</div>
+              </div>
+              <span className="text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/15 px-2 py-1 rounded-lg flex-shrink-0">Open →</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-3 w-full">
+              <div className="w-7 h-7 bg-[#1E3A1E] rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.6)" strokeWidth="1.75" strokeLinecap="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-[#F0EDE6]">{event.location_name}</div>
+                <div className="text-xs text-white/30 italic">RSVP to unlock full address</div>
+              </div>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-[#F0EDE6]">{event.location_name}</div>
-              <div className="text-xs text-white/45">{event.location_address || event.city}</div>
-            </div>
-            <span className="text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/15 px-2 py-1 rounded-lg flex-shrink-0">Open →</span>
-          </button>
+          )}
         </div>
 
         {/* About */}
