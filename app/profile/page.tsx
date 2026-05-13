@@ -507,8 +507,8 @@ export default function ProfilePage() {
                 {hostedEvents.slice(0, 3).map(event => (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
-                    <div className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden relative"
-                      style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }} />
+                    <div className="category-gradient-card w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden relative"
+                      style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
                       <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))}</div>
@@ -550,8 +550,8 @@ export default function ProfilePage() {
                 {hostedEvents.map(event => (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
-                    <div className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
-                      style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }} />
+                    <div className="category-gradient-card w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
+                      style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
                       <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>
@@ -568,8 +568,8 @@ export default function ProfilePage() {
                 {attendedEvents.map(event => (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
-                    <div className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
-                      style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }} />
+                    <div className="category-gradient-card w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
+                      style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
                       <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {event.location_name}</div>

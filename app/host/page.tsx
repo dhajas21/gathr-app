@@ -258,8 +258,8 @@ export default function HostDashboardPage() {
                   return (
                     <div key={event.id} className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 mb-3">
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
-                          style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }}>
+                        <div className="category-gradient-card w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
+                          style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
                           {optimizedImgSrc(event.cover_url, 96) && (
                             <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                           )}
@@ -337,8 +337,8 @@ export default function HostDashboardPage() {
                     return (
                       <div key={event.id} className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
-                            style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }}>
+                          <div className="category-gradient-card w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
+                            style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
                             {optimizedImgSrc(event.cover_url, 96) && (
                               <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                             )}
@@ -385,8 +385,8 @@ export default function HostDashboardPage() {
                     return (
                       <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                         className="bg-[#1C241C] border border-white/10 rounded-2xl p-3 flex items-center gap-3 cursor-pointer active:opacity-70">
-                        <div className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden relative opacity-60"
-                          style={{ background: CAT_GRADIENT[event.category] || 'linear-gradient(135deg,#1E3A1E,#0D110D)' }}>
+                        <div className="category-gradient-card w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden relative opacity-60"
+                          style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
                           {optimizedImgSrc(event.cover_url, 96) && (
                             <img src={optimizedImgSrc(event.cover_url, 96)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                           )}
