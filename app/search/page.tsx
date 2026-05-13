@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { optimizedImgSrc, formatDate } from '@/lib/utils'
 import { cityToTimezone, CAT_GRADIENT } from '@/lib/constants'
-import { catEmoji } from '@/lib/categoryEmoji'
 
 const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding', 'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness', 'Networking']
 const RECENT_SEARCHES_KEY = 'gathr_recent_searches'
@@ -291,10 +290,9 @@ export default function SearchPage() {
     <div onClick={() => router.push('/events/' + event.id)}
       className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
       <div className="category-gradient-card w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
-        {optimizedImgSrc(event.cover_url, 800)
-          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-          : catEmoji(event.category)
-        }
+        {optimizedImgSrc(event.cover_url, 800) && (
+          <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>
@@ -417,10 +415,9 @@ export default function SearchPage() {
                     <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                       className="flex gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
                       <div className="category-gradient-card w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative" style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
-                        {optimizedImgSrc(event.cover_url, 800)
-                          ? <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                          : catEmoji(event.category)
-                        }
+                        {optimizedImgSrc(event.cover_url, 800) && (
+                          <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-[#F0EDE6] leading-snug truncate">{event.title}</div>

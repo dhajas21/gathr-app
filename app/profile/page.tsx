@@ -530,7 +530,9 @@ export default function ProfilePage() {
             {hasDraft && (
               <div className="w-full bg-[#1C1E10] border border-[#E8B84B]/25 rounded-2xl p-3.5 flex items-center gap-2">
                 <button onClick={() => router.push('/create')} className="flex items-center gap-3 flex-1 min-w-0 active:opacity-70 transition-opacity text-left">
-                  <div className="w-9 h-9 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center text-base flex-shrink-0">✏️</div>
+                  <div className="w-9 h-9 bg-[#E8B84B]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E8B84B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </div>
                   <div>
                     <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium mb-0.5">Unsaved Draft</div>
                     <div className="text-sm text-[#F0EDE6]">Resume creating your event</div>
@@ -540,7 +542,7 @@ export default function ProfilePage() {
                   onClick={handleDiscardDraft}
                   className="w-8 h-8 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-center text-red-400/70 active:scale-95 transition-transform flex-shrink-0"
                   title="Delete draft">
-                  🗑
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                 </button>
               </div>
             )}
