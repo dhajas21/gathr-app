@@ -43,4 +43,5 @@ supabase/.temp/
 
 # Internal docs — kept local only, not pushed to GitHub
 GATHR_OVERVIEW.md
+GATHR_BRIEF.md
 GATHR_PLAYBOOK.md
