@@ -174,6 +174,7 @@ export default function SearchPage() {
   const handleSearch = async (searchQuery?: string) => {
     const q = searchQuery ?? query
     if (!q.trim() && activeCategory === 'All') return
+    setActiveTab('All')
     setLoading(true)
     setSearched(true)
     if (q.trim()) saveRecentSearch(q.trim())
@@ -327,7 +328,8 @@ export default function SearchPage() {
             onChange={e => setQuery(e.target.value)}
             placeholder="Events, people, #tags, vibes..."
             autoFocus
-            className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none"
+            style={{ fontSize: '16px' }}
+            className="flex-1 bg-transparent text-[#F0EDE6] placeholder-white/30 outline-none"
           />
           {query && (
             <button onClick={() => { setQuery(''); setSearched(false); setVibeResult(null) }}
@@ -402,7 +404,7 @@ export default function SearchPage() {
 
             {/* Quick-filter hint — rules-based parser, not AI/LLM */}
             <div className="bg-[#1C241C] border border-[#E8B84B]/20 rounded-2xl p-3 mb-4 flex items-center gap-2">
-              <span className="text-base">⚡</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               <span className="text-xs text-[#E8B84B]/70 flex-1">Try &quot;live music thursday night&quot; or &quot;#yoga this weekend&quot;</span>
               <span className="bg-[#E8B84B]/10 text-[#E8B84B] text-[9px] px-2 py-0.5 rounded">Quick filters</span>
             </div>
@@ -549,8 +551,8 @@ export default function SearchPage() {
                       {optimizedImgSrc(person.avatar_url, 96) ? (
                         <img src={optimizedImgSrc(person.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
                       ) : (
-                        <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-base flex-shrink-0">
-                          {person.name?.charAt(0) || '🧑'}
+                        <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center text-sm font-semibold text-[#7EC87E] flex-shrink-0">
+                          {person.name?.charAt(0) || '?'}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
@@ -579,8 +581,12 @@ export default function SearchPage() {
                   {visibleCommunities.map(comm => (
                     <div key={comm.id} onClick={() => router.push('/communities/' + comm.id)}
                       className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-2.5 cursor-pointer active:scale-[0.98] transition-transform">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: comm.banner_gradient || 'var(--gradient-community-banner)' }}>
-                        {comm.icon || '👥'}
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 relative overflow-hidden" style={{ background: comm.banner_gradient || 'var(--gradient-community-banner)' }}>
+                        {comm.icon ? (
+                          <span className="text-lg">{comm.icon}</span>
+                        ) : (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-[#F0EDE6]">{comm.name}</div>
