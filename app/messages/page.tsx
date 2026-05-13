@@ -508,7 +508,7 @@ export default function MessagesPage() {
                       <div className="text-sm font-medium text-[#F0EDE6]">{conn.otherProfile?.name}</div>
                       <div className="text-xs text-white/30">Tap to say hi</div>
                     </div>
-                    <span className="text-white/20 text-lg">→</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
                 ))}
                 {acceptedConnections.length > 5 && (
@@ -580,8 +580,8 @@ export default function MessagesPage() {
         <div className="fixed inset-0 bg-[#0D110D] z-50 flex flex-col">
           <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-white/10">
             <button onClick={() => { setShowCompose(false); setComposeSearch('') }}
-              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
-              ✕
+              className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-[#F0EDE6]/60"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             <h2 className="text-base font-bold text-[#F0EDE6]">New Message</h2>
           </div>
@@ -630,7 +630,7 @@ export default function MessagesPage() {
                         <div className="text-sm font-medium text-[#F0EDE6]">{conn.otherProfile?.name}</div>
                         <div className="text-xs text-white/30">Send a message</div>
                       </div>
-                      <span className="text-white/20 text-lg">→</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
                     </button>
                   ))}
                 {composeSearch && acceptedConnections.filter(c => c.otherProfile?.name?.toLowerCase().includes(composeSearch.toLowerCase())).length === 0 && (
@@ -715,7 +715,10 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, onDel
       <div className="absolute right-0 top-0 bottom-0 w-[140px] flex items-stretch z-0">
         <button onClick={handleAction}
           className={'flex-1 flex flex-col items-center justify-center gap-1 ' + (isUnread ? 'bg-[#1E3A1E]' : 'bg-[#2A2010]')}>
-          <span className="text-base">{isUnread ? '✓' : '●'}</span>
+          {isUnread
+            ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7EC87E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            : <svg width="7" height="7" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#E8B84B"/></svg>
+          }
           <span className={'text-[9px] font-medium ' + (isUnread ? 'text-[#7EC87E]' : 'text-[#E8B84B]')}>
             {isUnread ? 'Read' : 'Unread'}
           </span>
@@ -741,7 +744,7 @@ function SwipeThread({ thread, isUnread, unreadCount, onTap, onToggleRead, onDel
           {optimizedImgSrc(thread.otherProfile?.avatar_url, 96) ? (
             <img src={optimizedImgSrc(thread.otherProfile.avatar_url, 96)!} alt="" className="w-11 h-11 rounded-xl object-cover"  loading="lazy" />
           ) : (
-            <div className="w-11 h-11 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg border border-white/10">
+            <div className="w-11 h-11 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-sm font-semibold text-[#7EC87E] border border-white/10">
               {thread.otherProfile?.name?.charAt(0) || '?'}
             </div>
           )}

@@ -393,8 +393,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
       <div className="flex items-center gap-3 px-4 pt-14 pb-3 border-b border-white/10 flex-shrink-0">
         <button onClick={() => router.back()}
-          className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
-          {'←'}
+          className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#F0EDE6]/80"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         {optimizedImgSrc(other?.avatar_url, 96) ? (
           <img src={optimizedImgSrc(other.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
@@ -468,7 +468,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           return (
             <div key={msg.id}>
               {showTime && (
-                <div className="text-center text-[9px] text-white/20 my-3">
+                <div className="text-center text-[9px] text-white/30 my-3">
                   {formatTime(msg.sent_at)}
                 </div>
               )}
@@ -578,14 +578,14 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         <button
           onClick={handleSend}
           disabled={!text.trim() || sending}
-          className="w-8 h-8 bg-[#E8B84B] rounded-lg flex items-center justify-center text-sm text-[#0D110D] flex-shrink-0 disabled:opacity-40 active:scale-95 transition-all"
+          className="w-8 h-8 bg-[#E8B84B] rounded-lg flex items-center justify-center flex-shrink-0 disabled:opacity-40 active:scale-95 transition-all"
           style={{
             boxShadow: text.trim() && !sending
               ? '0 0 18px rgba(232,184,75,0.45), 0 2px 8px rgba(232,184,75,0.25)'
               : 'none',
           }}
         >
-          ↑
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D110D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
         </button>
       </div>
 
