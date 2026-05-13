@@ -103,6 +103,7 @@ export default function SearchPage() {
   const [recentlyViewed, setRecentlyViewed] = useState<any[]>([])
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, string>>({})
   const [showAllCats, setShowAllCats] = useState(false)
+  const [connectError, setConnectError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -276,6 +277,9 @@ export default function SearchPage() {
     }).select().single()
     if (!error && data) {
       setConnectionStatuses(prev => ({ ...prev, [personId]: 'pending' }))
+    } else if (error) {
+      setConnectError('Could not send request — try again')
+      setTimeout(() => setConnectError(null), 3500)
     }
   }
 
@@ -374,7 +378,7 @@ export default function SearchPage() {
                 <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
                   {recentSearches.map((term, i) => (
                     <div key={term} className={'flex items-center gap-2 px-3 py-2.5 ' + (i < recentSearches.length - 1 ? 'border-b border-white/10' : '')}>
-                      <span className="text-xs text-white/20">🕐</span>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                       <button onClick={() => { setQuery(term); handleSearch(term) }}
                         className="flex-1 text-sm text-[#F0EDE6] text-left">{term}</button>
                       <button onClick={() => removeRecentSearch(term)} className="text-[10px] text-white/20 px-1">✕</button>
@@ -596,6 +600,14 @@ export default function SearchPage() {
           </div>
         )}
       </div>
+
+      {connectError && (
+        <div className="fixed left-1/2 -translate-x-1/2 z-[300] flex items-center gap-2 bg-[#2A1010] border border-[#E85B5B]/30 rounded-2xl px-4 py-2.5 shadow-2xl"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 92px)' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E85B5B" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span className="text-xs text-[#E85B5B]">{connectError}</span>
+        </div>
+      )}
 
       <BottomNav />
     </div>

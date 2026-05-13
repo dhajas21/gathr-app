@@ -18,17 +18,21 @@ export default function HostDashboardPage() {
     try { return (sessionStorage.getItem('gathr_host_tab') as 'overview' | 'events' | 'insights') || 'overview' } catch { return 'overview' }
   })
   const [loading, setLoading] = useState(true)
+  const [confirmDeleteDraft, setConfirmDeleteDraft] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | undefined
     let cancelled = false
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    ;(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
       if (cancelled) return
       if (!session) { router.push('/auth'); return }
       setUserId(session.user.id)
-      fetchData(session.user.id)
+      // Await fetchData so eventIdsRef is populated before the subscription fires
+      await fetchData(session.user.id)
+      if (cancelled) return
 
       channel = supabase
         .channel('host-rsvps')
@@ -43,7 +47,7 @@ export default function HostDashboardPage() {
           setRsvpCounts(prev => ({ ...prev, [eventId]: Math.max(0, (prev[eventId] || 0) - 1) }))
         })
         .subscribe()
-    })
+    })()
 
     return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
   }, [router])
@@ -139,19 +143,31 @@ export default function HostDashboardPage() {
       {hasDraft && (
         <div className="mx-4 mb-3 flex items-center gap-2.5 bg-[#1C1E10] border border-[#E8B84B]/25 rounded-2xl px-3.5 py-2.5">
           <div className="w-7 h-7 bg-[#E8B84B]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                </div>
-          <button onClick={() => router.push('/create')} className="flex-1 min-w-0 text-left active:opacity-70 transition-opacity">
-            <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium leading-none mb-0.5">Unsaved Draft</div>
-            <div className="text-xs text-[#F0EDE6] font-medium">Resume creating your event →</div>
-          </button>
-          <button onClick={handleDeleteDraft}
-            className="w-6 h-6 flex items-center justify-center text-white/25 active:text-red-400 transition-colors flex-shrink-0 text-base leading-none">
-            ×
-          </button>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </div>
+          {confirmDeleteDraft ? (
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <span className="text-xs text-white/50 flex-1">Delete this draft?</span>
+              <button onClick={() => setConfirmDeleteDraft(false)}
+                className="text-[10px] text-white/40 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">Cancel</button>
+              <button onClick={() => { setConfirmDeleteDraft(false); handleDeleteDraft() }}
+                className="text-[10px] text-[#E85B5B] px-2.5 py-1 rounded-lg bg-[#E85B5B]/10 border border-[#E85B5B]/20">Delete</button>
+            </div>
+          ) : (
+            <>
+              <button onClick={() => router.push('/create')} className="flex-1 min-w-0 text-left active:opacity-70 transition-opacity">
+                <div className="text-[9px] uppercase tracking-widest text-[#E8B84B]/60 font-medium leading-none mb-0.5">Unsaved Draft</div>
+                <div className="text-xs text-[#F0EDE6] font-medium">Resume creating your event →</div>
+              </button>
+              <button onClick={() => setConfirmDeleteDraft(true)}
+                className="w-6 h-6 flex items-center justify-center text-white/25 active:text-red-400 transition-colors flex-shrink-0">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </>
+          )}
         </div>
       )}
 

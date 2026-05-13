@@ -6,8 +6,8 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 // All markers use divIcon below — no default marker images needed (and unpkg.com is not in our CSP).
-
-const createPin = () => L.divIcon({
+// Hoisted outside the component so the same object is reused on every render.
+const PIN = L.divIcon({
   html: `<div style="
     background: #1C241C;
     border: 2px solid #E8B84B;
@@ -67,7 +67,7 @@ export default function MapView({ events, onSelect }: { events: any[], onSelect:
         <Marker
           key={event.id}
           position={[event.latitude, event.longitude]}
-          icon={createPin()}
+          icon={PIN}
           eventHandlers={{ click: () => onSelect(event) }}
         />
       ))}

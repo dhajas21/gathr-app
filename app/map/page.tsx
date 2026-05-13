@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import dynamic from 'next/dynamic'
 import { optimizedImgSrc, formatDateShort, formatTime } from '@/lib/utils'
-import { cityToTimezone, CAT_GRADIENT } from '@/lib/constants'
+import { cityToTimezone, CAT_GRADIENT, ALL_CITIES } from '@/lib/constants'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -26,7 +26,7 @@ export default function MapPage() {
 
   const fetchEvents = async (userId: string) => {
     const { data: profileData } = await supabase.from('profiles').select('city').eq('id', userId).maybeSingle()
-    const city = profileData?.city || null
+    const city = (profileData?.city && ALL_CITIES.includes(profileData.city)) ? profileData.city : null
     setUserCity(city)
 
     // Only fetch events that already have coords — geocoding happens server-side at event create/edit
@@ -97,7 +97,7 @@ export default function MapPage() {
               <div className="category-gradient-card w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
                 style={{ '--cat-bg': CAT_GRADIENT[selected.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
                 {optimizedImgSrc(selected.cover_url, 800) && (
-                  <img src={optimizedImgSrc(selected.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                  <img src={optimizedImgSrc(selected.cover_url, 800)!} alt={selected.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                 )}
               </div>
               <div className="flex-1 min-w-0">

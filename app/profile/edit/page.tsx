@@ -151,7 +151,12 @@ export default function EditProfilePage() {
         <h1 className="text-lg font-bold text-[#F0EDE6]">Edit Profile</h1>
         <button onClick={handleSave} disabled={saving}
           className="ml-auto bg-[#E8B84B] text-[#0D110D] px-5 py-2 rounded-xl text-sm font-bold disabled:opacity-50">
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? (
+            <span className="flex items-center gap-1.5">
+              <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
+              Saving…
+            </span>
+          ) : 'Save'}
         </button>
       </div>
 
@@ -168,7 +173,9 @@ export default function EditProfilePage() {
                   className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#E85B5B] rounded-full flex items-center justify-center text-[9px] text-white border-2 border-[#0D110D]">✕</button>
               </div>
             ) : (
-              <div className="w-20 h-20 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-3xl">🧑‍💻</div>
+              <div className="w-20 h-20 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+              </div>
             )}
             <div>
               <button onClick={() => fileRef.current?.click()} className="text-sm font-medium text-[#E8B84B] active:scale-95 transition-transform">
@@ -203,13 +210,13 @@ export default function EditProfilePage() {
           <label className="text-xs text-white/50 mb-2 block">Profile mode</label>
           <div className="space-y-2">
             {[
-              { value: 'social', icon: '👋', label: 'Social', desc: 'Meet people, attend events' },
-              { value: 'professional', icon: '💼', label: 'Professional', desc: 'Network, find collaborators' },
-              { value: 'both', icon: '⚡', label: 'Both', desc: 'Show up fully' },
+              { value: 'social', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: 'Social', desc: 'Meet people, attend events' },
+              { value: 'professional', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>, label: 'Professional', desc: 'Network, find collaborators' },
+              { value: 'both', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>, label: 'Both', desc: 'Show up fully' },
             ].map(opt => (
               <div key={opt.value} onClick={() => setMode(opt.value)}
                 className={'flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ' + (mode === opt.value ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
-                <span className="text-xl">{opt.icon}</span>
+                <span className={mode === opt.value ? 'text-[#E8B84B]' : 'text-white/30'}>{opt.icon}</span>
                 <div>
                   <div className="text-sm font-medium text-[#F0EDE6]">{opt.label}</div>
                   <div className="text-xs text-white/40">{opt.desc}</div>
@@ -226,13 +233,13 @@ export default function EditProfilePage() {
           <label className="text-xs text-white/50 mb-2 block">Attendee list visibility</label>
           <div className="space-y-2">
             {[
-              { value: 'public', icon: '🌍', label: 'Public', desc: 'Anyone can see you on attendee lists' },
-              { value: 'connections', icon: '🤝', label: 'Connections only', desc: 'Only people you\'re connected with' },
-              { value: 'private', icon: '🔒', label: 'Private', desc: 'Only the event host can see you' },
+              { value: 'public', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>, label: 'Public', desc: 'Anyone can see you on attendee lists' },
+              { value: 'connections', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>, label: 'Connections only', desc: 'Only people you\'re connected with' },
+              { value: 'private', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>, label: 'Private', desc: 'Only the event host can see you' },
             ].map(opt => (
               <div key={opt.value} onClick={() => setRsvpVisibility(opt.value)}
                 className={'flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ' + (rsvpVisibility === opt.value ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
-                <span className="text-lg flex-shrink-0">{opt.icon}</span>
+                <span className={'flex-shrink-0 ' + (rsvpVisibility === opt.value ? 'text-[#E8B84B]' : 'text-white/30')}>{opt.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-[#F0EDE6]">{opt.label}</div>
                   <div className="text-xs text-white/40">{opt.desc}</div>

@@ -59,7 +59,7 @@ function shell(preheader: string, body: string): string {
 }
 
 function btn(label: string, href: string): string {
-  return `<a href="${href}" style="display:inline-block;margin-top:24px;padding:14px 28px;background:#22c55e;color:#fff;font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;">${label}</a>`
+  return `<a href="${href}" style="display:inline-block;margin-top:24px;padding:14px 28px;background:#E8B84B;color:#0D110D;font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;">${label}</a>`
 }
 
 function h1(text: string): string {
