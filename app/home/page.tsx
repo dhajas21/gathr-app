@@ -550,7 +550,6 @@ export default function HomePage() {
             </h2>
             <p className="text-[10px] text-white/30 mt-0.5">
               {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
-              {activeTab === 1 && profile?.interests?.length > 0 && (' · ' + profile.interests.slice(0, 3).join(', '))}
               {activeTab === 2 && geoGranted && ' · GPS'}
             </p>
           </div>

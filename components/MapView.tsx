@@ -7,23 +7,29 @@ import 'leaflet/dist/leaflet.css'
 
 // All markers use divIcon below — no default marker images needed (and unpkg.com is not in our CSP).
 
-const createPin = (emoji: string) => L.divIcon({
+const createPin = () => L.divIcon({
   html: `<div style="
     background: #1C241C;
     border: 2px solid #E8B84B;
     border-radius: 50% 50% 50% 0;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
     transform: rotate(-45deg);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  "><span style="transform: rotate(45deg); display: block;">${emoji}</span></div>`,
+    box-shadow: 0 3px 12px rgba(232,184,75,0.35);
+  ">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg);display:block;">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  </div>`,
   className: '',
-  iconSize: [36, 36],
-  iconAnchor: [18, 36],
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
 })
 
 function FitBounds({ events }: { events: any[] }) {
@@ -38,11 +44,6 @@ function FitBounds({ events }: { events: any[] }) {
     map.fitBounds(bounds, { padding: [40, 40] })
   }, [events, map])
   return null
-}
-
-const catEmoji = (cat: string) => {
-  const map: Record<string, string> = { Music: '🎸', Fitness: '🏃', 'Food & Drink': '🍺', Tech: '💻', Outdoors: '🥾' }
-  return map[cat] || '🎉'
 }
 
 export default function MapView({ events, onSelect }: { events: any[], onSelect: (e: any) => void }) {
@@ -66,7 +67,7 @@ export default function MapView({ events, onSelect }: { events: any[], onSelect:
         <Marker
           key={event.id}
           position={[event.latitude, event.longitude]}
-          icon={createPin(catEmoji(event.category))}
+          icon={createPin()}
           eventHandlers={{ click: () => onSelect(event) }}
         />
       ))}

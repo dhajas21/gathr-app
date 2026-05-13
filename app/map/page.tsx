@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import dynamic from 'next/dynamic'
 import { optimizedImgSrc, formatDateShort, formatTime } from '@/lib/utils'
-import { cityToTimezone } from '@/lib/constants'
-import { catEmoji } from '@/lib/categoryEmoji'
+import { cityToTimezone, CAT_GRADIENT } from '@/lib/constants'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -95,11 +94,11 @@ export default function MapPage() {
           <div className="bg-[#1C241C] border border-white/15 rounded-2xl p-3.5 shadow-2xl cursor-pointer"
             onClick={() => router.push('/events/' + selected.id)}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#1E3A1E] rounded-xl flex items-center justify-center text-lg flex-shrink-0 overflow-hidden relative">
-                {optimizedImgSrc(selected.cover_url, 800)
-                  ? <img src={optimizedImgSrc(selected.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover"  loading="lazy" />
-                  : catEmoji(selected.category)
-                }
+              <div className="category-gradient-card w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"
+                style={{ '--cat-bg': CAT_GRADIENT[selected.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
+                {optimizedImgSrc(selected.cover_url, 800) && (
+                  <img src={optimizedImgSrc(selected.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-[#F0EDE6] truncate">{selected.title}</div>
@@ -110,8 +109,8 @@ export default function MapPage() {
             </div>
           </div>
           <button onClick={() => setSelected(null)}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-[#1C241C] border border-white/20 rounded-full text-white/50 text-xs flex items-center justify-center">
-            ✕
+            className="absolute -top-2 -right-2 w-6 h-6 bg-[#1C241C] border border-white/20 rounded-full flex items-center justify-center">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
       )}
