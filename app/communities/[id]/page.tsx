@@ -698,7 +698,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   placeholder="Share something with the community..."
                   maxLength={1000}
                   rows={3}
-                  className="w-full bg-transparent text-sm text-[#F0EDE6] placeholder-white/20 outline-none resize-none"
+                  style={{ fontSize: '16px' }}
+                  className="w-full bg-transparent text-[#F0EDE6] placeholder-white/20 outline-none resize-none"
                 />
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
                   <div className="flex items-center gap-3">
@@ -833,7 +834,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                           onKeyDown={e => { if (e.key === 'Enter') handleAddComment(post.id) }}
                           placeholder="Add a reply..."
                           maxLength={500}
-                          className="flex-1 bg-[#0D110D] border border-white/10 rounded-xl px-3 py-2 text-xs text-[#F0EDE6] placeholder-white/20 outline-none focus:border-white/20"
+                          style={{ fontSize: '16px' }}
+                          className="flex-1 bg-[#0D110D] border border-white/10 rounded-xl px-3 py-2 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-white/20"
                         />
                         <button onClick={() => handleAddComment(post.id)}
                           disabled={!(commentInputs[post.id] || '').trim() || commentingId === post.id}
@@ -1076,8 +1078,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               placeholder="Message the community..."
               maxLength={500}
               rows={1}
-              className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/20 outline-none resize-none leading-5"
-              style={{ minHeight: '20px' }}
+              className="flex-1 bg-transparent text-[#F0EDE6] placeholder-white/20 outline-none resize-none leading-5"
+              style={{ minHeight: '20px', fontSize: '16px' }}
             />
             <button onClick={handleSendChat} disabled={!chatInput.trim() || chatSending}
               className="w-8 h-8 bg-[#E8B84B] rounded-xl flex items-center justify-center text-[#0D110D] text-lg font-bold flex-shrink-0 disabled:opacity-30 active:scale-95 transition-transform">

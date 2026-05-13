@@ -420,7 +420,7 @@ export default function SearchPage() {
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-semibold text-[#E8B84B]/80 mb-1">Smart search</div>
+                <div className="text-[10px] font-semibold text-[#E8B84B]/80 mb-1">Quick filters</div>
                 <div className="text-xs text-white/40 leading-relaxed">Try <span className="text-white/60">&quot;live music thursday night&quot;</span> or <span className="text-white/60">&quot;#yoga this weekend&quot;</span></div>
               </div>
             </div>

@@ -153,7 +153,8 @@ export default function CommunitiesPage() {
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             placeholder="Search communities..."
-            className="flex-1 bg-transparent text-sm text-[#F0EDE6] placeholder-white/30 outline-none"
+            style={{ fontSize: '16px' }}
+            className="flex-1 bg-transparent text-[#F0EDE6] placeholder-white/30 outline-none"
           />
           {search && (
             <button onClick={() => setSearch('')} className="text-xs text-white/30">✕</button>
@@ -161,17 +162,21 @@ export default function CommunitiesPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
-        {CATEGORIES.map(cat => (
-          <button key={cat} onClick={() => setActiveCategory(cat)}
-            className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-all ${
-              activeCategory === cat
-                ? 'bg-[#E8B84B] text-[#0D110D] border-[#E8B84B] font-semibold'
-                : 'bg-[#1C241C] text-white/45 border-white/10'
-            }`}>
-            {cat}
-          </button>
-        ))}
+      <div className="relative">
+        <div className="flex gap-2 overflow-x-auto px-4 py-3 [&::-webkit-scrollbar]:h-[3px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full">
+          {CATEGORIES.map(cat => (
+            <button key={cat} onClick={() => setActiveCategory(cat)}
+              className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-all flex-shrink-0 ${
+                activeCategory === cat
+                  ? 'bg-[#E8B84B] text-[#0D110D] border-[#E8B84B] font-semibold shadow-[0_0_14px_rgba(232,184,75,0.45)]'
+                  : 'bg-[#1C241C] text-white/45 border-white/10'
+              }`}>
+              {cat}
+            </button>
+          ))}
+          <div className="w-6 flex-shrink-0" />
+        </div>
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#0D110D] to-transparent" />
       </div>
 
       <div className="px-4">

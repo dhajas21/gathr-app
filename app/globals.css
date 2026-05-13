@@ -289,6 +289,8 @@ input, select, textarea, button {
 [data-theme="light"] .from-\[\#241A0E\] { --tw-gradient-from: #F4E6D2 !important; }
 [data-theme="light"] .to-\[\#16100A\]   { --tw-gradient-to:   #EBD7B8 !important; }
 [data-theme="light"] .to-\[\#0E1A0E\]   { --tw-gradient-to:   #E8F2E8 !important; }
+[data-theme="light"] .to-\[\#181F18\]   { --tw-gradient-to:   #F2F7F2 !important; }
+[data-theme="light"] .bg-white\/\[0\.025\] { background-color: rgba(0,0,0,0.03) !important; }
 
 /* Badge cutout borders — all notification/count dots use border-[#0D110D] to
    "cut" the badge from the dark page background. In light mode the page is
