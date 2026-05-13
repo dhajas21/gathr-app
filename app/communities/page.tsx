@@ -216,8 +216,9 @@ export default function CommunitiesPage() {
               <div className="text-[10px] text-white/40 mt-0.5">Add interests to your profile to see communities picked for you</div>
             </div>
             <button onClick={() => router.push('/profile/edit')}
-              className="text-[10px] font-semibold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1.5 rounded-lg flex-shrink-0">
-              Add →
+              className="text-[10px] font-semibold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1.5 rounded-lg flex-shrink-0 flex items-center gap-1">
+              Add
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
         )}

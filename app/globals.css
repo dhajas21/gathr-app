@@ -342,6 +342,9 @@ input, select, textarea, button {
 /* Category gradient cards — override inline style with !important */
 [data-theme="light"] .category-gradient-card { background: var(--gradient-category-card) !important; }
 
+/* bg-white/5 hairline separators — invisible on cream in light mode */
+[data-theme="light"] .bg-white\/5 { background-color: rgba(0,0,0,0.06) !important; }
+
 /* Tour slide backgrounds */
 [data-theme="light"] .tour-slide-bg { background: var(--gradient-category-card) !important; }
 
