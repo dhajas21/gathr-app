@@ -73,6 +73,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const [showChatTip, setShowChatTip] = useState(false)
   const postInputRef = useRef<HTMLTextAreaElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -206,6 +207,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
     } else if (role) {
       setIsMember(true)
       setMemberRole(role)
+      try { if (!localStorage.getItem('gathr_community_chat_tip_seen')) setShowChatTip(true) } catch {}
 
       // Fetch pending requests if owner/admin
       if (role === 'owner' || role === 'admin') {
@@ -687,6 +689,16 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                 <div className="text-xs text-white/40">
                   {isPending ? 'Your request is being reviewed by the owner.' : 'Join to see posts and participate.'}
                 </div>
+              </div>
+            )}
+
+            {isMember && showChatTip && (
+              <div className="flex items-center gap-2.5 bg-[#1C241C] border border-white/10 rounded-2xl px-3 py-2.5">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-white/35 flex-shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span className="flex-1 text-[10px] text-white/40 leading-snug">This community has a live group chat — tap Chat to join the conversation</span>
+                <button onClick={() => { setShowChatTip(false); try { localStorage.setItem('gathr_community_chat_tip_seen', '1') } catch {} }} className="text-white/20 flex-shrink-0 pl-1">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
             )}
 

@@ -25,6 +25,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [hasMore, setHasMore] = useState(false)
   const [loadingEarlier, setLoadingEarlier] = useState(false)
   const [longPressMsg, setLongPressMsg] = useState<any>(null)
+  const [showUnsendTip, setShowUnsendTip] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -75,6 +76,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       if (uploadErrorTimerRef.current) clearTimeout(uploadErrorTimerRef.current)
     }
   }, [threadId, user?.id])
+
+  useEffect(() => {
+    try { if (!localStorage.getItem('gathr_unsend_tip_seen')) setShowUnsendTip(true) } catch {}
+  }, [])
 
   useEffect(() => {
     if (!threadId) return
@@ -416,6 +421,15 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        {showUnsendTip && (
+          <div className="flex items-center gap-2.5 bg-[#1C241C] border border-white/10 rounded-2xl px-3 py-2.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-white/35 flex-shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span className="flex-1 text-[10px] text-white/40 leading-snug">Long-press any of your messages to unsend it from both sides</span>
+            <button onClick={() => { setShowUnsendTip(false); try { localStorage.setItem('gathr_unsend_tip_seen', '1') } catch {} }} className="text-white/20 flex-shrink-0 pl-1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        )}
         {hasMore && (
           <div className="flex justify-center pt-1 pb-2">
             <button
