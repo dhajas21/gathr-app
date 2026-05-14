@@ -264,8 +264,8 @@ export default function NotificationsPage() {
 
     return (
       <div key={notif.id}
-        onClick={() => !isConnReq && handleTap(notif)}
-        className={'flex items-start gap-3 px-4 py-3.5 relative transition-colors ' + (!notif.read ? 'bg-white/[0.025]' : '') + (!isConnReq ? ' cursor-pointer active:bg-white/[0.03]' : '')}>
+        onClick={() => (!isConnReq || accepted) && handleTap(notif)}
+        className={'flex items-start gap-3 px-4 py-3.5 relative transition-colors ' + (!notif.read ? 'bg-white/[0.025]' : '') + (!isConnReq || accepted ? ' cursor-pointer active:bg-white/[0.03]' : '')}>
         {/* Read/unread toggle — tap to flip state */}
         <button
           onClick={e => toggleRead(e, notif)}
@@ -329,7 +329,10 @@ export default function NotificationsPage() {
 
           {/* Connection accepted state */}
           {isConnReq && accepted && (
-            <div className="mt-2 text-xs text-[#7EC87E] font-medium">✓ Connected</div>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-xs text-[#7EC87E] font-medium">✓ Connected</span>
+              <span className="text-[10px] text-[#E8B84B]/60">· Tap to view profile</span>
+            </div>
           )}
           {isConnReq && declined && (
             <div className="mt-2 text-xs text-white/35">Request declined</div>
