@@ -427,7 +427,7 @@ export default function ProfilePage() {
             </button>
             <div className="ml-auto flex items-center gap-1.5 bg-[#2A2010]/60 border border-[#E8B84B]/20 rounded-lg px-2.5 py-1">
               <span className="text-[10px] text-[#E8B84B] font-bold">Lv.{level}</span>
-              <span className="text-[9px] text-white/30">{xp} XP</span>
+              <span className="text-[9px] text-white/40">{xp} XP</span>
             </div>
           </div>
           {(user?.id === FOUNDER_ID || pinnedBadges.length > 0) && (
@@ -507,7 +507,7 @@ export default function ProfilePage() {
                 <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-1">Visibility & Privacy</div>
                 <div className="text-sm text-[#F0EDE6]">Manage in Settings</div>
               </div>
-              <span className="text-white/20 text-lg">›</span>
+              <span className="text-white/35 text-lg">›</span>
             </button>
 
             <button onClick={() => router.push('/host')}
@@ -516,7 +516,7 @@ export default function ProfilePage() {
                 <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-1">Host Dashboard</div>
                 <div className="text-sm text-[#F0EDE6]">Events · RSVPs · Insights</div>
               </div>
-              <span className="text-white/20 text-lg">›</span>
+              <span className="text-white/35 text-lg">›</span>
             </button>
 
             {hostedEvents.length > 0 && (
@@ -719,7 +719,7 @@ export default function ProfilePage() {
                         <div className="text-[10px] text-white/35 mt-0.5">{ach.desc}</div>
                         {!unlocked && (
                           <div className="mt-1.5 h-1 bg-white/10 rounded-full overflow-hidden">
-                            <div className="h-full bg-white/25 rounded-full" style={{ width: Math.round(progress * 100) + '%' }} />
+                            <div className="h-full bg-[#E8B84B]/30 rounded-full" style={{ width: Math.round(progress * 100) + '%' }} />
                           </div>
                         )}
                       </div>
@@ -730,7 +730,7 @@ export default function ProfilePage() {
                               {ach.tier === 'gold' ? 'Gold' : ach.tier === 'silver' ? 'Silver' : 'Bronze'}
                             </span>
                             <button onClick={() => handleTogglePin(ach.title)}
-                              className={'text-[8px] px-1.5 py-0.5 rounded border transition-all ' + (pinnedBadges.includes(ach.title) ? 'border-[#E8B84B]/40 text-[#E8B84B] bg-[#E8B84B]/10' : 'border-white/10 text-white/25')}>
+                              className={'text-[9px] px-1.5 py-0.5 rounded border transition-all ' + (pinnedBadges.includes(ach.title) ? 'border-[#E8B84B]/40 text-[#E8B84B] bg-[#E8B84B]/10' : 'border-white/10 text-white/25')}>
                               {pinnedBadges.includes(ach.title) ? 'Pinned' : pinnedBadges.length >= 3 ? '—' : 'Pin'}
                             </button>
                           </div>

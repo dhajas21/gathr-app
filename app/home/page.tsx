@@ -381,7 +381,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="font-extrabold text-[#F0EDE6] text-2xl tracking-tight leading-none font-display">Gathr<span className="text-[#E8B84B]">.</span></h1>
-            {profile?.name && <p className="text-xs text-white/30 mt-0.5">Hey {profile.name.split(' ')[0]} 👋</p>}
+            {profile?.name && <p className="text-xs text-white/40 mt-0.5">Hey {profile.name.split(' ')[0]} 👋</p>}
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => router.push('/map')}
@@ -420,7 +420,7 @@ export default function HomePage() {
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <span className="text-white/30 text-sm flex-1">Search events, people, vibes...</span>
-          <span className="bg-[#1E3A1E] border border-[#E8B84B]/15 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">⚡ Search</span>
+          <span className="bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-lg px-2 py-0.5 text-[10px] text-[#E8B84B]">⚡ Search</span>
         </div>
 
         {hasDraft && (
@@ -513,7 +513,7 @@ export default function HomePage() {
               )}
             </div>
             <div className="p-3.5 bg-gradient-to-b from-[#1A2A1A] to-[#1C241C]">
-              <div className="text-xs text-[#E8B84B] font-medium mb-1">{featuredEvent.category}</div>
+              <div className="mb-1.5"><span className="text-[10px] font-semibold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2 py-0.5 rounded-full">{featuredEvent.category}</span></div>
               <h3 className="font-bold text-[#F0EDE6] text-base leading-snug mb-2">{featuredEvent.title}</h3>
               <div className="flex items-center gap-3 text-[10px] text-white/45">
                 <span className="flex items-center gap-1">
@@ -545,7 +545,7 @@ export default function HomePage() {
             <h2 className="text-base font-bold text-[#F0EDE6]">
               {activeTab === 0 ? "What's Popular" : activeTab === 1 ? 'Picked For You' : activeTab === 2 ? (geoGranted ? 'Near You' : 'In ' + (profile?.city || 'Bellingham')) : activeTab === 3 ? "Friends' Events" : 'Your Events'}
             </h2>
-            <p className="text-[10px] text-white/30 mt-0.5">
+            <p className="text-[10px] text-white/40 mt-0.5">
               {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
               {activeTab === 2 && geoGranted && ' · GPS'}
             </p>
@@ -670,7 +670,7 @@ export default function HomePage() {
                     <div className="flex items-center justify-between">
                       <div className="flex gap-1.5 flex-wrap flex-1 items-center">
                         {event.tags?.slice(0, 2).map(tag => (
-                          <span key={tag} className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-1.5 py-0.5 rounded border border-[#7EC87E]/10">#{tag}</span>
+                          <span key={tag} className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-1.5 py-0.5 rounded border border-[#7EC87E]/10">#{tag}</span>
                         ))}
                         {event.ticket_type === 'paid' && (event.ticket_price ?? 0) > 0 && (
                           <span className="text-[9px] font-bold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-1.5 py-0.5 rounded">${event.ticket_price}</span>
@@ -684,7 +684,7 @@ export default function HomePage() {
                           {event.spots_left < 10 ? (
                             <span className="text-[10px] text-[#E8A84B] font-medium">{event.spots_left} spots left</span>
                           ) : (
-                            <span className="text-[10px] text-white/30">{fillPct}% full</span>
+                            <span className="text-[10px] text-white/40">{fillPct}% full</span>
                           )}
                         </div>
                       )}
