@@ -51,7 +51,7 @@ const formatCount = (n: number) => {
 
 function parseVibeQuery(query: string) {
   const lower = query.toLowerCase()
-  const words = lower.split(/\s+/)
+  const words = lower.split(/\s+/).map(w => w.replace(/^#/, ''))
   let targetDay: number | null = null
   let dayLabel = ''
   for (const word of words) {
@@ -209,7 +209,8 @@ export default function SearchPage() {
 
     // Search by tag
     if (q.trim()) {
-      const tag = q.trim().replace(/^#/, '').toLowerCase()
+      const hashMatch = q.trim().match(/#(\w+)/)
+      const tag = hashMatch ? hashMatch[1].toLowerCase() : q.trim().replace(/^#/, '').toLowerCase()
       const { data: tagData } = await supabase.from('events').select('id, title, category, start_datetime, location_name, cover_url, spots_left, capacity, tags, city').eq('visibility', 'public')
         .gte('start_datetime', new Date().toISOString())
         .contains('tags', [tag]).order('start_datetime', { ascending: true }).limit(20)
@@ -315,7 +316,7 @@ export default function SearchPage() {
           <div className="flex gap-1 mt-1.5">
             {event.tags.slice(0, 3).map((tag: string) => (
               <button key={tag} onClick={e => { e.stopPropagation(); setQuery('#' + tag) }}
-                className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-1.5 py-0.5 rounded border border-[#7EC87E]/10">#{tag}</button>
+                className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-1.5 py-0.5 rounded border border-[#7EC87E]/20">#{tag}</button>
             ))}
           </div>
         )}
@@ -336,7 +337,7 @@ export default function SearchPage() {
           </div>
         )}
         <div className="flex items-center gap-2 bg-[#1C241C] border border-[#E8B84B]/30 rounded-2xl px-4 py-3 transition-all focus-within:border-[#E8B84B]/60 focus-within:shadow-[0_0_0_3px_rgba(232,184,75,0.1),0_4px_24px_rgba(232,184,75,0.08)]">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/30 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/35 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input
             ref={inputRef}
             type="text"
@@ -349,7 +350,7 @@ export default function SearchPage() {
           />
           {query && (
             <button onClick={() => { setQuery(''); setSearched(false); setVibeResult(null) }}
-              className="text-white/30 flex items-center">
+              className="text-white/35 flex items-center">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           )}
@@ -397,7 +398,7 @@ export default function SearchPage() {
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Recent searches</div>
-                  <button onClick={clearRecentSearches} className="text-[10px] text-white/25">Clear</button>
+                  <button onClick={clearRecentSearches} className="text-[10px] text-white/35">Clear</button>
                 </div>
                 <div className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
                   {recentSearches.map((term, i) => (
@@ -516,9 +517,9 @@ export default function SearchPage() {
                 <div className="text-[9px] uppercase tracking-wider text-[#E8B84B]/60 mb-1">⚡ Quick filters detected</div>
                 <div className="text-sm font-bold text-[#F0EDE6] mb-1">&quot;{query}&quot;</div>
                 <div className="flex flex-wrap gap-1.5">
-                  {vibeResult.detectedCategory && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.detectedCategory}</span>}
-                  {vibeResult.dayLabel && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.dayLabel}</span>}
-                  {vibeResult.timeFilter && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.timeFilter}</span>}
+                  {vibeResult.detectedCategory && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/20">{vibeResult.detectedCategory}</span>}
+                  {vibeResult.dayLabel && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/20">{vibeResult.dayLabel}</span>}
+                  {vibeResult.timeFilter && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/20">{vibeResult.timeFilter}</span>}
                 </div>
                 <div className="text-[10px] text-[#7EC87E] mt-1.5">{events.length} matching event{events.length !== 1 ? 's' : ''} found</div>
               </div>
@@ -530,7 +531,7 @@ export default function SearchPage() {
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 </div>
                 <p className="text-white/40 text-sm text-center">No results for &quot;{query}&quot;</p>
-                <p className="text-white/25 text-xs text-center max-w-[220px]">Try different words or browse by category above</p>
+                <p className="text-white/35 text-xs text-center max-w-[220px]">Try different words or browse by category above</p>
               </div>
             )}
 
