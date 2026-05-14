@@ -139,7 +139,7 @@ export default function TourPage() {
 
   return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
-      <div className="flex items-center justify-between px-5 pt-14 pb-2">
+      <div className="flex items-center justify-between px-5 pb-2" style={{ paddingTop: 'max(3.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-baseline gap-2">
           <span className="font-display font-extrabold text-[18px] text-[#F0EDE6] tracking-[-0.02em]">
             Gathr<span className="text-[#E8B84B]">.</span>
@@ -186,7 +186,7 @@ export default function TourPage() {
         </div>
       </div>
 
-      <div className="px-5 pb-10 flex-shrink-0 flex gap-3">
+      <div className="px-5 flex-shrink-0 flex gap-3" style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}>
         {idx > 0 && (
           <button
             onClick={() => setIdx(idx - 1)}
