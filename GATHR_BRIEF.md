@@ -42,6 +42,14 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 - Comments on events
 - Calendar export (.ics)
 
+### Search
+- Universal search across events, people, communities, and #tags — all from one bar
+- **Vibe query parser** — rules-based NLP (no LLM). Type natural language like "live music thursday night" or "#yoga this weekend" and the parser extracts the day, time of day, category, and remaining search terms. Detected filters show as green pills so users can see what was parsed.
+- **55+ category synonyms** covering all 9 event categories: e.g., "dj / jazz / karaoke / hip hop" → Music; "meditation / pilates / sound bath" → Wellness & Mindfulness; "trivia / game night / pub quiz" → Social & Parties; "kayak / skiing / surfing" → Outdoors; "conference / summit / entrepreneurs" → Networking; and so on
+- **#tag search** works correctly with multi-word queries — `#yoga this weekend` correctly detects the yoga tag, extracts the weekend day filter, and maps yoga → Wellness & Mindfulness
+- Past events are excluded from all search results (future-only filter applied at the DB level)
+- Pre-search discovery state: recent searches, recently viewed events, interest-scored "Picked for you" recommendations, and a browse-by-category grid
+
 ### Mystery Match System
 - RSVP → see match count + blurred silhouettes (free users)
 - Gathr+ members see partial first names + shared interests pre-event
@@ -396,10 +404,9 @@ The mystery match mechanic is especially resonant in a city where people struggl
 
 **Deferred — post-beta (real usage data needed first):**
 - ~~**Contextual first-use tips**~~ — Done. All 5 live: host dashboard overview banner (`gathr_host_tip_seen`), event detail mystery match teaser (contextual, no localStorage — auto-hides on RSVP), profile achievements tab badge pin banner (`gathr_badge_tip_seen`), DM thread long-press-to-unsend banner (`gathr_unsend_tip_seen`), community feed chat-tab discovery banner (`gathr_community_chat_tip_seen`).
-- **Search page fixes:**
-  - Trending searches — removed hardcoded list (looked like placeholder); bring back once PostHog has real top-5 data
-  - "Picked for you" horizontal scroll — currently 5 stacked cards; a horizontal row would give more visual energy
-  - Browse subcategory mapping — the "See all →" expanded grid shows 42 subcategories but events store top-level categories only, so tapping a subcategory finds nothing; either remove the expanded state or map subcategory → parent before the query fires
+- **Search — remaining polish:**
+  - Trending searches — removed hardcoded list; bring back once PostHog has real top-5 query data
+  - Browse subcategory mapping — the "See all →" expanded grid shows 42 subcategories but events store top-level categories only, so tapping a subcategory finds nothing; either remove the expanded grid or map subcategory → parent category before the query fires
 - **Attendance achievement gating** — attendance achievements currently fire on RSVP (not verified attendance); gate on `start_datetime < now()` once a check-in system exists (QR, GPS, or host confirms)
 - **RSVP-gated address server hardening** — street address is currently hidden client-side only; add RLS policy to enforce at the DB level as a future security hardening step
 - **Onboarding email drip** — day-3 and day-7 nudge emails (welcome email already live; drip sequence not built)
