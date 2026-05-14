@@ -150,8 +150,10 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     : profileLevel >= 3 ? { name: 'Regular', icon: '⭐' }
     : { name: 'Newcomer', icon: '🌱' }
 
+  const [showAvatarExpanded, setShowAvatarExpanded] = useState(false)
+
   return (
-    <div className="min-h-screen bg-[#0D110D] pb-32">
+    <div className="min-h-screen bg-[#0D110D] pb-56">
 
       <div style={{ background: 'var(--gradient-profile-header)' }}>
         <div className="flex items-start justify-between px-4 pt-14 mb-3">
@@ -172,7 +174,9 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
         </div>
         <div className="px-4 pb-4">
           {optimizedImgSrc(profile.avatar_url, 128) ? (
-            <img src={optimizedImgSrc(profile.avatar_url, 128)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3"  loading="lazy" />
+            <button onClick={() => setShowAvatarExpanded(true)} className="mb-3 active:scale-95 transition-transform">
+              <img src={optimizedImgSrc(profile.avatar_url, 128)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover" loading="lazy" />
+            </button>
           ) : (
             <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center text-xl font-bold text-[#E8B84B] mb-3">
               {profile.name ? profile.name.trim().split(' ').filter(Boolean).slice(0, 2).map((n: string) => n[0].toUpperCase()).join('') : '?'}
@@ -326,6 +330,12 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
           </div>
         )}
       </div>
+
+      {showAvatarExpanded && profile?.avatar_url && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-sm" onClick={() => setShowAvatarExpanded(false)}>
+          <img src={optimizedImgSrc(profile.avatar_url, 600) ?? profile.avatar_url} alt="" className="w-72 h-72 rounded-3xl object-cover border-2 border-[#E8B84B]/40 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(232,184,75,0.2)' }} />
+        </div>
+      )}
 
       <BottomNav />
 

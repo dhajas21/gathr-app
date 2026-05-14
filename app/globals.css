@@ -115,6 +115,55 @@ input, select, textarea, button {
   font-family: var(--font-syne), sans-serif;
 }
 
+/* ─── Founder badge ───────────────────────────── */
+.founder-badge-pill {
+  background: linear-gradient(110deg, #2A1E04 0%, #1A1200 50%, #2A1E04 100%);
+  box-shadow:
+    0 0 0 1px rgba(232,184,75,0.25),
+    0 0 12px rgba(232,184,75,0.35),
+    0 0 28px rgba(232,184,75,0.15),
+    inset 0 1px 0 rgba(232,184,75,0.18);
+  letter-spacing: 0.02em;
+}
+.founder-badge-card {
+  background: linear-gradient(135deg, #2A1E04 0%, #130E00 55%, #1F1600 100%);
+  box-shadow:
+    0 0 0 1px rgba(232,184,75,0.2),
+    0 0 20px rgba(232,184,75,0.22),
+    0 0 48px rgba(232,184,75,0.08),
+    inset 0 1px 0 rgba(232,184,75,0.14);
+}
+.founder-badge-icon {
+  background: linear-gradient(135deg, rgba(232,184,75,0.18) 0%, rgba(232,184,75,0.06) 100%);
+  border: 1px solid rgba(232,184,75,0.25);
+  filter: drop-shadow(0 0 6px rgba(232,184,75,0.5));
+}
+
+[data-theme="light"] .founder-badge-pill {
+  background: linear-gradient(110deg, #FFF6DC 0%, #FFF0C0 50%, #FFF6DC 100%);
+  box-shadow:
+    0 0 0 1px rgba(142,110,19,0.35),
+    0 0 10px rgba(142,110,19,0.18),
+    0 0 22px rgba(142,110,19,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+  color: #7A5C0A !important;
+  border-color: rgba(142,110,19,0.4) !important;
+}
+[data-theme="light"] .founder-badge-card {
+  background: linear-gradient(135deg, #FFF9E6 0%, #FFF3C8 55%, #FFF9E6 100%);
+  box-shadow:
+    0 0 0 1px rgba(142,110,19,0.25),
+    0 0 14px rgba(142,110,19,0.14),
+    0 0 32px rgba(142,110,19,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  border-color: rgba(142,110,19,0.35) !important;
+}
+[data-theme="light"] .founder-badge-icon {
+  background: linear-gradient(135deg, rgba(142,110,19,0.14) 0%, rgba(142,110,19,0.06) 100%);
+  border-color: rgba(142,110,19,0.22) !important;
+  filter: drop-shadow(0 0 5px rgba(142,110,19,0.3));
+}
+
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 16px);
 }

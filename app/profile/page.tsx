@@ -140,6 +140,7 @@ export default function ProfilePage() {
   const [pinnedBadges, setPinnedBadges] = useState<string[]>([])
   const [hasDraft, setHasDraft] = useState(false)
   const [showDraftUndo, setShowDraftUndo] = useState(false)
+  const [showAvatarExpanded, setShowAvatarExpanded] = useState(false)
   const confettiTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const router = useRouter()
 
@@ -194,22 +195,17 @@ export default function ProfilePage() {
       const uniqueHostedCats = new Set(hostedEvents.map((e: any) => e.category)).size
       const allAch = computeAchievements(hostedCount, attendedCount, connections.length, interests, profile, levelVal, uniqueAttendedCats, uniqueHostedCats, communityCount, ownedCommunityCount, bookmarkCount)
       const seenRaw = localStorage.getItem('gathr_seen_achievements')
-      if (!seenRaw) {
-        // First ever visit: silently baseline all currently unlocked achievements so we only
-        // celebrate ones earned AFTER this point, not everything they've already done.
-        const baseline = allAch.filter(a => a.val >= a.req).map(a => a.title)
-        localStorage.setItem('gathr_seen_achievements', JSON.stringify(baseline))
-      } else {
-        const seen: string[] = JSON.parse(seenRaw)
-        const fresh = allAch.filter(a => a.val >= a.req && !seen.includes(a.title))
-        if (fresh.length > 0) {
-          setNewAchievements(fresh)
-          setShowAchievementUnlock(true)
-          const count = Math.min(fresh.length, 4)
-          for (let i = 0; i < count; i++) {
-            confettiTimersRef.current.push(setTimeout(() => fireConfetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] }), i * 450 + 50))
-          }
+      const seen: string[] = seenRaw ? JSON.parse(seenRaw) : []
+      const fresh = allAch.filter(a => a.val >= a.req && !seen.includes(a.title))
+      if (fresh.length > 0) {
+        setNewAchievements(fresh)
+        setShowAchievementUnlock(true)
+        const count = Math.min(fresh.length, 4)
+        for (let i = 0; i < count; i++) {
+          confettiTimersRef.current.push(setTimeout(() => fireConfetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 }, colors: ['#7EC87E', '#E8B84B', '#F0EDE6'] }), i * 450 + 50))
         }
+      } else if (!seenRaw) {
+        localStorage.setItem('gathr_seen_achievements', JSON.stringify([]))
       }
       // Seen list is updated only when the modal is dismissed (see dismiss handler) so achievements
       // re-show if the user navigates away without tapping the button.
@@ -401,7 +397,9 @@ export default function ProfilePage() {
         </div>
         <div className="px-4 pb-4">
           {optimizedImgSrc(profile?.avatar_url, 128) ? (
-            <img src={optimizedImgSrc(profile?.avatar_url, 128)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover mb-3"  loading="lazy" />
+            <button onClick={() => setShowAvatarExpanded(true)} className="mb-3 active:scale-95 transition-transform">
+              <img src={optimizedImgSrc(profile?.avatar_url, 128)!} alt="" className="w-16 h-16 rounded-2xl border-2 border-[#E8B84B]/35 object-cover" loading="lazy" />
+            </button>
           ) : (
             <div className="w-16 h-16 bg-[#2A4A2A] rounded-2xl border-2 border-[#E8B84B]/35 flex items-center justify-center mb-3">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(126,200,126,0.5)" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
@@ -433,7 +431,7 @@ export default function ProfilePage() {
           {(user?.id === FOUNDER_ID || pinnedBadges.length > 0) && (
             <div className="flex gap-1.5 mt-2 flex-wrap">
               {user?.id === FOUNDER_ID && (
-                <span className="text-[10px] px-2 py-1 rounded-lg border font-medium text-[#E8B84B] border-[#E8B84B]/50 bg-gradient-to-r from-[#2A1E04] to-[#100C02] shadow-[0_0_10px_rgba(232,184,75,0.25)]">
+                <span className="founder-badge-pill text-[10px] px-2.5 py-1 rounded-lg border font-bold text-[#E8B84B] border-[#E8B84B]/60">
                   ✦ Gathr Founder
                 </span>
               )}
@@ -679,13 +677,18 @@ export default function ProfilePage() {
               </div>
               <div className="space-y-2.5">
                 {user?.id === FOUNDER_ID && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl border border-[#E8B84B]/50 bg-gradient-to-br from-[#2A1E04] to-[#100C02] shadow-[0_0_18px_rgba(232,184,75,0.18)]">
-                    <span className="text-xl">✦</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-[#E8B84B]">Gathr Founder</div>
-                      <div className="text-[10px] text-white/35 mt-0.5">Founder &amp; CEO</div>
+                  <div className="founder-badge-card flex items-center gap-3 p-3.5 rounded-2xl border border-[#E8B84B]/60">
+                    <div className="founder-badge-icon w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#E8B84B">
+                        <path d="M12 2L14.4 8.9H21.7L16 13.1L18.4 20L12 15.8L5.6 20L8 13.1L2.3 8.9H9.6L12 2Z"/>
+                        <path d="M12 2L14.4 8.9H21.7L16 13.1L18.4 20L12 15.8L5.6 20L8 13.1L2.3 8.9H9.6L12 2Z" fill="rgba(255,255,255,0.18)"/>
+                      </svg>
                     </div>
-                    <span className="text-[9px] px-2 py-0.5 rounded border font-medium text-[#E8B84B] border-[#E8B84B]/40 flex-shrink-0">Exclusive</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-[#E8B84B] tracking-wide">Gathr Founder</div>
+                      <div className="text-[10px] text-[#E8B84B]/50 mt-0.5">Founder &amp; CEO · Exclusive Badge</div>
+                    </div>
+                    <span className="text-[8px] px-2 py-1 rounded-lg border font-bold text-[#E8B84B] border-[#E8B84B]/40 uppercase tracking-widest flex-shrink-0">OG</span>
                   </div>
                 )}
                 {ACHIEVEMENTS.map(ach => {
@@ -895,6 +898,12 @@ export default function ProfilePage() {
         onCommit={() => { commitDraftDelete() }}
         onClose={() => setShowDraftUndo(false)}
       />
+
+      {showAvatarExpanded && profile?.avatar_url && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-sm" onClick={() => setShowAvatarExpanded(false)}>
+          <img src={optimizedImgSrc(profile.avatar_url, 600) ?? profile.avatar_url} alt="" className="w-72 h-72 rounded-3xl object-cover border-2 border-[#E8B84B]/40 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(232,184,75,0.2)' }} />
+        </div>
+      )}
 
       <BottomNav />
     </FadeIn>
