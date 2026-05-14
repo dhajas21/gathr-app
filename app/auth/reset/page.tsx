@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
 
   const handleReset = async () => {
     if (!password) { setError('Enter a new password'); return }
-    if (password.length < 12) { setError('Password must be at least 12 characters'); return }
+    if (password.length < 10) { setError('Password must be at least 10 characters'); return }
     if (password !== confirm) { setError('Passwords do not match'); return }
 
     setLoading(true)

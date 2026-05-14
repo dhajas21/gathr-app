@@ -158,7 +158,7 @@ export default function SettingsPage() {
   const handleChangePassword = async () => {
     setPasswordError('')
     if (!newPassword) { setPasswordError('Enter a new password'); return }
-    if (newPassword.length < 12) { setPasswordError('Password must be at least 12 characters'); return }
+    if (newPassword.length < 10) { setPasswordError('Password must be at least 10 characters'); return }
     if (newPassword !== confirmPassword) { setPasswordError('Passwords do not match'); return }
     setSavingPassword(true)
     const { error } = await supabase.auth.updateUser({ password: newPassword })
@@ -342,7 +342,7 @@ export default function SettingsPage() {
             <div className="px-4 pb-4 space-y-2.5 border-t border-white/[0.06] pt-3">
               <PasswordInput
                 className={inputClass}
-                placeholder="New password (min. 12 characters)"
+                placeholder="New password (min. 10 characters)"
                 value={newPassword}
                 onChange={setNewPassword}
                 autoComplete="new-password"
@@ -350,7 +350,7 @@ export default function SettingsPage() {
               {newPassword.length > 0 && (() => {
                 const score = [
                   newPassword.length >= 8,
-                  newPassword.length >= 12,
+                  newPassword.length >= 10,
                   /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword),
                   /[0-9]/.test(newPassword) && /[^A-Za-z0-9]/.test(newPassword),
                 ].filter(Boolean).length
@@ -367,7 +367,7 @@ export default function SettingsPage() {
                     <p className="text-[10px]" style={{ color: score > 0 ? colors[score - 1] : 'rgba(255,255,255,0.3)' }}>
                       {score === 0 ? 'Too short' : labels[score - 1]}
                       {score < 4 && ' · '}
-                      {score === 1 && 'use 12+ characters'}
+                      {score === 1 && 'use 10+ characters'}
                       {score === 2 && 'add uppercase & lowercase'}
                       {score === 3 && 'add a number and symbol'}
                     </p>
@@ -394,7 +394,7 @@ export default function SettingsPage() {
               )}
               <button
                 onClick={handleChangePassword}
-                disabled={savingPassword || newPassword.length < 12 || newPassword !== confirmPassword}
+                disabled={savingPassword || newPassword.length < 10 || newPassword !== confirmPassword}
                 className="w-full bg-[#E8B84B] text-[#0D110D] rounded-xl py-3 text-sm font-bold disabled:opacity-50 active:scale-[0.98] transition-transform"
               >
                 {savingPassword ? (
