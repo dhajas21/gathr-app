@@ -61,6 +61,26 @@ export default function NotificationsPage() {
     }
   }
 
+  const hydrateConnectionStatuses = async (notifs: any[], userId: string): Promise<any[]> => {
+    const connReqs = notifs.filter(n => n.type === 'connection_request')
+    if (connReqs.length === 0) return notifs
+    const actorIds = [...new Set(connReqs.map(n => n.actor_id).filter(Boolean))] as string[]
+    const { data: conns } = await supabase
+      .from('connections')
+      .select('requester_id, status')
+      .in('requester_id', actorIds)
+      .eq('addressee_id', userId)
+    const statusMap: Record<string, string> = {}
+    if (conns) conns.forEach(c => { statusMap[c.requester_id] = c.status })
+    return notifs.map(n => {
+      if (n.type !== 'connection_request') return n
+      const status = statusMap[n.actor_id]
+      if (status === 'accepted') return { ...n, _accepted: true }
+      if (!status) return { ...n, _resolved: true } // requester withdrew or was declined
+      return n // status === 'pending' → show buttons
+    })
+  }
+
   const fetchNotifications = async (userId: string) => {
     try {
       const { data } = await supabase
@@ -70,9 +90,10 @@ export default function NotificationsPage() {
         .order('created_at', { ascending: false })
         .limit(PAGE_SIZE)
       if (data) {
-        setNotifications(data)
+        const enriched = await hydrateConnectionStatuses(data, userId)
+        setNotifications(enriched)
         setHasMore(data.length === PAGE_SIZE)
-        await hydrateActors(data)
+        await hydrateActors(enriched)
       }
     } finally {
       setLoading(false)
@@ -114,6 +135,17 @@ export default function NotificationsPage() {
   const markRead = async (notifId: string) => {
     await supabase.from('notifications').update({ read: true }).eq('id', notifId)
     setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n))
+  }
+
+  const markUnread = async (notifId: string) => {
+    await supabase.from('notifications').update({ read: false }).eq('id', notifId)
+    setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: false } : n))
+  }
+
+  const toggleRead = async (e: React.MouseEvent, notif: any) => {
+    e.stopPropagation()
+    if (notif.read) await markUnread(notif.id)
+    else await markRead(notif.id)
   }
 
   const handleTap = async (notif: any) => {
@@ -205,15 +237,20 @@ export default function NotificationsPage() {
     const isConnReq = notif.type === 'connection_request'
     const accepted = notif._accepted
     const declined = notif._declined
+    const resolved = notif._resolved
     const isLoading = actionLoading === notif.id || actionLoading === notif.id + '_decline'
 
     return (
       <div key={notif.id}
         onClick={() => !isConnReq && handleTap(notif)}
         className={'flex items-start gap-3 px-4 py-3.5 relative transition-colors ' + (!notif.read ? 'bg-white/[0.025]' : '') + (!isConnReq ? ' cursor-pointer active:bg-white/[0.03]' : '')}>
-        {!notif.read && (
-          <div className="absolute left-1.5 top-5 w-[3px] h-[3px] rounded-full bg-[#E8B84B]" />
-        )}
+        {/* Read/unread toggle — tap to flip state */}
+        <button
+          onClick={e => toggleRead(e, notif)}
+          title={notif.read ? 'Mark as unread' : 'Mark as read'}
+          className="absolute left-0 top-3.5 w-5 h-6 flex items-center justify-center flex-shrink-0">
+          <span className={`w-1.5 h-1.5 rounded-full transition-colors ${notif.read ? 'bg-white/10' : 'bg-[#E8B84B]'}`} />
+        </button>
 
         {/* Avatar */}
         <div className="flex-shrink-0 relative">
@@ -241,7 +278,7 @@ export default function NotificationsPage() {
           <div className="text-[10px] text-white/25 mt-1">{formatTime(notif.created_at)}</div>
 
           {/* Connection request actions */}
-          {isConnReq && !accepted && !declined && (
+          {isConnReq && !accepted && !declined && !resolved && (
             <div className="flex gap-2 mt-2.5">
               <button
                 onClick={e => { e.stopPropagation(); handleAcceptConnection(notif) }}
@@ -269,6 +306,9 @@ export default function NotificationsPage() {
           )}
           {isConnReq && declined && (
             <div className="mt-2 text-xs text-white/30">Request declined</div>
+          )}
+          {isConnReq && resolved && (
+            <div className="mt-2 text-xs text-white/25">Request no longer pending</div>
           )}
 
           {/* Event / message quick action */}
