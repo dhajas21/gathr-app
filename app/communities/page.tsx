@@ -10,6 +10,12 @@ import PageTransition from '@/components/PageTransition'
 
 const CATEGORIES = ['All', 'Social', 'Music', 'Fitness & Running', 'Food & Drink', 'Tech & Startups', 'Arts & Creativity', 'Outdoors & Adventure', 'Wellness', 'Gaming', 'Nightlife']
 
+const formatCount = (n: number) => {
+  if (n >= 10000) return `${Math.round(n / 1000)}k`
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`
+  return String(n)
+}
+
 const INTEREST_TO_COMMUNITY_CAT: Record<string, string> = {
   'fitness': 'Fitness & Running', 'running': 'Fitness & Running', 'gym': 'Fitness & Running',
   'yoga': 'Wellness', 'pilates': 'Wellness', 'cycling': 'Fitness & Running', 'swimming': 'Fitness & Running',
@@ -148,11 +154,11 @@ export default function CommunitiesPage() {
         <div className="flex items-center justify-between mb-1">
           <h1 className="font-display font-bold text-[#F0EDE6] text-xl">Communities</h1>
           <button onClick={() => router.push('/communities/create')}
-            className="bg-[#1E3A1E] border border-[#E8B84B]/20 rounded-xl px-3 py-1.5 text-xs text-[#E8B84B] font-semibold">
+            className="bg-[#E8B84B]/10 border border-[#E8B84B]/30 rounded-xl px-3 py-1.5 text-xs text-[#E8B84B] font-semibold active:scale-95 transition-transform">
             + New
           </button>
         </div>
-        <p className="text-xs text-white/40">Groups built around shared interests</p>
+        <p className="text-xs text-white/40">Find your people</p>
 
         <div className={`flex items-center gap-2 bg-[#1C241C] border rounded-2xl px-4 py-2.5 mt-3 transition-all ${searchFocused ? 'border-[#E8B84B]/35' : 'border-white/10'}`}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0 text-white/35">
@@ -183,7 +189,7 @@ export default function CommunitiesPage() {
               className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-all flex-shrink-0 ${
                 activeCategory === cat
                   ? 'bg-[#E8B84B] text-[#0D110D] border-[#E8B84B] font-semibold shadow-[0_0_14px_rgba(232,184,75,0.45)]'
-                  : 'bg-[#1C241C] text-white/45 border-white/10'
+                  : 'bg-[#1C241C] text-white/55 border-white/10'
               }`}>
               {cat}
             </button>
@@ -202,18 +208,23 @@ export default function CommunitiesPage() {
               {joined.map(comm => (
                 <div key={comm.id} onClick={() => router.push(`/communities/${comm.id}`)}
                   className="bg-[#1C241C] border border-white/10 rounded-2xl p-3 flex items-center gap-3 cursor-pointer active:scale-[0.98] transition-transform">
-                  <div className="comm-banner w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                  <div className="comm-banner w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
                     style={comm.banner_gradient ? { '--comm-bg': comm.banner_gradient } as React.CSSProperties : {}}>
                     {comm.icon
-                      ? <span className="text-lg">{comm.icon}</span>
+                      ? <span className="text-xl">{comm.icon}</span>
                       : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-white/40"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-[#F0EDE6]">{comm.name}</div>
-                    <div className="text-[10px] text-white/40 mt-0.5">{comm.member_count} members</div>
+                    <div className="flex items-center gap-1">
+                      <div className="text-sm font-semibold text-[#F0EDE6] truncate">{comm.name}</div>
+                      {comm.is_private && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/35 flex-shrink-0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-white/40 mt-0.5">{formatCount(comm.member_count)} members</div>
                   </div>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/35 flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
               ))}
             </div>
@@ -240,11 +251,11 @@ export default function CommunitiesPage() {
             <div className="flex items-center gap-2 mb-2 mt-2">
               <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Suggested for you</div>
               <div className="flex-1 h-px bg-white/5"></div>
-              <span className="text-[9px] text-[#E8B84B]/60">✦ Based on your interests</span>
+              <span className="text-[9px] text-[#E8B84B]/70">✦ Based on your interests</span>
             </div>
             <div className="space-y-3 mb-5">
               {suggestedDiscover.map(comm => (
-                <div key={comm.id} className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl overflow-hidden">
+                <div key={comm.id} className="bg-[#1C241C] border border-[#E8B84B]/20 rounded-2xl overflow-hidden">
                   <div className="comm-banner h-16 flex items-center justify-center relative"
                     style={comm.banner_gradient ? { '--comm-bg': comm.banner_gradient } as React.CSSProperties : {}}>
                     {comm.icon
@@ -252,16 +263,21 @@ export default function CommunitiesPage() {
                       : <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-white/45"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     }
                     <div className="absolute top-1.5 right-2">
-                      <span className="text-[8px] bg-[#E8B84B]/20 text-[#E8B84B] px-2 py-0.5 rounded-full border border-[#E8B84B]/20 font-medium">✦ For you</span>
+                      <span className="text-[9px] bg-[#E8B84B]/20 text-[#E8B84B] px-2 py-0.5 rounded-full border border-[#E8B84B]/20 font-medium">✦ For you</span>
                     </div>
                   </div>
                   <div className="p-3">
-                    <div className="font-bold text-sm text-[#F0EDE6] mb-1">{comm.name}</div>
-                    <div className="text-[10px] text-white/40">{comm.member_count} members · {comm.description || comm.category}</div>
+                    <div className="flex items-center gap-1 mb-1">
+                      <div className="font-bold text-sm text-[#F0EDE6] truncate">{comm.name}</div>
+                      {comm.is_private && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/35 flex-shrink-0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-white/40">{formatCount(comm.member_count)} members · {comm.description || comm.category}</div>
                     <div className="flex items-center justify-between mt-3">
                       <div className="flex gap-1.5">
                         {comm.category && (
-                          <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
+                          <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
                             #{comm.category.toLowerCase().replace(/\s/g, '')}
                           </span>
                         )}
@@ -269,7 +285,7 @@ export default function CommunitiesPage() {
                       <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id, comm.is_private) }}
                         disabled={joiningId === comm.id}
                         className="bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform disabled:opacity-50">
-                        {joiningId === comm.id ? '...' : '+ Join'}
+                        {joiningId === comm.id ? '...' : comm.is_private ? '🔒 Request' : '+ Join'}
                       </button>
                     </div>
                   </div>
@@ -306,7 +322,7 @@ export default function CommunitiesPage() {
           <div className="space-y-3">
             {filteredDiscover.map(comm => (
               <div key={comm.id} className="bg-[#1C241C] border border-white/10 rounded-2xl overflow-hidden">
-                <div className="comm-banner h-14 flex items-center justify-center"
+                <div className="comm-banner h-16 flex items-center justify-center"
                   style={comm.banner_gradient ? { '--comm-bg': comm.banner_gradient } as React.CSSProperties : {}}>
                   {comm.icon
                     ? <span className="text-2xl">{comm.icon}</span>
@@ -314,20 +330,25 @@ export default function CommunitiesPage() {
                   }
                 </div>
                 <div className="p-3">
-                  <div className="font-bold text-sm text-[#F0EDE6] mb-1">{comm.name}</div>
-                  <div className="text-[10px] text-white/40">{comm.member_count} members · {comm.description || comm.category}</div>
+                  <div className="flex items-center gap-1 mb-1">
+                    <div className="font-bold text-sm text-[#F0EDE6] truncate">{comm.name}</div>
+                    {comm.is_private && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/35 flex-shrink-0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-white/40">{formatCount(comm.member_count)} members · {comm.description || comm.category}</div>
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex gap-1.5">
                       {comm.category && (
-                        <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
+                        <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/10">
                           #{comm.category.toLowerCase().replace(/\s/g, '')}
                         </span>
                       )}
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id, comm.is_private) }}
                       disabled={joiningId === comm.id}
-                      className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform disabled:opacity-50">
-                      {joiningId === comm.id ? '...' : '+ Join'}
+                      className="bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform disabled:opacity-50">
+                      {joiningId === comm.id ? '...' : comm.is_private ? '🔒 Request' : '+ Join'}
                     </button>
                   </div>
                 </div>
