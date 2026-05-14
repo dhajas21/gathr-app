@@ -75,7 +75,9 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 - Swipe to delete a conversation from your inbox
 - Typing indicators in DMs (real-time, doesn't touch the database)
 - Connection request dedup — withdrawing a request marks the notification as read (no orphaned actionable alerts); email/push only fires once per requester→addressee pair regardless of how many reconnect cycles occur
-- Connection accept state is persistent — the activity tab hydrates connection statuses from the DB on load so Accept/Decline buttons never re-appear for already-accepted requests after a refresh; withdrawn requests show "Request no longer pending"; accept uses `.select()` to detect 0-row updates and shows an inline error if the request is no longer pending
+- Connection accept/decline is robust — both actions use `.eq('status', 'pending')` guards and `.select()` 0-row detection; if the request was withdrawn or already handled, an inline error appears and the notification transitions to "Request no longer pending" automatically; decline errors are surfaced the same way as accept errors
+- Connection accept state is persistent — `hydrateConnectionStatuses` runs on both initial load and pagination so Accept/Decline buttons never re-appear for already-accepted or resolved requests across refreshes or scroll-loads
+- Accepted connection request notifications are tappable — row navigates to the person's profile with a "· Tap to view profile" hint; the accepter's avatar now correctly appears on "X accepted your request" notifications (DB trigger fix: `actor_id` was missing)
 - Individual notification read/unread toggle — tap the dot on any notification row to flip its read state (gold = unread, faint = read); "Mark all read" button also available in the header
 
 ### Safety System

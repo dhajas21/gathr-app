@@ -165,7 +165,7 @@ All count management and notifications are handled by Postgres triggers — not 
 | `rsvp_notification_trigger` | rsvps INSERT | Notifies event host: "X is going to your event" |
 | `message_notification_trigger` | messages INSERT | Notifies recipient of new DM |
 | `connection_request_notification_trigger` | connections INSERT | Notifies addressee of connection request |
-| `on_connection_accepted_notify` | connections UPDATE (status→accepted) | Notifies requester that request was accepted |
+| `on_connection_accepted_notify` | connections UPDATE (status→accepted) | Notifies requester that request was accepted; sets `actor_id = NEW.addressee_id` so the accepter's avatar renders correctly |
 | `notify_on_event_comment` | event_comments INSERT | Notifies event host of new comment |
 | `rate_limit_waves` | waves BEFORE INSERT | Blocks if user sent >30 waves in last hour |
 | `rate_limit_community_posts` | community_posts BEFORE INSERT | Blocks if user posted >20 posts in last hour |
@@ -396,10 +396,11 @@ All notifications except `wave` and `after_event_match` are created by **Postgre
 The notifications page (`app/notifications/page.tsx`) groups notifications into Today / This week / Earlier and supports:
 - **Mark all read** — header button, only shown when unread count > 0
 - **Individual read/unread toggle** — the dot on the left of each row is a tap target (20×24px); gold = unread, faint white = read. Tapping flips the state via `markRead` / `markUnread` which write to `notifications.read` directly.
-- **Connection request hydration on load** — after fetching, `hydrateConnectionStatuses()` batch-queries the `connections` table for all `connection_request` notifications and pre-sets `_accepted` or `_resolved` flags so the Accept/Decline buttons reflect actual DB state across page refreshes. If the query itself fails for any reason, the function falls back to showing buttons (never hides them on error). Notifications with a null `actor_id` are also passed through unchanged.
-- **`_resolved` state** — if a requester withdrew their request before the addressee acted, the connection row no longer exists; these notifications render "Request no longer pending" instead of stale buttons. If the UPDATE detects 0 rows affected (request already gone), `_resolved` is set immediately in state.
-- **Robust accept** — `handleAcceptConnection` uses `.select()` + `.eq('status', 'pending')` on the UPDATE so 0-row updates are detected (previously a 0-row update returned no error and silently appeared to succeed). On genuine failure an `actionError` string appears below the buttons in red. On 0-row (request gone), the notification transitions to `_resolved` automatically.
-- Tapping a non-connection-request notification marks it read and navigates to `notif.link`.
+- **Connection request hydration on load and pagination** — after fetching (both initial load and `loadMore` pagination), `hydrateConnectionStatuses()` batch-queries the `connections` table for all `connection_request` notifications and pre-sets `_accepted` or `_resolved` flags so the Accept/Decline buttons reflect actual DB state across page refreshes and scroll-loads. If the query itself fails for any reason, the function falls back to showing buttons (never hides them on error). Notifications with a null `actor_id` are also passed through unchanged.
+- **`_resolved` state** — if a requester withdrew their request before the addressee acted, the connection row no longer exists; these notifications render "Request no longer pending" instead of stale buttons. If the UPDATE or DELETE detects 0 rows affected (request already gone), `_resolved` is set immediately in state.
+- **Robust accept and decline** — both `handleAcceptConnection` and `handleDeclineConnection` use `.eq('status', 'pending')` guards and `.select()` 0-row detection. Accept: 0-row on UPDATE → `_resolved`. Decline: 0-row on DELETE → `_resolved`. Both surface errors inline below the buttons in red.
+- **Accepted rows are tappable** — once a connection request is accepted, the notification row becomes tappable (same press-highlight as other notification types) and navigates to the accepter's profile. A "· Tap to view profile" hint appears next to "✓ Connected".
+- Tapping any other notification marks it read and navigates to `notif.link`.
 - Realtime subscription on `notifications INSERT` for the current user keeps the list live without polling.
 - Pagination: 30 per page, cursor-based on `created_at`.
 
