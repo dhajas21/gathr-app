@@ -32,15 +32,54 @@ const DAY_KEYWORDS: Record<string, number> = {
 }
 const TIME_KEYWORDS = ['morning', 'afternoon', 'evening', 'night', 'tonight', 'late']
 const CATEGORY_SYNONYMS: Record<string, string> = {
-  'live music': 'Music', 'concert': 'Music', 'gig': 'Music', 'show': 'Music', 'band': 'Music', 'open mic': 'Music',
-  'run': 'Fitness', 'running': 'Fitness', 'workout': 'Fitness', 'gym': 'Fitness', 'yoga': 'Wellness & Mindfulness',
-  'hike': 'Outdoors & Adventure', 'hiking': 'Outdoors & Adventure',
-  'coffee': 'Food & Drink', 'food': 'Food & Drink', 'drinks': 'Food & Drink', 'brunch': 'Food & Drink', 'dinner': 'Food & Drink', 'bar': 'Food & Drink',
-  'tech': 'Tech & Coding', 'coding': 'Tech & Coding', 'startup': 'Tech & Coding', 'hackathon': 'Tech & Coding', 'ai': 'Tech & Coding',
-  'art': 'Arts & Culture', 'gallery': 'Arts & Culture', 'painting': 'Arts & Culture', 'design': 'Arts & Culture',
-  'meetup': 'Social & Parties', 'hangout': 'Social & Parties', 'social': 'Social & Parties', 'party': 'Social & Parties',
+  // Music — phrases first (longer matches take priority)
+  'live music': 'Music', 'open mic': 'Music', 'hip hop': 'Music',
+  'music': 'Music', 'concert': 'Music', 'gig': 'Music', 'show': 'Music', 'band': 'Music',
+  'dj': 'Music', 'electronic': 'Music', 'jazz': 'Music', 'blues': 'Music',
+  'festival': 'Music', 'karaoke': 'Music', 'acoustic': 'Music', 'rapper': 'Music',
+  // Fitness
+  'fitness': 'Fitness', 'run': 'Fitness', 'running': 'Fitness', 'workout': 'Fitness',
+  'gym': 'Fitness', 'exercise': 'Fitness', 'crossfit': 'Fitness', 'cycling': 'Fitness',
+  'spin': 'Fitness', 'bootcamp': 'Fitness', 'training': 'Fitness', 'cardio': 'Fitness',
+  'climbing': 'Fitness', 'weightlifting': 'Fitness',
+  // Food & Drink
+  'coffee': 'Food & Drink', 'food': 'Food & Drink', 'drinks': 'Food & Drink',
+  'brunch': 'Food & Drink', 'dinner': 'Food & Drink', 'bar': 'Food & Drink',
+  'restaurant': 'Food & Drink', 'lunch': 'Food & Drink', 'beer': 'Food & Drink',
+  'wine': 'Food & Drink', 'cocktail': 'Food & Drink', 'tasting': 'Food & Drink',
+  'cooking': 'Food & Drink', 'foodie': 'Food & Drink', 'market': 'Food & Drink', 'pub': 'Food & Drink',
+  // Tech & Coding
+  'tech': 'Tech & Coding', 'coding': 'Tech & Coding', 'startup': 'Tech & Coding',
+  'hackathon': 'Tech & Coding', 'ai': 'Tech & Coding', 'developer': 'Tech & Coding',
+  'programming': 'Tech & Coding', 'crypto': 'Tech & Coding', 'web3': 'Tech & Coding',
+  'gaming': 'Tech & Coding', 'esports': 'Tech & Coding', 'data': 'Tech & Coding',
+  // Outdoors & Adventure
+  'hike': 'Outdoors & Adventure', 'hiking': 'Outdoors & Adventure', 'outdoor': 'Outdoors & Adventure',
+  'nature': 'Outdoors & Adventure', 'camping': 'Outdoors & Adventure', 'trail': 'Outdoors & Adventure',
+  'kayak': 'Outdoors & Adventure', 'kayaking': 'Outdoors & Adventure', 'skiing': 'Outdoors & Adventure',
+  'snowboard': 'Outdoors & Adventure', 'paddling': 'Outdoors & Adventure', 'surfing': 'Outdoors & Adventure',
+  // Arts & Culture
+  'art': 'Arts & Culture', 'gallery': 'Arts & Culture', 'painting': 'Arts & Culture',
+  'design': 'Arts & Culture', 'theatre': 'Arts & Culture', 'theater': 'Arts & Culture',
+  'film': 'Arts & Culture', 'photography': 'Arts & Culture', 'comedy': 'Arts & Culture',
+  'improv': 'Arts & Culture', 'performance': 'Arts & Culture', 'exhibition': 'Arts & Culture',
+  'crafts': 'Arts & Culture', 'ceramics': 'Arts & Culture',
+  // Social & Parties — phrases first
+  'game night': 'Social & Parties', 'board games': 'Social & Parties',
+  'pub quiz': 'Social & Parties', 'speed dating': 'Social & Parties',
+  'meetup': 'Social & Parties', 'hangout': 'Social & Parties', 'social': 'Social & Parties',
+  'party': 'Social & Parties', 'trivia': 'Social & Parties', 'singles': 'Social & Parties',
+  'nightlife': 'Social & Parties',
+  // Wellness & Mindfulness
+  'yoga': 'Wellness & Mindfulness', 'wellness': 'Wellness & Mindfulness',
+  'meditation': 'Wellness & Mindfulness', 'mindfulness': 'Wellness & Mindfulness',
+  'pilates': 'Wellness & Mindfulness', 'breathwork': 'Wellness & Mindfulness',
+  'sound bath': 'Wellness & Mindfulness', 'retreat': 'Wellness & Mindfulness',
+  'spiritual': 'Wellness & Mindfulness', 'healing': 'Wellness & Mindfulness',
+  // Networking
   'networking': 'Networking', 'professional': 'Networking', 'founders': 'Networking',
-  'outdoor': 'Outdoors & Adventure', 'nature': 'Outdoors & Adventure', 'camping': 'Outdoors & Adventure', 'trail': 'Outdoors & Adventure',
+  'business': 'Networking', 'career': 'Networking', 'entrepreneurs': 'Networking',
+  'industry': 'Networking', 'conference': 'Networking', 'summit': 'Networking',
 }
 
 const formatCount = (n: number) => {
