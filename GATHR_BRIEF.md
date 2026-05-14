@@ -129,7 +129,7 @@ Bellingham, Seattle, Bellevue, Tacoma, Olympia, Spokane, Portland, Eugene, Salem
 - **App-resume radar**: when a logged-in user switches back to the app from another tab or the OS, a 750ms gold radar sweep (3 concentric rings, one full rotation) overlays the current screen and fades out. Fires on `visibilitychange → visible`; skipped on `/`, `/auth`, `/onboarding`, and `/tour`. Complements the existing 200ms `page-enter` fade-up which fires on in-app navigation. Implemented in `components/AppResumeRadar.tsx`, mounted globally in `app/layout.tsx`. Respects `prefers-reduced-motion`.
 
 ### UI Polish Standards (Enforced Across All Pages)
-A systematic polish pass has been applied to all main pages (communities, home, profile, search, messages, host, settings, profile/edit) standardizing the following:
+A systematic polish pass has been applied to every page in the app (communities, home, profile, search, messages, host, settings, profile/edit, setup, notifications, create, events/[id], bookmarks, profile/[id], communities/[id], gathr-plus, waitlist, tour, auth/reset) standardizing the following:
 - **Secondary text minimum opacity:** `text-white/40` — never `/30`. Labels, subtitles, descriptions.
 - **Chevron/icon minimum opacity:** `text-white/35`
 - **Tag/pill minimum size:** `text-[10px]` — smaller than this is illegible at mobile sizes.

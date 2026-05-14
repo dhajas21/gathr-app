@@ -308,7 +308,7 @@ export default function NotificationsPage() {
                 </button>
                 <button
                   onClick={e => { e.stopPropagation(); router.push('/profile/' + notif.actor_id) }}
-                  className="text-[10px] text-white/30 px-2 py-1.5">
+                  className="text-[10px] text-white/35 px-2 py-1.5">
                   View profile
                 </button>
               </div>
@@ -323,7 +323,7 @@ export default function NotificationsPage() {
             <div className="mt-2 text-xs text-[#7EC87E] font-medium">✓ Connected</div>
           )}
           {isConnReq && declined && (
-            <div className="mt-2 text-xs text-white/30">Request declined</div>
+            <div className="mt-2 text-xs text-white/35">Request declined</div>
           )}
           {isConnReq && resolved && (
             <div className="mt-2 text-xs text-white/25">Request no longer pending</div>
@@ -332,13 +332,13 @@ export default function NotificationsPage() {
           {/* Event / message quick action */}
           {(notif.type === 'rsvp' || notif.type === 'event_comment' || notif.type === 'event_reminder') && notif.link?.startsWith('/') && (
             <button onClick={e => { e.stopPropagation(); router.push(notif.link) }}
-              className="mt-2 text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/15 px-2.5 py-1 rounded-lg">
+              className="mt-2 text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1 rounded-lg">
               View event →
             </button>
           )}
           {notif.type === 'message' && notif.link?.startsWith('/') && (
             <button onClick={e => { e.stopPropagation(); router.push(notif.link) }}
-              className="mt-2 text-[10px] text-[#7EC87E] bg-[#7EC87E]/10 border border-[#7EC87E]/15 px-2.5 py-1 rounded-lg">
+              className="mt-2 text-[10px] text-[#7EC87E] bg-[#7EC87E]/10 border border-[#7EC87E]/20 px-2.5 py-1 rounded-lg">
               Reply →
             </button>
           )}

@@ -523,7 +523,7 @@ export default function SetupPage() {
                   </div>
                   <div>
                     <div className="text-sm font-medium text-[#F0EDE6]">{tip.title}</div>
-                    <div className="text-xs text-white/35">{tip.desc}</div>
+                    <div className="text-xs text-white/40">{tip.desc}</div>
                   </div>
                 </div>
               ))}

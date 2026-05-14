@@ -164,7 +164,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
       <div style={{ background: 'var(--gradient-profile-header)' }}>
         <div className="flex items-start justify-between px-4 pt-14 mb-3">
           <button onClick={() => router.back()}
-            className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6]">
+            className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6] active:scale-95 transition-transform">
             {'←'}
           </button>
           <button
@@ -254,7 +254,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">Interests</div>
             <div className="flex flex-wrap gap-2">
               {profile.interests.map((interest: string) => (
-                <span key={interest} className="bg-[#2A4A2A]/35 text-[#7EC87E] text-xs px-2.5 py-1 rounded-lg border border-[#7EC87E]/10">{interest}</span>
+                <span key={interest} className="bg-[#2A4A2A]/35 text-[#7EC87E] text-xs px-2.5 py-1 rounded-lg border border-[#7EC87E]/20">{interest}</span>
               ))}
             </div>
           </div>
@@ -294,7 +294,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             <div className="p-3.5">
               {activeTab === 'hosting' && (
                 hostedEvents.length === 0 ? (
-                  <p className="text-xs text-white/30 text-center py-4">No hosted events yet</p>
+                  <p className="text-xs text-white/40 text-center py-4">No hosted events yet</p>
                 ) : (
                   hostedEvents.map(event => (
                     <div key={event.id} onClick={() => router.push('/events/' + event.id)}
@@ -311,7 +311,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
               )}
               {activeTab === 'going' && (
                 attendedEvents.length === 0 ? (
-                  <p className="text-xs text-white/30 text-center py-4">No events yet</p>
+                  <p className="text-xs text-white/40 text-center py-4">No events yet</p>
                 ) : (
                   attendedEvents.map(event => {
                     const isPast = new Date(event.start_datetime) < new Date()

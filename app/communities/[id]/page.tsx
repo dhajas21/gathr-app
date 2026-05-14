@@ -588,11 +588,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent" />
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
           <button onClick={() => router.push('/communities')}
-            className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-[#F0EDE6]">
+            className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-[#F0EDE6] active:scale-95 transition-transform">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           </button>
           <div className="flex gap-2">
-            <button onClick={handleShare} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center transition-colors ' + (shareCopied ? 'border-[#E8B84B]/40 text-[#E8B84B]' : 'border-white/15 text-[#F0EDE6]')}>
+            <button onClick={handleShare} className={'w-9 h-9 bg-[#0D110D]/70 border rounded-xl flex items-center justify-center active:scale-95 transition-all ' + (shareCopied ? 'border-[#E8B84B]/40 text-[#E8B84B]' : 'border-white/15 text-[#F0EDE6]')}>
               {shareCopied
                 ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -600,7 +600,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             </button>
             {memberRole === 'owner' && (
               <button onClick={() => router.push('/communities/' + communityId + '/settings')}
-                className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-[#F0EDE6]">
+                className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-[#F0EDE6] active:scale-95 transition-transform">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="3"/>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -778,7 +778,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       <div className="flex items-center gap-2">
                         <button onClick={() => router.push('/profile/' + profile?.id)}
                           className="text-sm font-semibold text-[#F0EDE6]">{profile?.name || 'Unknown'}</button>
-                        <span className="text-[9px] text-white/25">{timeAgo(post.created_at)}</span>
+                        <span className="text-[9px] text-white/35">{timeAgo(post.created_at)}</span>
                         {(isOwn || isOwnerOrAdmin) && (
                           <button onClick={() => handleDeletePost(post.id)} className="ml-auto text-[9px] text-white/20 active:text-[#E85B5B]">✕</button>
                         )}
@@ -810,9 +810,9 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                   ) : (post.like_count > 0 || commentCountMap[post.id] > 0) ? (
                     <div className="flex items-center gap-3 pt-2 border-t border-white/10">
-                      {post.like_count > 0 && <span className="flex items-center gap-1 text-xs text-white/25"><span>♡</span><span>{post.like_count}</span></span>}
+                      {post.like_count > 0 && <span className="flex items-center gap-1 text-xs text-white/35"><span>♡</span><span>{post.like_count}</span></span>}
                       {commentCountMap[post.id] > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-white/25">
+                        <span className="flex items-center gap-1 text-xs text-white/35">
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                           </svg>
@@ -824,7 +824,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   {isMember && expandedPostId === post.id && (
                     <div className="mt-3 pt-3 border-t border-white/[0.07]">
                       {(commentsMap[post.id] || []).length === 0 && (
-                        <p className="text-[11px] text-white/25 mb-3 text-center">No replies yet</p>
+                        <p className="text-[11px] text-white/35 mb-3 text-center">No replies yet</p>
                       )}
                       {(commentsMap[post.id] || []).map(comment => (
                         <div key={comment.id} className="flex items-start gap-2 mb-2.5">
@@ -839,7 +839,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                             <div className="flex items-center gap-1.5 mb-0.5">
                               <button onClick={() => router.push('/profile/' + comment.profiles?.id)}
                                 className="text-[11px] font-semibold text-[#F0EDE6]">{comment.profiles?.name || 'Unknown'}</button>
-                              <span className="text-[9px] text-white/25">{timeAgo(comment.created_at)}</span>
+                              <span className="text-[9px] text-white/35">{timeAgo(comment.created_at)}</span>
                             </div>
                             <p className="text-xs text-white/60 leading-relaxed">{comment.text}</p>
                           </div>
@@ -1001,7 +1001,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#F0EDE6]">
                         {member.profile?.name || 'Unknown'}
-                        {member.user_id === user?.id && <span className="text-white/30 text-xs ml-1.5">you</span>}
+                        {member.user_id === user?.id && <span className="text-white/35 text-xs ml-1.5">you</span>}
                       </div>
                       <div className="text-xs text-white/40 mt-0.5">{member.profile?.bio_social || member.role}</div>
                     </div>

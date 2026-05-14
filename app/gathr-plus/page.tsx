@@ -98,7 +98,7 @@ export default function GathrPlusPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-14 pb-2">
-        <button onClick={() => router.back()} className="text-white/30 text-sm">← Back</button>
+        <button onClick={() => router.back()} className="text-white/40 text-sm active:opacity-70 transition-opacity">← Back</button>
       </div>
 
       {/* Hero */}
@@ -124,7 +124,7 @@ export default function GathrPlusPage() {
             </div>
             <div>
               <div className="text-sm font-semibold text-[#F0EDE6] mb-0.5">{perk.title}</div>
-              <div className="text-[11px] text-white/35 leading-relaxed">{perk.body}</div>
+              <div className="text-[11px] text-white/40 leading-relaxed">{perk.body}</div>
             </div>
           </div>
         ))}

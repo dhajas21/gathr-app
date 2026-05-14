@@ -564,7 +564,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 z-10">
           <button onClick={() => router.back()}
-            className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-[#F0EDE6]">
+            className="w-9 h-9 bg-[#0D110D]/70 border border-white/15 rounded-xl flex items-center justify-center text-[#F0EDE6] active:scale-95 transition-transform">
             {'←'}
           </button>
           <div className="flex gap-2">
@@ -647,7 +647,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="text-sm font-medium text-[#F0EDE6]">{event.location_name}</div>
                 <div className="text-xs text-white/45">{event.location_address || event.city}</div>
               </div>
-              <span className="text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/15 px-2 py-1 rounded-lg flex-shrink-0">Open →</span>
+              <span className="text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2 py-1 rounded-lg flex-shrink-0">Open →</span>
             </button>
           ) : (
             <div className="flex items-center gap-3 w-full">
@@ -658,7 +658,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-[#F0EDE6]">{event.location_name}</div>
-                <div className="text-xs text-white/30 italic">RSVP to unlock full address</div>
+                <div className="text-xs text-white/40 italic">RSVP to unlock full address</div>
               </div>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
                 <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -736,7 +736,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-semibold text-[#E8B84B]/70 mb-0.5">Who&apos;s going?</div>
-              <div className="text-[10px] text-white/35 leading-snug">RSVP to unlock your match count — see how many people share your vibe</div>
+              <div className="text-[10px] text-white/40 leading-snug">RSVP to unlock your match count — see how many people share your vibe</div>
             </div>
           </div>
         )}
@@ -770,7 +770,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   <span className="text-sm">{headerEmoji}</span>
                   <span className="text-xs font-semibold text-[#F0EDE6]">{headerText}</span>
                 </div>
-                <p className="text-[10px] text-white/30 leading-relaxed">
+                <p className="text-[10px] text-white/40 leading-relaxed">
                   {eventState === 'upcoming'
                     ? 'Full profiles unlock after the event. Show up to reveal who you matched with.'
                     : eventState === 'ongoing'
@@ -792,7 +792,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                         <span className="ml-1.5 text-[#7EC87E]">· {mutualWaveIds.size} mutual 🔁</span>
                       )}
                     </div>
-                    <div className="text-[9px] text-white/30 mt-0.5">
+                    <div className="text-[9px] text-white/35 mt-0.5">
                       {mutualWaveIds.size > 0 ? 'You both waved — show up to connect' : 'Attend the event to find out who'}
                     </div>
                   </div>
@@ -828,7 +828,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     <span className="text-[10px] font-bold text-[#E8B84B]">✦ Gathr+</span>
                     <span className="text-[9px] text-white/25">unlock before the event</span>
                   </div>
-                  <p className="text-[9px] text-white/35 mb-2 leading-relaxed">
+                  <p className="text-[9px] text-white/40 mb-2 leading-relaxed">
                     See {hiddenCount} more {hiddenCount === 1 ? 'match' : 'matches'}, partial names, shared interests, and send waves before you arrive.
                   </p>
                   <button onClick={() => router.push('/gathr-plus')} className="text-[10px] text-[#E8B84B] font-semibold">

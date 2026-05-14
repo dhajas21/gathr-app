@@ -52,25 +52,26 @@ app/
 ├── setup/                Profile setup after first sign-in (name, city, interests, photo)
 ├── tour/                 4-slide in-app feature tour: Mystery Match · Communities · Safety Tiers · Hosting. Reached via "Take the tour →" in the first-home-load welcome modal. Skip button always visible → /home.
 ├── home/                 Main feed (events + communities tabs). Header: Gathr wordmark + greeting, city pill, notifications bell. Search bar (tap-through to /search). "Happening Soon" horizontal scroll. Featured event card (gold pill category tag). Tab bar: Trending / For You / Near Me / Friends / Mine. Event cards with category gradient banners, tag pills, capacity "% full" indicator, bookmark toggle.
-├── events/[id]/          Event detail — RSVP, matches, comments, waves, calendar export
-├── create/               Multi-step event creation form (with auto-save draft)
+├── events/[id]/          Event detail — hero cover with back/share/bookmark/edit buttons, date+location card (full address gated behind RSVP), mystery match section (match count + blurred silhouettes → partial names for Gathr+ → full reveal post-event), incoming wave teasers, Gathr+ upsell for hidden matches, attendees grid, about/comments. RSVP gated: address and map button only shown to RSVPed users and host.
+├── create/               Multi-step event creation form (Step 1: cover photo, title, category, description, date/time, venue autocomplete, address; Step 2: capacity, tags, visibility, ticket type). Auto-save draft — progress bar with step labels; back button returns to step 1 or router.back().
 ├── host/                 Host dashboard — 3 tabs (Overview / Events / Insights). Overview: 4 stat tiles (upcoming, total RSVPs, avg attendance, events hosted), next-up event previews with RSVP progress bars, Host Pro waitlist CTA. Events tab: upcoming + past lists with View/Edit/Attendees-Message action buttons. Insights tab: best event, performance summary, top categories by RSVPs.
 ├── communities/          Community discovery + joined communities list. Sections: Your communities (banner thumbnail rows with private lock icon + k-formatted member counts), Suggested for you (interest-matched, gold-bordered cards), Discover (all remaining). Category filter pills, search. Private communities show lock icon and "🔒 Request" button instead of "+ Join".
-├── communities/[id]/     Community detail — posts, chat, members, pending requests
+├── communities/[id]/     Community detail — banner (with back + share + settings buttons for owner), info card (name, private lock badge, member count), stats bar (members/posts/events), tabs: Feed (post text+photos, like, comment, load-more), Events (upcoming event list + add/create for members), Members (pending requests panel for owner/admin, member list with "you" label and role badges), Chat (real-time group chat with optimistic updates, delete own messages). CTA bar adapts per state: Join / Request to Join / Cancel Request / Leave+Create / chat input.
 ├── search/               Universal search — events, communities, people, #tags. Vibe query parser (natural language: "live music thursday night") extracts day/time/category and highlights detected filters as pills. Community member counts k-formatted. Category browse grid.
 ├── map/                  Map view of events as Leaflet pins
 ├── messages/             DM inbox + pending connection requests. Connection request cards (Accept/Decline). Accepted connections quick-scroll bar. Community chats section. SwipeThread rows (swipe left to mark read/unread or delete). Compose overlay (search connections).
 ├── messages/[id]/        DM thread — realtime chat with typing indicators
 ├── notifications/        Notification centre — mark read, navigate to source
-├── bookmarks/            Saved events
+├── bookmarks/            Saved events — upcoming and past sections. Unbookmark with undo toast (optimistic remove, 4-second undo window, commits on dismiss or navigates away).
 ├── profile/              Own profile — bio, stats bar (Hosted/RSVPs/Connections/Achievements), XP level with animated bar, achievement grid (32 badges; locked ones show gold progress fill), pin up to 3 badges to public profile, mode toggles (Social/Professional)
-├── profile/[id]/         Public profile — other users
+├── profile/[id]/         Public profile — avatar (with lightbox on tap), name + tier badge + safety badge, bio, mode pills, pinned achievement badges (gold/silver/bronze gradient styles), stats bar (Hosted/Going/Interests/Mutual), mutual connections section with avatar row, Hosting/Going tab with event list, fixed bottom CTA (Message + Connect/Withdraw/Connected).
 ├── profile/edit/         Edit profile — photo upload (with crop/compress), first/last name, bio, city, profile mode (Social/Professional/Both), RSVP visibility, interests (search + tag chips, up to 10).
 ├── settings/             Account settings — profile edit shortcut, Gathr+ status, appearance (theme toggle), account (email, change password with strength meter), profile mode toggles, privacy toggles (discoverable, matching, push notifications, RSVP notify), feedback sheet, sign out, delete account.
-├── gathr-plus/           Gathr+ upgrade page
+├── gathr-plus/           Gathr+ upgrade page — hero icon, 5 perk cards (see who's going, anonymous waves, early reveal, badge, priority ranking), "Billing Coming Soon" card with notify-me waitlist link, trial CTA button (disabled if trial used or active). Notify-me sheet routes to /waitlist.
+├── auth/reset/           Password reset — listens for PASSWORD_RECOVERY Supabase event; shows verifying state, then new+confirm password inputs with strength validation; auto-redirects /home after success.
 ├── privacy/              Privacy Policy
 ├── terms/                Terms of Service
-└── waitlist/             Waitlist signup (for pre-launch)
+└── waitlist/             Host Pro early access waitlist — name, email, optional event-type textarea; feature preview list (paid ticketing, analytics, promoted events, mass messaging); join button with spinner. Success screen with "Back to Home" CTA.
 ```
 
 **Public routes** (no auth required): `/`, `/onboarding`, `/auth`, `/tour`, `/privacy`, `/terms`, `/waitlist`. Every other route is protected by the middleware.

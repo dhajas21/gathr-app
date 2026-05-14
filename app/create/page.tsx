@@ -346,7 +346,7 @@ export default function CreateEventPage() {
       <div className="flex items-center gap-3 px-5 pt-14 pb-4 border-b border-white/10">
         <button
           onClick={() => (step === 1 ? router.back() : setStep(1))}
-          className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6] text-sm"
+          className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6] text-sm active:scale-95 transition-transform"
         >
           ←
         </button>
@@ -377,7 +377,7 @@ export default function CreateEventPage() {
             style={{ width: step === 1 ? '50%' : '100%' }}
           />
         </div>
-        <div className="flex justify-between text-[10px] text-white/30">
+        <div className="flex justify-between text-[10px] text-white/40">
           <span className={step === 1 ? 'text-[#E8B84B]' : ''}>Step 1 — Basics</span>
           <span className={step === 2 ? 'text-[#E8B84B]' : ''}>Step 2 — Details</span>
         </div>
@@ -402,7 +402,7 @@ export default function CreateEventPage() {
                     <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
                     <polyline points="21 15 16 10 5 21"/>
                   </svg>
-                  <span className="text-xs text-white/30">Upload a cover photo</span>
+                  <span className="text-xs text-white/40">Upload a cover photo</span>
                   <span className="text-[10px] text-white/20">JPG, PNG — Recommended 16:9</span>
                 </div>
               )}
@@ -442,8 +442,8 @@ export default function CreateEventPage() {
             <div>
               <label className={labelClass}>End Time</label>
               <input type="time" className={inputClass} value={endTime} onChange={e => setEndTime(e.target.value)} />
-              <p className="text-[10px] text-white/30 mt-1.5">
-                Times are anchored to <span className="text-white/45">{city}</span> — attendees in other timezones see this exact time with the local abbreviation.
+              <p className="text-[10px] text-white/40 mt-1.5">
+                Times are anchored to <span className="text-white/55">{city}</span> — attendees in other timezones see this exact time with the local abbreviation.
               </p>
             </div>
 
@@ -486,7 +486,7 @@ export default function CreateEventPage() {
               <label className={labelClass}>Address</label>
               <input className={inputClass} placeholder="470 Bayview Dr, Bellingham WA" value={address} onChange={e => setAddress(e.target.value)} maxLength={200} />
               {address && (
-                <p className="text-[10px] text-white/30 mt-1.5">We'll pin this on the map after you publish</p>
+                <p className="text-[10px] text-white/40 mt-1.5">We'll pin this on the map after you publish</p>
               )}
             </div>
 
@@ -637,7 +637,7 @@ export default function CreateEventPage() {
 
             {/* Completion bar */}
             <div className="mb-5">
-              <div className="flex justify-between text-[10px] text-white/30 mb-1.5">
+              <div className="flex justify-between text-[10px] text-white/40 mb-1.5">
                 <span>Draft completion</span>
                 <span>{draftProgress()}%</span>
               </div>

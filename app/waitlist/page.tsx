@@ -62,7 +62,7 @@ export default function WaitlistPage() {
 
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button onClick={() => router.back()}
-          className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6] text-sm">
+          className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6] text-sm active:scale-95 transition-transform">
           ←
         </button>
       </div>
@@ -92,7 +92,7 @@ export default function WaitlistPage() {
           </div>
 
           <div>
-            <label className={labelClass}>What kind of events do you host? <span className="text-white/25">(optional)</span></label>
+            <label className={labelClass}>What kind of events do you host? <span className="text-white/35">(optional)</span></label>
             <textarea className={inputClass} rows={3} placeholder="Run club, open mics, startup meetups..." value={reason} onChange={e => setReason(e.target.value)} maxLength={400} />
           </div>
 
