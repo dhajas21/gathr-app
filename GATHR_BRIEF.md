@@ -406,7 +406,6 @@ The mystery match mechanic is especially resonant in a city where people struggl
 - ~~**Contextual first-use tips**~~ — Done. All 5 live: host dashboard overview banner (`gathr_host_tip_seen`), event detail mystery match teaser (contextual, no localStorage — auto-hides on RSVP), profile achievements tab badge pin banner (`gathr_badge_tip_seen`), DM thread long-press-to-unsend banner (`gathr_unsend_tip_seen`), community feed chat-tab discovery banner (`gathr_community_chat_tip_seen`).
 - **Search — remaining polish:**
   - Trending searches — removed hardcoded list; bring back once PostHog has real top-5 query data
-  - Browse subcategory mapping — the "See all →" expanded grid shows 42 subcategories but events store top-level categories only, so tapping a subcategory finds nothing; either remove the expanded grid or map subcategory → parent category before the query fires
 - **Attendance achievement gating** — attendance achievements currently fire on RSVP (not verified attendance); gate on `start_datetime < now()` once a check-in system exists (QR, GPS, or host confirms)
 - **RSVP-gated address server hardening** — street address is currently hidden client-side only; add RLS policy to enforce at the DB level as a future security hardening step
 - **Onboarding email drip** — day-3 and day-7 nudge emails (welcome email already live; drip sequence not built)

@@ -12,6 +12,37 @@ const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding', 
 const RECENT_SEARCHES_KEY = 'gathr_recent_searches'
 const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
 
+const SUBCAT_TO_PARENT: Record<string, string> = {
+  // Music
+  'DJ & Electronic': 'Music', 'Hip Hop & R&B': 'Music',
+  'Jazz & Blues': 'Music', 'Live Concerts & Festivals': 'Music',
+  // Fitness
+  'Yoga & Pilates': 'Fitness', 'Running & Cycling': 'Fitness',
+  'Climbing & Hiking': 'Fitness', 'Combat Sports & CrossFit': 'Fitness',
+  'Sports & Recreation': 'Fitness',
+  // Food & Drink
+  'Coffee & Brunch': 'Food & Drink', 'Wine & Cocktails': 'Food & Drink',
+  'Cooking & Culinary': 'Food & Drink', 'Street Food & Markets': 'Food & Drink',
+  'Markets & Pop-ups': 'Food & Drink',
+  // Tech & Coding
+  'Startups & Entrepreneurship': 'Tech & Coding', 'AI & Innovation': 'Tech & Coding',
+  'Gaming & Esports': 'Tech & Coding', 'Web3 & Crypto': 'Tech & Coding',
+  'Science & Innovation': 'Tech & Coding',
+  // Outdoors & Adventure
+  'Hiking & Camping': 'Outdoors & Adventure', 'Water Sports': 'Outdoors & Adventure',
+  'Snow Sports': 'Outdoors & Adventure', 'Pets & Animals': 'Outdoors & Adventure',
+  // Arts & Culture
+  'Photography & Film': 'Arts & Culture', 'Theatre & Comedy': 'Arts & Culture',
+  'Fashion & Style': 'Arts & Culture', 'Literature & Writing': 'Arts & Culture',
+  // Social & Parties
+  'Nightlife': 'Social & Parties', 'Volunteering & Activism': 'Social & Parties',
+  'Education & Workshops': 'Social & Parties',
+  // Wellness & Mindfulness
+  'Dance & Movement': 'Wellness & Mindfulness', 'Spirituality': 'Wellness & Mindfulness',
+  // Networking
+  'Business & Finance': 'Networking',
+}
+
 const BROWSE_CAT_EMOJI: Record<string, string> = {
   'Music':'🎸','DJ & Electronic':'🎧','Hip Hop & R&B':'🎤','Jazz & Blues':'🎷','Live Concerts & Festivals':'🎪',
   'Fitness':'🏃','Yoga & Pilates':'🧘','Running & Cycling':'🚴','Climbing & Hiking':'🧗','Combat Sports & CrossFit':'🥊',
@@ -229,7 +260,7 @@ export default function SearchPage() {
     const vibe = parseVibeQuery(q)
     setVibeResult(vibe.searchTerms || vibe.detectedCategory || vibe.dayLabel ? vibe : null)
 
-    const categoryToUse = activeCategory !== 'All' ? activeCategory : vibe.detectedCategory
+    const categoryToUse = activeCategory !== 'All' ? (SUBCAT_TO_PARENT[activeCategory] || activeCategory) : vibe.detectedCategory
 
     // Strip PostgREST filter syntax characters from user input to prevent filter injection
     const sanitize = (s: string) => s.replace(/[(),%_\\.:'"`]/g, '').trim()
