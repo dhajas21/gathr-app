@@ -66,6 +66,8 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 - Swipe to delete a conversation from your inbox
 - Typing indicators in DMs (real-time, doesn't touch the database)
 - Connection request dedup — withdrawing a request marks the notification as read (no orphaned actionable alerts); email/push only fires once per requester→addressee pair regardless of how many reconnect cycles occur
+- Connection accept state is persistent — the activity tab hydrates connection statuses from the DB on load so Accept/Decline buttons never re-appear for already-accepted requests after a refresh; withdrawn requests show "Request no longer pending"
+- Individual notification read/unread toggle — tap the dot on any notification row to flip its read state (gold = unread, faint = read); "Mark all read" button also available in the header
 
 ### Safety System
 - Anonymous post-event reviews: 3 yes/no questions + optional safety flag
