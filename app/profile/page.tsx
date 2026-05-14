@@ -141,6 +141,7 @@ export default function ProfilePage() {
   const [hasDraft, setHasDraft] = useState(false)
   const [showDraftUndo, setShowDraftUndo] = useState(false)
   const [showAvatarExpanded, setShowAvatarExpanded] = useState(false)
+  const [showBadgeTip, setShowBadgeTip] = useState(false)
   const confettiTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const router = useRouter()
 
@@ -215,6 +216,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (activeTab !== 2) return
+    try { if (!localStorage.getItem('gathr_badge_tip_seen')) setShowBadgeTip(true) } catch {}
     setXpBarWidth(0)
     const t = setTimeout(() => {
       const hc = profile?.hosted_count ?? hostedEvents.length
@@ -675,6 +677,20 @@ export default function ProfilePage() {
                 <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium">Achievements</div>
                 <span className="text-[10px] text-[#E8B84B]">{unlockedCount} / {ACHIEVEMENTS.length}</span>
               </div>
+
+              {showBadgeTip && (
+                <div className="flex items-center gap-2.5 bg-[#1C241C] border border-white/10 rounded-2xl px-3 py-2.5 mb-3">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  <span className="flex-1 text-[10px] text-white/40 leading-snug">Pin up to 3 badges to your public profile — they&apos;ll show under your name</span>
+                  <button onClick={() => { setShowBadgeTip(false); try { localStorage.setItem('gathr_badge_tip_seen', '1') } catch {} }}
+                    className="text-white/20 flex-shrink-0 pl-1">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              )}
+
               <div className="space-y-2.5">
                 {user?.id === FOUNDER_ID && (
                   <div className="founder-badge-card flex items-center gap-3 p-3.5 rounded-2xl border border-[#E8B84B]/60">

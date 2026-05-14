@@ -716,6 +716,22 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
 
+        {/* Mystery match teaser — shown to non-RSVPed, non-host on upcoming events */}
+        {!rsvped && !isHost && event && Date.now() < new Date(event.end_datetime).getTime() && matches.length === 0 && (
+          <div className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl p-3.5 mb-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#E8B84B]/8 border border-[#E8B84B]/15 flex items-center justify-center flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.6)" strokeWidth="1.5" strokeLinecap="round">
+                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/>
+                <circle cx="12" cy="8" r="4" fill="rgba(232,184,75,0.06)"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-[#E8B84B]/70 mb-0.5">Who&apos;s going?</div>
+              <div className="text-[10px] text-white/35 leading-snug">RSVP to unlock your match count — see how many people share your vibe</div>
+            </div>
+          </div>
+        )}
+
         {/* People Matching */}
         {matches.length > 0 && event && (() => {
           const nowMs = Date.now()

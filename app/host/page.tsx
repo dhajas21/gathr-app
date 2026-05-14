@@ -19,6 +19,7 @@ export default function HostDashboardPage() {
   })
   const [loading, setLoading] = useState(true)
   const [confirmDeleteDraft, setConfirmDeleteDraft] = useState(false)
+  const [showHostTip, setShowHostTip] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -91,6 +92,10 @@ export default function HostDashboardPage() {
     const { data: files } = await supabase.storage.from('event-covers').list(`drafts/${userId}`)
     if (files?.length) await supabase.storage.from('event-covers').remove(files.map((f: any) => `drafts/${userId}/${f.name}`))
   }
+
+  useEffect(() => {
+    try { if (!localStorage.getItem('gathr_host_tip_seen')) setShowHostTip(true) } catch {}
+  }, [])
 
   const now = new Date().toISOString()
   const upcoming = events.filter(e => e.start_datetime >= now)
@@ -213,6 +218,21 @@ export default function HostDashboardPage() {
                 </div>
               ))}
             </div>
+
+            {/* First-time host tip */}
+            {showHostTip && events.length > 0 && (
+              <div className="flex items-center gap-2.5 bg-[#1C241C] border border-white/10 rounded-2xl px-3 py-2.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span className="flex-1 text-[10px] text-white/40 leading-snug">Tap the Events tab to see live RSVPs — tap View on any event to manage attendees</span>
+                <button onClick={() => { setShowHostTip(false); try { localStorage.setItem('gathr_host_tip_seen', '1') } catch {} }}
+                  className="text-white/20 flex-shrink-0 pl-1">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            )}
 
             {/* Host Pro CTA */}
             <div className="bg-gradient-to-br from-[#2A2010] to-[#1A1408] border border-[#E8B84B]/20 rounded-2xl p-4">
