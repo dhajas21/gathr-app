@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 
 // All markers use divIcon below — no default marker images needed (and unpkg.com is not in our CSP).
 // Hoisted outside the component so the same object is reused on every render.
@@ -59,8 +58,10 @@ export default function MapView({ events, onSelect }: { events: any[], onSelect:
       zoomControl={false}
     >
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+        subdomains="abcd"
+        maxZoom={19}
       />
       <FitBounds events={events} />
       {events.map(event => (

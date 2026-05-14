@@ -124,6 +124,13 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
       }
     } else if (connectionStatus === 'pending' && connectionId) {
       await supabase.from('connections').delete().eq('id', connectionId)
+      // Mark the notification as read so it's no longer actionable, but keep the row
+      // so the email/push dedup trigger can see it and skip duplicate notifications.
+      await supabase.from('notifications')
+        .update({ read: true })
+        .eq('user_id', profileId)
+        .eq('actor_id', user.id)
+        .eq('type', 'connection_request')
       setConnectionStatus(null)
       setConnectionId(null)
     }
