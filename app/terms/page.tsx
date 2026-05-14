@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 
 export default function TermsPage() {
   const router = useRouter()
-  const updated = 'May 12, 2026'
+  const updated = 'May 13, 2026'
 
   return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col">
@@ -54,7 +54,7 @@ export default function TermsPage() {
           },
           {
             title: '9. Events & RSVPs',
-            body: 'Gathr is a platform for discovering and organising events. We are not responsible for the content, safety, or conduct of any event listed on the platform. Event hosts are solely responsible for ensuring their events comply with applicable laws and regulations. Attending any event found through Gathr is at your own risk.\n\nTicket Types: When creating an event, hosts may designate it as Free, Paid, or Donation-based. Paid and Donation events display the specified price or suggested amount on the event card. Paid ticket prices are limited to a maximum of $10,000 per ticket and must be a positive value — this is enforced by the platform at the time of event creation. Gathr does not process payments — hosts are solely responsible for collecting any fees, ensuring the ticket price displayed is accurate, and complying with any applicable laws regarding ticket sales or donations. Misrepresenting ticket pricing or collecting fees without delivering the advertised event is a violation of these Terms.\n\nRSVP Cancellation: You may cancel your RSVP to any event at any time before the event starts. Cancellation releases your spot back to the event. The platform will ask you to confirm before cancelling to prevent accidental removals.',
+            body: 'Gathr is a platform for discovering and organising events. We are not responsible for the content, safety, or conduct of any event listed on the platform. Event hosts are solely responsible for ensuring their events comply with applicable laws and regulations. Attending any event found through Gathr is at your own risk.\n\nTicket Types: When creating an event, hosts may designate it as Free, Paid, or Donation-based. Paid and Donation events display the specified price or suggested amount on the event card. Paid ticket prices are limited to a maximum of $10,000 per ticket and must be a positive value — this is enforced by the platform at the time of event creation.\n\nPaid Ticket Payment Processing (Coming Soon): In-app payment collection for paid events is not yet active. Tapping "Get Ticket" on a paid event will display a notice explaining that ticketing is coming soon and directing you to our waitlist. Until in-app payments are live, hosts are solely responsible for collecting any fees through their own means. Gathr does not process or facilitate payments during this period. Misrepresenting ticket pricing or collecting fees without delivering the advertised event is a violation of these Terms.\n\nRSVP Cancellation: You may cancel your RSVP to any event at any time before the event starts. Cancellation releases your spot back to the event. The platform will ask you to confirm before cancelling to prevent accidental removals.',
           },
           {
             title: '10. User Content',
