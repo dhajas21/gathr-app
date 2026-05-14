@@ -52,12 +52,13 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 ### Communities (Groups)
 - Persistent community groups around shared interests
 - Post text + photos, comment, like, and real-time group chat
-- Public communities (instant join) and private communities (join request → owner approval)
+- Public communities (instant join) and private communities (join request → owner approval) — private communities show a lock icon on the name and a "🔒 Request" join button
 - Leave community requires confirmation ("Yes, Leave Community" sheet — prevents accidental exits)
 - Community roles: owner, admin, member, pending
 - Owners and admins can moderate all content
 - Create an event directly from inside a community to link it to the group
 - Tap a post image to view full-screen
+- Discovery page: interest-based "Suggested for you" section, category filter pills with gold active glow, member counts formatted as k-abbreviations (1.2k, 10k)
 
 ### People & Connections
 - Send connection requests; once accepted, start a private DM thread

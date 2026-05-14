@@ -55,7 +55,7 @@ app/
 ├── events/[id]/          Event detail — RSVP, matches, comments, waves, calendar export
 ├── create/               Multi-step event creation form (with auto-save draft)
 ├── host/                 Host dashboard — manage your own events, RSVPs
-├── communities/          Community discovery + joined communities list
+├── communities/          Community discovery + joined communities list. Sections: Your communities (banner thumbnail rows with private lock icon + k-formatted member counts), Suggested for you (interest-matched, gold-bordered cards), Discover (all remaining). Category filter pills, search. Private communities show lock icon and "🔒 Request" button instead of "+ Join".
 ├── communities/[id]/     Community detail — posts, chat, members, pending requests
 ├── search/               Universal search — events, communities, people
 ├── map/                  Map view of events as Leaflet pins
