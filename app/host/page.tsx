@@ -138,7 +138,7 @@ export default function HostDashboardPage() {
           </div>
         </div>
         <button onClick={() => router.push('/create')}
-          className="bg-[#E8B84B] text-[#0D110D] font-bold text-xs px-3 py-2 rounded-xl"
+          className="bg-[#E8B84B] text-[#0D110D] font-bold text-xs px-3 py-2 rounded-xl active:scale-95 transition-transform"
           style={{ boxShadow: '0 4px 14px rgba(232,184,75,0.28)' }}>
           + Event
         </button>
@@ -306,12 +306,12 @@ export default function HostDashboardPage() {
                         </div>
                         <div className="text-right flex-shrink-0">
                           <div className="font-bold text-[#E8B84B] text-lg">{count}</div>
-                          <div className="text-[9px] text-white/30">going</div>
+                          <div className="text-[9px] text-white/40">going</div>
                         </div>
                       </div>
                       {cap > 0 && (
                         <div className="mt-3">
-                          <div className="flex justify-between text-[9px] text-white/30 mb-1">
+                          <div className="flex justify-between text-[9px] text-white/40 mb-1">
                             <span>{Math.round(pct)}% full</span>
                             <span>{cap - count} spots left</span>
                           </div>
@@ -334,7 +334,7 @@ export default function HostDashboardPage() {
                         <button onClick={() => router.push('/events/' + event.id + '/edit')}
                           className="flex-1 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/60 font-medium">Edit</button>
                         <button onClick={() => router.push('/events/' + event.id + '/attendees')}
-                          className="flex-1 py-2 rounded-xl bg-[#1E3A1E] border border-[#E8B84B]/15 text-xs text-[#E8B84B] font-medium">Attendees</button>
+                          className="flex-1 py-2 rounded-xl bg-[#1E3A1E] border border-[#E8B84B]/20 text-xs text-[#E8B84B] font-medium">Attendees</button>
                       </div>
                     </div>
                   )
@@ -382,16 +382,16 @@ export default function HostDashboardPage() {
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-semibold text-[#F0EDE6] truncate">{event.title}</div>
                             <div className="text-xs text-white/40 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))} · {formatTime(event.start_datetime, cityToTimezone(event.city))}</div>
-                            <div className="text-xs text-white/30">{event.location_name}</div>
+                            <div className="text-xs text-white/40">{event.location_name}</div>
                           </div>
                           <div className="text-right flex-shrink-0">
                             <div className="font-bold text-[#E8B84B] text-lg">{count}</div>
-                            <div className="text-[9px] text-white/30">RSVPs</div>
+                            <div className="text-[9px] text-white/40">RSVPs</div>
                           </div>
                         </div>
                         {cap > 0 && (
                           <div className="mt-3">
-                            <div className="flex justify-between text-[9px] text-white/30 mb-1">
+                            <div className="flex justify-between text-[9px] text-white/40 mb-1">
                               <span>{count} going · {Math.round(pct)}% full</span>
                               <span>{cap} capacity</span>
                             </div>
@@ -403,7 +403,7 @@ export default function HostDashboardPage() {
                         <div className="flex gap-2 mt-3">
                           <button onClick={() => router.push('/events/' + event.id)} className="flex-1 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/60 font-medium">View</button>
                           <button onClick={() => router.push('/events/' + event.id + '/edit')} className="flex-1 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/60 font-medium">Edit</button>
-                          <button onClick={() => router.push('/messages')} className="flex-1 py-2 rounded-xl bg-[#1E3A1E] border border-[#E8B84B]/15 text-xs text-[#E8B84B] font-medium">Message</button>
+                          <button onClick={() => router.push('/messages')} className="flex-1 py-2 rounded-xl bg-[#1E3A1E] border border-[#E8B84B]/20 text-xs text-[#E8B84B] font-medium">Message</button>
                         </div>
                       </div>
                     )

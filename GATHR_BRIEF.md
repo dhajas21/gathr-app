@@ -128,6 +128,17 @@ Bellingham, Seattle, Bellevue, Tacoma, Olympia, Spokane, Portland, Eugene, Salem
 - **Splash radar enhanced**: the first-launch radar animation is now 3.6 seconds (up from 2.4s), the conic sweep beam is full brightness, all four concentric rings pulse in sequence as the sweep passes, and the green ping dot blooms with a wider glow halo.
 - **App-resume radar**: when a logged-in user switches back to the app from another tab or the OS, a 750ms gold radar sweep (3 concentric rings, one full rotation) overlays the current screen and fades out. Fires on `visibilitychange → visible`; skipped on `/`, `/auth`, `/onboarding`, and `/tour`. Complements the existing 200ms `page-enter` fade-up which fires on in-app navigation. Implemented in `components/AppResumeRadar.tsx`, mounted globally in `app/layout.tsx`. Respects `prefers-reduced-motion`.
 
+### UI Polish Standards (Enforced Across All Pages)
+A systematic polish pass has been applied to all main pages (communities, home, profile, search, messages, host, settings, profile/edit) standardizing the following:
+- **Secondary text minimum opacity:** `text-white/40` — never `/30`. Labels, subtitles, descriptions.
+- **Chevron/icon minimum opacity:** `text-white/35`
+- **Tag/pill minimum size:** `text-[10px]` — smaller than this is illegible at mobile sizes.
+- **Progress bar fills:** `bg-[#E8B84B]/30` (brand gold, not neutral white)
+- **Member counts:** `formatCount()` helper → "1.2k", "10k" format (defined locally on communities and search pages)
+- **Action buttons (gold-tinted):** `bg-[#E8B84B]/10 border-[#E8B84B]/20 text-[#E8B84B] active:scale-95 transition-transform`
+- **All interactive buttons:** `active:scale-95 transition-transform` on tap — consistent feel
+- **Private community names:** lock SVG icon inline + "🔒 Request" button text
+
 ### Light Mode / Dark Mode
 Full dual-theme support — the app ships with a dark default and a warm cream light mode. Theme toggle in Settings. 156+ CSS overrides ensure every element reads correctly in both modes.
 

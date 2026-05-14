@@ -233,7 +233,7 @@ export default function SettingsPage() {
         </button>
         <div>
           <h1 className="font-display font-bold text-[#F0EDE6] text-xl">Settings</h1>
-          <p className="text-xs text-white/35 mt-0.5">Account, privacy & preferences</p>
+          <p className="text-xs text-white/40 mt-0.5">Account, privacy & preferences</p>
         </div>
       </div>
 
@@ -335,7 +335,7 @@ export default function SettingsPage() {
             className="w-full flex items-center justify-between px-4 py-3.5 active:bg-white/[0.03] transition-colors"
           >
             <span className="text-sm text-[#F0EDE6]">Change Password</span>
-            <span className="text-white/30 text-sm">{showPasswordSection ? '↑' : '›'}</span>
+            <span className="text-white/35 text-sm">{showPasswordSection ? '↑' : '›'}</span>
           </button>
 
           {showPasswordSection && (
@@ -416,7 +416,7 @@ export default function SettingsPage() {
             Profile Mode{savingMode && <span className="text-[#E8B84B]/50 normal-case tracking-normal ml-1">saving…</span>}
           </div>
           <div className="px-4 pb-3.5">
-            <p className="text-[10px] text-white/35 mb-3">Controls how you appear to others and what you see.</p>
+            <p className="text-[10px] text-white/40 mb-3">Controls how you appear to others and what you see.</p>
             <div className="space-y-2">
               {([
                 {
@@ -437,7 +437,7 @@ export default function SettingsPage() {
                   <span className={opt.active ? 'text-[#E8B84B]' : 'text-white/35'}>{opt.icon}</span>
                   <div className="text-left flex-1">
                     <div className={'text-sm font-medium ' + (opt.active ? 'text-[#F0EDE6]' : 'text-white/45')}>{opt.label}</div>
-                    <div className="text-[10px] text-white/30">{opt.desc}</div>
+                    <div className="text-[10px] text-white/40">{opt.desc}</div>
                   </div>
                   <div className={'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ' +
                     (opt.active ? 'border-[#E8B84B]' : 'border-white/20')}>
@@ -524,7 +524,7 @@ export default function SettingsPage() {
               <div className="text-sm text-[#F0EDE6]">Edit Public Profile</div>
               <div className="text-[10px] text-white/35 mt-0.5">Name, photo, bio, interests, city</div>
             </div>
-            <span className="text-white/30 text-sm">›</span>
+            <span className="text-white/35 text-sm">›</span>
           </button>
         </div>
 
@@ -536,7 +536,7 @@ export default function SettingsPage() {
             className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] active:bg-white/[0.03] transition-colors"
           >
             <span className="text-sm text-[#F0EDE6]">Take the App Tour</span>
-            <span className="text-white/30 text-sm">›</span>
+            <span className="text-white/35 text-sm">›</span>
           </button>
 
           <button
@@ -544,7 +544,7 @@ export default function SettingsPage() {
             className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] active:bg-white/[0.03] transition-colors"
           >
             <span className="text-sm text-[#F0EDE6]">Notifications</span>
-            <span className="text-white/30 text-sm">›</span>
+            <span className="text-white/35 text-sm">›</span>
           </button>
 
           <button
@@ -555,7 +555,7 @@ export default function SettingsPage() {
               <div className="text-sm text-[#F0EDE6]">Send Feedback</div>
               <div className="text-[10px] text-white/35 mt-0.5">Report a bug, share an idea, or say hi</div>
             </div>
-            <span className="text-white/30 text-sm">›</span>
+            <span className="text-white/35 text-sm">›</span>
           </button>
 
           <div className="px-4 py-3.5 border-b border-white/[0.06]">

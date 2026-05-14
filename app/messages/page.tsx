@@ -403,7 +403,7 @@ export default function MessagesPage() {
                 Accept
               </button>
               <button onClick={() => handleDecline(conn.id)}
-                className="bg-[#1C241C] border border-white/10 text-white/50 text-xs px-3 py-1.5 rounded-lg">
+                className="bg-[#1C241C] border border-white/10 text-white/50 text-xs px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
                 Decline
               </button>
             </div>
@@ -508,9 +508,9 @@ export default function MessagesPage() {
                     )}
                     <div className="flex-1 text-left">
                       <div className="text-sm font-medium text-[#F0EDE6]">{conn.otherProfile?.name}</div>
-                      <div className="text-xs text-white/30">Tap to say hi</div>
+                      <div className="text-xs text-white/40">Tap to say hi</div>
                     </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/35 flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
                 ))}
                 {acceptedConnections.length > 5 && (
@@ -630,9 +630,9 @@ export default function MessagesPage() {
                       )}
                       <div className="flex-1 text-left">
                         <div className="text-sm font-medium text-[#F0EDE6]">{conn.otherProfile?.name}</div>
-                        <div className="text-xs text-white/30">Send a message</div>
+                        <div className="text-xs text-white/40">Send a message</div>
                       </div>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/35 flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
                     </button>
                   ))}
                 {composeSearch && acceptedConnections.filter(c => c.otherProfile?.name?.toLowerCase().includes(composeSearch.toLowerCase())).length === 0 && (

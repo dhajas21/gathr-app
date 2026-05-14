@@ -43,6 +43,12 @@ const CATEGORY_SYNONYMS: Record<string, string> = {
   'outdoor': 'Outdoors & Adventure', 'nature': 'Outdoors & Adventure', 'camping': 'Outdoors & Adventure', 'trail': 'Outdoors & Adventure',
 }
 
+const formatCount = (n: number) => {
+  if (n >= 10000) return `${Math.round(n / 1000)}k`
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`
+  return String(n)
+}
+
 function parseVibeQuery(query: string) {
   const lower = query.toLowerCase()
   const words = lower.split(/\s+/)
@@ -307,7 +313,7 @@ export default function SearchPage() {
           <div className="flex gap-1 mt-1.5">
             {event.tags.slice(0, 3).map((tag: string) => (
               <button key={tag} onClick={e => { e.stopPropagation(); setQuery('#' + tag) }}
-                className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-1.5 py-0.5 rounded border border-[#7EC87E]/10">#{tag}</button>
+                className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-1.5 py-0.5 rounded border border-[#7EC87E]/10">#{tag}</button>
             ))}
           </div>
         )}
@@ -324,7 +330,7 @@ export default function SearchPage() {
         {!searched && (
           <div className="mb-3">
             <h1 className="font-display font-bold text-[#F0EDE6] text-2xl leading-tight">Discover</h1>
-            <p className="text-xs text-white/30 mt-0.5">Events, people &amp; communities near you</p>
+            <p className="text-xs text-white/40 mt-0.5">Events, people &amp; communities near you</p>
           </div>
         )}
         <div className="flex items-center gap-2 bg-[#1C241C] border border-[#E8B84B]/30 rounded-2xl px-4 py-3 transition-all focus-within:border-[#E8B84B]/60 focus-within:shadow-[0_0_0_3px_rgba(232,184,75,0.1),0_4px_24px_rgba(232,184,75,0.08)]">
@@ -370,7 +376,7 @@ export default function SearchPage() {
         <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-2 [&::-webkit-scrollbar]:h-[3px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full">
           {CATEGORIES.map(cat => (
             <button key={cat} onClick={() => setActiveCategory(cat)}
-              className={'px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-all flex-shrink-0 ' + (activeCategory === cat ? 'bg-[#E8B84B] text-[#0D110D] border-[#E8B84B] font-semibold shadow-[0_0_14px_rgba(232,184,75,0.45)]' : 'bg-[#1C241C] text-white/45 border-white/10')}>
+              className={'px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-all flex-shrink-0 ' + (activeCategory === cat ? 'bg-[#E8B84B] text-[#0D110D] border-[#E8B84B] font-semibold shadow-[0_0_14px_rgba(232,184,75,0.45)]' : 'bg-[#1C241C] text-white/55 border-white/10')}>
               {cat}
             </button>
           ))}
@@ -508,9 +514,9 @@ export default function SearchPage() {
                 <div className="text-[9px] uppercase tracking-wider text-[#E8B84B]/60 mb-1">⚡ Quick filters detected</div>
                 <div className="text-sm font-bold text-[#F0EDE6] mb-1">&quot;{query}&quot;</div>
                 <div className="flex flex-wrap gap-1.5">
-                  {vibeResult.detectedCategory && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.detectedCategory}</span>}
-                  {vibeResult.dayLabel && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.dayLabel}</span>}
-                  {vibeResult.timeFilter && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.timeFilter}</span>}
+                  {vibeResult.detectedCategory && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.detectedCategory}</span>}
+                  {vibeResult.dayLabel && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.dayLabel}</span>}
+                  {vibeResult.timeFilter && <span className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[10px] px-2 py-0.5 rounded border border-[#7EC87E]/10">{vibeResult.timeFilter}</span>}
                 </div>
                 <div className="text-[10px] text-[#7EC87E] mt-1.5">{events.length} matching event{events.length !== 1 ? 's' : ''} found</div>
               </div>
@@ -607,7 +613,7 @@ export default function SearchPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-[#F0EDE6]">{comm.name}</div>
-                        <div className="text-[10px] text-white/40 mt-0.5">{comm.member_count} members · {comm.category}</div>
+                        <div className="text-[10px] text-white/40 mt-0.5">{formatCount(comm.member_count || 0)} members · {comm.category}</div>
                       </div>
                     </div>
                   ))}

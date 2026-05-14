@@ -54,18 +54,19 @@ app/
 ├── home/                 Main feed (events + communities tabs). Header: Gathr wordmark + greeting, city pill, notifications bell. Search bar (tap-through to /search). "Happening Soon" horizontal scroll. Featured event card (gold pill category tag). Tab bar: Trending / For You / Near Me / Friends / Mine. Event cards with category gradient banners, tag pills, capacity "% full" indicator, bookmark toggle.
 ├── events/[id]/          Event detail — RSVP, matches, comments, waves, calendar export
 ├── create/               Multi-step event creation form (with auto-save draft)
-├── host/                 Host dashboard — manage your own events, RSVPs
+├── host/                 Host dashboard — 3 tabs (Overview / Events / Insights). Overview: 4 stat tiles (upcoming, total RSVPs, avg attendance, events hosted), next-up event previews with RSVP progress bars, Host Pro waitlist CTA. Events tab: upcoming + past lists with View/Edit/Attendees-Message action buttons. Insights tab: best event, performance summary, top categories by RSVPs.
 ├── communities/          Community discovery + joined communities list. Sections: Your communities (banner thumbnail rows with private lock icon + k-formatted member counts), Suggested for you (interest-matched, gold-bordered cards), Discover (all remaining). Category filter pills, search. Private communities show lock icon and "🔒 Request" button instead of "+ Join".
 ├── communities/[id]/     Community detail — posts, chat, members, pending requests
-├── search/               Universal search — events, communities, people
+├── search/               Universal search — events, communities, people, #tags. Vibe query parser (natural language: "live music thursday night") extracts day/time/category and highlights detected filters as pills. Community member counts k-formatted. Category browse grid.
 ├── map/                  Map view of events as Leaflet pins
-├── messages/             DM inbox + pending connection requests
+├── messages/             DM inbox + pending connection requests. Connection request cards (Accept/Decline). Accepted connections quick-scroll bar. Community chats section. SwipeThread rows (swipe left to mark read/unread or delete). Compose overlay (search connections).
 ├── messages/[id]/        DM thread — realtime chat with typing indicators
 ├── notifications/        Notification centre — mark read, navigate to source
 ├── bookmarks/            Saved events
 ├── profile/              Own profile — bio, stats bar (Hosted/RSVPs/Connections/Achievements), XP level with animated bar, achievement grid (32 badges; locked ones show gold progress fill), pin up to 3 badges to public profile, mode toggles (Social/Professional)
 ├── profile/[id]/         Public profile — other users
-├── settings/             Account settings, privacy toggles, theme, password, delete account
+├── profile/edit/         Edit profile — photo upload (with crop/compress), first/last name, bio, city, profile mode (Social/Professional/Both), RSVP visibility, interests (search + tag chips, up to 10).
+├── settings/             Account settings — profile edit shortcut, Gathr+ status, appearance (theme toggle), account (email, change password with strength meter), profile mode toggles, privacy toggles (discoverable, matching, push notifications, RSVP notify), feedback sheet, sign out, delete account.
 ├── gathr-plus/           Gathr+ upgrade page
 ├── privacy/              Privacy Policy
 ├── terms/                Terms of Service
