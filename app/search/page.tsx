@@ -197,6 +197,7 @@ export default function SearchPage() {
 
     // Search events
     let eventQuery = supabase.from('events').select('id, title, category, start_datetime, location_name, cover_url, spots_left, capacity, tags, city').eq('visibility', 'public')
+      .gte('start_datetime', new Date().toISOString())
       .order('start_datetime', { ascending: true }).limit(30)
     if (categoryToUse) eventQuery = eventQuery.eq('category', categoryToUse)
     if (vibe.searchTerms) { const t = sanitize(vibe.searchTerms); if (t) eventQuery = eventQuery.or('title.ilike.%' + t + '%,description.ilike.%' + t + '%,location_name.ilike.%' + t + '%') }
@@ -210,6 +211,7 @@ export default function SearchPage() {
     if (q.trim()) {
       const tag = q.trim().replace(/^#/, '').toLowerCase()
       const { data: tagData } = await supabase.from('events').select('id, title, category, start_datetime, location_name, cover_url, spots_left, capacity, tags, city').eq('visibility', 'public')
+        .gte('start_datetime', new Date().toISOString())
         .contains('tags', [tag]).order('start_datetime', { ascending: true }).limit(20)
       setTagResults(tagData || [])
     } else {
