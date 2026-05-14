@@ -443,6 +443,8 @@ The biggest technical gap before launch is **billing** (RevenueCat + IAP). Every
 
 **Icon system:** All UI icons are inline SVG — no emoji in the interface layer. Consistent gold-tinted stroke style (`rgba(232,184,75,0.7)`, 1.5px, round caps) gives every icon the same premium feel. Notification type icons are also SVG (gold for alerts, mint for social actions). Level tier icons (leaf → star → bolt → crown) use `filter: drop-shadow()` glow instead of flat fills — visually engaging, not just clean vectors. Exception: each of the 32 achievement badges has its own emoji identity (intentional — they are semantic data, not UI decoration). Category emoji (`CAT_EMOJI`) are used as watermark overlays on event tiles without cover photos — visible but not distracting (25–30% opacity).
 
+**UI polish standards (enforced across all pages):** Action buttons (+ New, + Join) use gold-tint style `bg-[#E8B84B]/10 border-[#E8B84B]/30 text-[#E8B84B]` with `active:scale-95` touch feedback. Tag/category pills are `text-[10px]` minimum. Navigation chevrons `text-white/35`. Secondary meta text (counts, sub-labels) `text-white/40` minimum — never `text-white/30`. In-progress indicators (achievement bars, XP bars) use gold fill `bg-[#E8B84B]/30` rather than neutral white. Member/count numbers are formatted as k-abbreviations (1.2k, 10k). Private communities show a lock icon on the name and "🔒 Request" instead of "+ Join".
+
 **The hook in every message:** The mystery. Who's going? You don't know yet — but you will after you show up.
 
 ---

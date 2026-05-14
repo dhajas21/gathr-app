@@ -51,7 +51,7 @@ app/
 ├── auth/                 Sign in / sign up (email + Google)
 ├── setup/                Profile setup after first sign-in (name, city, interests, photo)
 ├── tour/                 4-slide in-app feature tour: Mystery Match · Communities · Safety Tiers · Hosting. Reached via "Take the tour →" in the first-home-load welcome modal. Skip button always visible → /home.
-├── home/                 Main feed (events + communities tabs)
+├── home/                 Main feed (events + communities tabs). Header: Gathr wordmark + greeting, city pill, notifications bell. Search bar (tap-through to /search). "Happening Soon" horizontal scroll. Featured event card (gold pill category tag). Tab bar: Trending / For You / Near Me / Friends / Mine. Event cards with category gradient banners, tag pills, capacity "% full" indicator, bookmark toggle.
 ├── events/[id]/          Event detail — RSVP, matches, comments, waves, calendar export
 ├── create/               Multi-step event creation form (with auto-save draft)
 ├── host/                 Host dashboard — manage your own events, RSVPs
@@ -63,7 +63,7 @@ app/
 ├── messages/[id]/        DM thread — realtime chat with typing indicators
 ├── notifications/        Notification centre — mark read, navigate to source
 ├── bookmarks/            Saved events
-├── profile/              Own profile — bio, stats, XP, badges, achievements
+├── profile/              Own profile — bio, stats bar (Hosted/RSVPs/Connections/Achievements), XP level with animated bar, achievement grid (32 badges; locked ones show gold progress fill), pin up to 3 badges to public profile, mode toggles (Social/Professional)
 ├── profile/[id]/         Public profile — other users
 ├── settings/             Account settings, privacy toggles, theme, password, delete account
 ├── gathr-plus/           Gathr+ upgrade page
