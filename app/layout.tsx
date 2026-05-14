@@ -8,6 +8,7 @@ import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import OfflineBanner from "@/components/OfflineBanner"
 import AnalyticsProvider from "@/components/AnalyticsProvider"
+import AppResumeRadar from "@/components/AppResumeRadar"
 import { headers } from "next/headers"
 
 // ── Type system ─────────────────────────────────────────
@@ -64,6 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-full antialiased bg-[#0D110D] text-[#F0EDE6]">
         <ServiceWorkerRegistrar />
         <OfflineBanner />
+        <AppResumeRadar />
         <Suspense fallback={null}>
           <AnalyticsProvider>
             <ErrorBoundary>{children}</ErrorBoundary>

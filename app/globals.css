@@ -590,3 +590,46 @@ input, select, textarea, button {
 @media (prefers-reduced-motion: reduce) {
   .page-enter { animation: none; }
 }
+
+/* ── App-resume radar (quick spin on tab/app return) ────────────────── */
+.resume-radar-overlay {
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(13,17,13,0.55);
+  animation: resume-overlay-fade 750ms ease forwards;
+}
+.resume-radar {
+  position: relative; width: 220px; height: 220px;
+}
+.resume-radar-sweep {
+  position: absolute; inset: 0; border-radius: 50%; transform-origin: center;
+  background: conic-gradient(from 0deg,
+    transparent 0deg,
+    rgba(232,184,75,0)    50deg,
+    rgba(232,184,75,.55)  82deg,
+    rgba(232,184,75,1.0)  90deg,
+    rgba(232,184,75,.55)  98deg,
+    rgba(232,184,75,0)   130deg,
+    transparent 360deg);
+  -webkit-mask: radial-gradient(circle, transparent 0%, transparent 4%, #000 8%, #000 100%);
+          mask: radial-gradient(circle, transparent 0%, transparent 4%, #000 8%, #000 100%);
+  animation: resume-radar-spin 650ms var(--ease-radar) forwards;
+}
+.resume-radar-svg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+@keyframes resume-radar-spin {
+  from { opacity: 0; transform: rotate(0deg); }
+  12%  { opacity: 1; }
+  80%  { opacity: .85; transform: rotate(385deg); }
+  to   { opacity: 0; transform: rotate(395deg); }
+}
+@keyframes resume-overlay-fade {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .resume-radar-overlay { display: none !important; }
+}
