@@ -202,7 +202,7 @@ const addTag = () => {
       supabase.functions.invoke('geocode-event', { body: { event_id: eventId } }).catch(() => {})
     }
 
-    router.push('/events/' + eventId)
+    router.replace('/events/' + eventId)
   }
 
   const inputClass = 'w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm'
@@ -237,7 +237,7 @@ const addTag = () => {
       )}
 
       <div className="flex items-center gap-3 px-5 pt-14 pb-4 border-b border-white/10 flex-shrink-0">
-        <button onClick={() => router.push('/events/' + eventId)}
+        <button onClick={() => router.back()}
           className="w-9 h-9 bg-[#1C241C] border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6] text-sm">
           ←
         </button>

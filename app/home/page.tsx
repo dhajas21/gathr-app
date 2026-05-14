@@ -749,7 +749,7 @@ export default function HomePage() {
             </div>
             <div className="space-y-3">
               <button
-                onClick={() => { try { localStorage.setItem('gathr_welcome_' + user?.id, '1') } catch {}; setShowWelcome(false); router.push('/onboarding') }}
+                onClick={() => { try { localStorage.setItem('gathr_welcome_' + user?.id, '1') } catch {}; setShowWelcome(false); router.push('/tour') }}
                 className="w-full bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B] font-semibold text-sm py-3.5 rounded-2xl active:scale-[0.98] transition-transform">
                 Take the tour →
               </button>
