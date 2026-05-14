@@ -116,9 +116,10 @@ export default function NotificationsPage() {
       .order('created_at', { ascending: false })
       .limit(PAGE_SIZE)
     if (data) {
-      setNotifications(prev => [...prev, ...data])
+      const enriched = await hydrateConnectionStatuses(data, user.id)
+      setNotifications(prev => [...prev, ...enriched])
       setHasMore(data.length === PAGE_SIZE)
-      await hydrateActors(data)
+      await hydrateActors(enriched)
     }
     setLoadingMore(false)
   }
@@ -184,12 +185,20 @@ export default function NotificationsPage() {
   const handleDeclineConnection = async (notif: any) => {
     if (!user || actionLoading) return
     setActionLoading(notif.id + '_decline')
-    const { error } = await supabase
+    setActionError(null)
+    const { data, error } = await supabase
       .from('connections')
       .delete()
       .eq('requester_id', notif.actor_id)
       .eq('addressee_id', user.id)
-    if (!error) {
+      .eq('status', 'pending')
+      .select()
+    if (error) {
+      setActionError('Something went wrong. Please try again.')
+    } else if (!data || data.length === 0) {
+      setActionError('This request is no longer pending.')
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, _resolved: true } : n))
+    } else {
       await markRead(notif.id)
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true, _declined: true } : n))
     }
