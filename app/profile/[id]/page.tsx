@@ -44,6 +44,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   const [actionLoading, setActionLoading] = useState(false)
   const [profileId, setProfileId] = useState('')
   const [activeTab, setActiveTab] = useState<'hosting' | 'going'>('hosting')
+  const [showAvatarExpanded, setShowAvatarExpanded] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -149,8 +150,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     : profileLevel >= 6 ? { name: 'Veteran', icon: '🔥' }
     : profileLevel >= 3 ? { name: 'Regular', icon: '⭐' }
     : { name: 'Newcomer', icon: '🌱' }
-
-  const [showAvatarExpanded, setShowAvatarExpanded] = useState(false)
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-56">
