@@ -16,6 +16,7 @@ export default function NotificationsPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const fetchedActorIds = useRef<Set<string>>(new Set())
   const PAGE_SIZE = 30
   const router = useRouter()
@@ -65,19 +66,22 @@ export default function NotificationsPage() {
     const connReqs = notifs.filter(n => n.type === 'connection_request')
     if (connReqs.length === 0) return notifs
     const actorIds = [...new Set(connReqs.map(n => n.actor_id).filter(Boolean))] as string[]
-    const { data: conns } = await supabase
+    if (actorIds.length === 0) return notifs
+    const { data: conns, error } = await supabase
       .from('connections')
       .select('requester_id, status')
       .in('requester_id', actorIds)
       .eq('addressee_id', userId)
+    // If query failed, default to showing buttons — don't hide them on error
+    if (error || !conns) return notifs
     const statusMap: Record<string, string> = {}
-    if (conns) conns.forEach(c => { statusMap[c.requester_id] = c.status })
+    conns.forEach(c => { statusMap[c.requester_id] = c.status })
     return notifs.map(n => {
-      if (n.type !== 'connection_request') return n
+      if (n.type !== 'connection_request' || !n.actor_id) return n
       const status = statusMap[n.actor_id]
       if (status === 'accepted') return { ...n, _accepted: true }
-      if (!status) return { ...n, _resolved: true } // requester withdrew or was declined
-      return n // status === 'pending' → show buttons
+      if (!status) return { ...n, _resolved: true } // requester withdrew
+      return n // 'pending' → show buttons
     })
   }
 
@@ -156,12 +160,21 @@ export default function NotificationsPage() {
   const handleAcceptConnection = async (notif: any) => {
     if (!user || actionLoading) return
     setActionLoading(notif.id)
-    const { error } = await supabase
+    setActionError(null)
+    const { data, error } = await supabase
       .from('connections')
-      .update({ status: 'accepted' })
+      .update({ status: 'accepted', updated_at: new Date().toISOString() })
       .eq('requester_id', notif.actor_id)
       .eq('addressee_id', user.id)
-    if (!error) {
+      .eq('status', 'pending')
+      .select()
+    if (error) {
+      setActionError('Something went wrong. Please try again.')
+    } else if (!data || data.length === 0) {
+      // 0 rows updated — request may have been withdrawn or already accepted
+      setActionError('This request is no longer pending.')
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, _resolved: true } : n))
+    } else {
       await markRead(notif.id)
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true, _accepted: true } : n))
     }
@@ -279,24 +292,29 @@ export default function NotificationsPage() {
 
           {/* Connection request actions */}
           {isConnReq && !accepted && !declined && !resolved && (
-            <div className="flex gap-2 mt-2.5">
-              <button
-                onClick={e => { e.stopPropagation(); handleAcceptConnection(notif) }}
-                disabled={!!isLoading}
-                className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-4 py-1.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50">
-                {actionLoading === notif.id ? 'Accepting...' : 'Accept'}
-              </button>
-              <button
-                onClick={e => { e.stopPropagation(); handleDeclineConnection(notif) }}
-                disabled={!!isLoading}
-                className="bg-[#1C241C] border border-white/10 text-white/50 text-xs px-4 py-1.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50">
-                {actionLoading === notif.id + '_decline' ? '...' : 'Decline'}
-              </button>
-              <button
-                onClick={e => { e.stopPropagation(); router.push('/profile/' + notif.actor_id) }}
-                className="text-[10px] text-white/30 px-2 py-1.5">
-                View profile
-              </button>
+            <div className="mt-2.5">
+              <div className="flex gap-2">
+                <button
+                  onClick={e => { e.stopPropagation(); handleAcceptConnection(notif) }}
+                  disabled={!!isLoading}
+                  className="bg-[#E8B84B] text-[#0D110D] text-xs font-bold px-4 py-1.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50">
+                  {actionLoading === notif.id ? 'Accepting...' : 'Accept'}
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); handleDeclineConnection(notif) }}
+                  disabled={!!isLoading}
+                  className="bg-[#1C241C] border border-white/10 text-white/50 text-xs px-4 py-1.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50">
+                  {actionLoading === notif.id + '_decline' ? '...' : 'Decline'}
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); router.push('/profile/' + notif.actor_id) }}
+                  className="text-[10px] text-white/30 px-2 py-1.5">
+                  View profile
+                </button>
+              </div>
+              {actionError && actionLoading === null && (
+                <p className="text-[10px] text-[#E85B5B] mt-1.5">{actionError}</p>
+              )}
             </div>
           )}
 
