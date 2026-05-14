@@ -88,6 +88,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [inviteCopied, setInviteCopied] = useState(false)
   const [copied, setCopied] = useState(false)
   const [rsvpError, setRsvpError] = useState('')
+  const [showPaidGate, setShowPaidGate] = useState(false)
   const commentInputRef = useRef<HTMLInputElement>(null)
   const inviteCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -250,6 +251,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const handleRsvp = async () => {
     if (!user || !event) return
     if (rsvped) { setShowCancelRsvp(true); return }
+    if (event.ticket_type === 'paid') { setShowPaidGate(true); return }
     setRsvpLoading(true)
     setRsvped(true)
     setTotalAttendees(prev => prev + 1)
@@ -1134,6 +1136,40 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm"
             >
               Keep Event
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Paid ticket gate */}
+      {showPaidGate && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-end justify-center" onClick={() => setShowPaidGate(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
+            <div className="text-center mb-5">
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                style={{ background: 'rgba(232,184,75,0.1)', border: '1px solid rgba(232,184,75,0.2)' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8B84B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Paid tickets coming soon</h3>
+              <p className="text-xs text-white/40 max-w-[240px] mx-auto leading-relaxed">
+                We&apos;re wiring up payments. Join the waitlist and you&apos;ll be the first to grab a ticket when it goes live.
+              </p>
+            </div>
+            <button
+              onClick={() => { setShowPaidGate(false); router.push('/waitlist') }}
+              className="w-full py-3.5 rounded-2xl font-bold text-sm mb-3 text-[#0D110D]"
+              style={{ background: '#E8B84B', boxShadow: '0 4px 16px rgba(232,184,75,0.25)' }}
+            >
+              Join the Waitlist →
+            </button>
+            <button
+              onClick={() => setShowPaidGate(false)}
+              className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm"
+            >
+              Maybe Later
             </button>
           </div>
         </div>
