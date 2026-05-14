@@ -51,11 +51,11 @@ export default function SplashPage() {
       <div className="radar" aria-hidden="true">
         <div className="radar-sweep" />
         <div className="radar-ping" />
-        <svg viewBox="0 0 580 580">
-          <circle cx="290" cy="290" r="280" stroke="rgba(232,184,75,.07)" strokeWidth="1" fill="none" />
-          <circle cx="290" cy="290" r="215" stroke="rgba(232,184,75,.06)" strokeWidth="1" fill="none" />
-          <circle cx="290" cy="290" r="150" stroke="rgba(232,184,75,.05)" strokeWidth="1" fill="none" />
-          <circle cx="290" cy="290" r="85"  stroke="rgba(232,184,75,.04)" strokeWidth="1" fill="none" />
+        <svg viewBox="0 0 580 580" style={{ overflow: 'visible' }}>
+          <circle className="radar-ring-1" cx="290" cy="290" r="280" stroke="rgba(232,184,75,.85)" strokeWidth="1.2" fill="none" style={{ transformOrigin: '290px 290px', opacity: 0.07 }} />
+          <circle className="radar-ring-2" cx="290" cy="290" r="215" stroke="rgba(232,184,75,.85)" strokeWidth="1.2" fill="none" style={{ transformOrigin: '290px 290px', opacity: 0.06 }} />
+          <circle className="radar-ring-3" cx="290" cy="290" r="150" stroke="rgba(232,184,75,.85)" strokeWidth="1.2" fill="none" style={{ transformOrigin: '290px 290px', opacity: 0.05 }} />
+          <circle className="radar-ring-4" cx="290" cy="290" r="85"  stroke="rgba(232,184,75,.85)" strokeWidth="1.2" fill="none" style={{ transformOrigin: '290px 290px', opacity: 0.04 }} />
         </svg>
       </div>
 

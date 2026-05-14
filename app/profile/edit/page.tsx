@@ -79,14 +79,33 @@ export default function EditProfilePage() {
     if (fileRef.current) fileRef.current.value = ''
   }
 
+  const compressImage = (file: File, maxPx = 800, quality = 0.88): Promise<File> =>
+    new Promise((resolve) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        canvas.toBlob(blob => {
+          resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file)
+        }, 'image/jpeg', quality)
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+      img.src = url
+    })
+
   // Unique-path strategy: every upload gets a fresh filename so the URL itself
   // changes → no cache-buster needed → CDN can cache aggressively. We delete
   // the old file (if any) to avoid storage bloat.
   const uploadAvatar = async (): Promise<string | null> => {
     if (!avatarFile || !userId) return avatarUrl
-    const ext = avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const newPath = `${userId}/${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('profile-photos').upload(newPath, avatarFile, { cacheControl: '3600' })
+    const compressed = await compressImage(avatarFile)
+    const newPath = `${userId}/${Date.now()}.jpg`
+    const { error } = await supabase.storage.from('profile-photos').upload(newPath, compressed, { cacheControl: '3600', contentType: 'image/jpeg' })
     if (error) { setUploadError('Photo upload failed — your other changes were saved.'); return avatarUrl }
 
     // Clean up the previous file (best-effort; failure doesn't block the save)

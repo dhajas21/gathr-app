@@ -368,7 +368,7 @@ input, select, textarea, button {
   --motion-base:    240ms;  /* default transition, button states */
   --motion-medium:  400ms;  /* card mount, sheet slide, tab switch */
   --motion-slow:    700ms;  /* hero reveal, page-level entrance */
-  --motion-splash:  2400ms; /* first-launch sequence */
+  --motion-splash:  3600ms; /* first-launch sequence */
   --motion-resplash: 600ms; /* returning-user splash speedrun */
 
   /* Easings — name describes feel, not the curve */
@@ -412,30 +412,39 @@ input, select, textarea, button {
   position: absolute; inset: 0; border-radius: 50%; opacity: 0; transform-origin: center;
   background: conic-gradient(from 0deg,
     transparent 0deg,
-    rgba(232,184,75,0)    60deg,
-    rgba(232,184,75,.35)  86deg,
-    rgba(232,184,75,.65)  90deg,
-    rgba(232,184,75,.35)  94deg,
-    rgba(232,184,75,0)   120deg,
+    rgba(232,184,75,0)    50deg,
+    rgba(232,184,75,.55)  82deg,
+    rgba(232,184,75,1.0)  90deg,
+    rgba(232,184,75,.55)  98deg,
+    rgba(232,184,75,0)   130deg,
     transparent 360deg);
   -webkit-mask: radial-gradient(circle, transparent 0%, transparent 4%, #000 8%, #000 100%);
           mask: radial-gradient(circle, transparent 0%, transparent 4%, #000 8%, #000 100%);
 }
 .gathr-splash .radar-ping {
-  position: absolute; top: 50%; left: 50%; width: 8px; height: 8px;
-  margin: -4px 0 0 -4px; border-radius: 50%; background: #7EC87E;
-  box-shadow: 0 0 14px rgba(126,200,126,.85); opacity: 0;
+  position: absolute; top: 50%; left: 50%; width: 12px; height: 12px;
+  margin: -6px 0 0 -6px; border-radius: 50%; background: #7EC87E;
+  box-shadow: 0 0 24px rgba(126,200,126,1), 0 0 48px rgba(126,200,126,.5); opacity: 0;
   transform: translate(140px, -80px);
 }
+/* Ring pulse animations — triggered only on first-run */
+.gathr-splash .radar-ring-1 { animation: none; }
+.gathr-splash .radar-ring-2 { animation: none; }
+.gathr-splash .radar-ring-3 { animation: none; }
+.gathr-splash .radar-ring-4 { animation: none; }
 
-/* First-run timeline — 2.4s total */
+/* First-run timeline — 3.6s total */
 .gathr-splash.first-run .radar-sweep { animation: gathr-radar var(--motion-splash) var(--ease-radar) .15s forwards; }
-.gathr-splash.first-run .radar-ping  { animation: gathr-ping 1s ease .9s forwards; }
-.gathr-splash.first-run .splash-eyebrow  { opacity: 0; animation: gathr-fadeIn .55s ease .2s forwards; }
-.gathr-splash.first-run .splash-wordmark { opacity: 0; transform: translateY(14px) scale(.96); animation: gathr-massive 1.05s var(--ease-decelerate) .55s forwards; }
-.gathr-splash.first-run .splash-tagline  { opacity: 0; animation: gathr-fadeIn .65s ease 1.4s forwards; }
-.gathr-splash.first-run .splash-ctas     { opacity: 0; transform: translateY(8px); animation: gathr-upFade var(--motion-slow) var(--ease-standard) 1.75s forwards; }
-.gathr-splash.first-run .splash-legal    { opacity: 0; animation: gathr-fadeIn .5s ease 2.05s forwards; }
+.gathr-splash.first-run .radar-ping  { animation: gathr-ping 1.4s ease 1.2s forwards; }
+.gathr-splash.first-run .radar-ring-1 { animation: gathr-ring-pulse 2.2s ease-out .6s forwards; }
+.gathr-splash.first-run .radar-ring-2 { animation: gathr-ring-pulse 2.2s ease-out .9s forwards; }
+.gathr-splash.first-run .radar-ring-3 { animation: gathr-ring-pulse 2.2s ease-out 1.2s forwards; }
+.gathr-splash.first-run .radar-ring-4 { animation: gathr-ring-pulse 2.2s ease-out 1.5s forwards; }
+.gathr-splash.first-run .splash-eyebrow  { opacity: 0; animation: gathr-fadeIn .55s ease .3s forwards; }
+.gathr-splash.first-run .splash-wordmark { opacity: 0; transform: translateY(14px) scale(.96); animation: gathr-massive 1.05s var(--ease-decelerate) .8s forwards; }
+.gathr-splash.first-run .splash-tagline  { opacity: 0; animation: gathr-fadeIn .65s ease 1.8s forwards; }
+.gathr-splash.first-run .splash-ctas     { opacity: 0; transform: translateY(8px); animation: gathr-upFade var(--motion-slow) var(--ease-standard) 2.3s forwards; }
+.gathr-splash.first-run .splash-legal    { opacity: 0; animation: gathr-fadeIn .5s ease 2.65s forwards; }
 
 /* Returning-user timeline — 600ms, no radar */
 .gathr-splash.returning .radar-sweep,
@@ -479,10 +488,16 @@ input, select, textarea, button {
   100% { opacity: 0; transform: rotate(390deg); }
 }
 @keyframes gathr-ping {
-  0%   { opacity: 0; transform: translate(140px,-80px) scale(.4); }
-  30%  { opacity: 1; transform: translate(140px,-80px) scale(1.4); }
-  60%  { opacity: .8; transform: translate(140px,-80px) scale(1); }
+  0%   { opacity: 0; transform: translate(140px,-80px) scale(.3); }
+  25%  { opacity: 1; transform: translate(140px,-80px) scale(1.8); box-shadow: 0 0 40px rgba(126,200,126,1), 0 0 80px rgba(126,200,126,.6); }
+  55%  { opacity: .9; transform: translate(140px,-80px) scale(1.1); }
   100% { opacity: 0; transform: translate(140px,-80px) scale(1); }
+}
+@keyframes gathr-ring-pulse {
+  0%   { opacity: 0.05; transform: scale(1); }
+  30%  { opacity: 0.6; transform: scale(1); }
+  65%  { opacity: 0.2; transform: scale(1.07); }
+  100% { opacity: 0.05; transform: scale(1); }
 }
 @keyframes gathr-massive      { to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes gathr-massiveQuick { to { opacity: 1; transform: translateY(0) scale(1); } }

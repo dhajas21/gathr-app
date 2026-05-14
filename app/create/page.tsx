@@ -46,6 +46,9 @@ export default function CreateEventPage() {
   const [cropMime, setCropMime] = useState('image/jpeg')
   const coverRef = useRef<HTMLInputElement>(null)
   const draftToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const venueDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [venueResults, setVenueResults] = useState<Array<{ display_name: string; address_line: string; lat: string; lon: string }>>([])
+  const [showVenueDropdown, setShowVenueDropdown] = useState(false)
 
   // Community context (when navigated from a community page)
   const [fromCommunityId, setFromCommunityId] = useState<string | null>(null)
@@ -164,6 +167,32 @@ export default function CreateEventPage() {
       if (draftToastTimerRef.current) clearTimeout(draftToastTimerRef.current)
     }
   }, [userId, title, saveDraft])
+
+  // Venue name → Nominatim autocomplete (500ms debounce)
+  useEffect(() => {
+    if (venueDebounceRef.current) clearTimeout(venueDebounceRef.current)
+    const q = venueName.trim()
+    if (q.length < 3) { setVenueResults([]); setShowVenueDropdown(false); return }
+    venueDebounceRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q, format: 'json', limit: '5', addressdetails: '1' })
+        const res = await fetch('https://nominatim.openstreetmap.org/search?' + params, {
+          headers: { 'Accept-Language': 'en', 'User-Agent': 'GathrApp/1.0 (gathr.app)' },
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        const results = (data as any[]).map((r: any) => ({
+          display_name: r.name || r.display_name.split(',')[0],
+          address_line: r.display_name,
+          lat: r.lat,
+          lon: r.lon,
+        }))
+        setVenueResults(results)
+        setShowVenueDropdown(results.length > 0)
+      } catch {}
+    }, 500)
+    return () => { if (venueDebounceRef.current) clearTimeout(venueDebounceRef.current) }
+  }, [venueName])
 
   const deleteDraft = async () => {
     if (!userId) return
@@ -427,9 +456,39 @@ export default function CreateEventPage() {
               </p>
             </div>
 
-            <div>
+            <div className="relative">
               <label className={labelClass}>Venue Name *</label>
-              <input className={inputClass} placeholder="Boulevard Park" value={venueName} onChange={e => setVenueName(e.target.value)} maxLength={100} />
+              <input
+                className={inputClass}
+                placeholder="Boulevard Park"
+                value={venueName}
+                onChange={e => { setVenueName(e.target.value); setShowVenueDropdown(false) }}
+                onFocus={() => { if (venueResults.length > 0) setShowVenueDropdown(true) }}
+                maxLength={100}
+                autoComplete="off"
+              />
+              {showVenueDropdown && venueResults.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-[#1C241C] border border-white/15 rounded-2xl overflow-hidden shadow-2xl">
+                  {venueResults.map((r, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className="w-full text-left px-4 py-3 border-b border-white/[0.06] last:border-0 active:bg-white/[0.06] transition-colors"
+                      onMouseDown={e => {
+                        e.preventDefault()
+                        setVenueName(r.display_name)
+                        setAddress(r.address_line)
+                        setLat(parseFloat(r.lat))
+                        setLng(parseFloat(r.lon))
+                        setVenueResults([])
+                        setShowVenueDropdown(false)
+                      }}>
+                      <div className="text-sm text-[#F0EDE6] font-medium truncate">{r.display_name}</div>
+                      <div className="text-[10px] text-white/35 mt-0.5 truncate">{r.address_line}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>

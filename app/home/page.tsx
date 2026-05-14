@@ -9,7 +9,6 @@ import { HomePageSkeleton } from '@/components/Skeleton'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { ALL_CITIES, CAT_GRADIENT, CAT_EMOJI, INTEREST_TO_CATS, cityToTimezone } from '@/lib/constants'
 import { isToday, isTomorrow, formatTime, formatDate, optimizedImgSrc } from '@/lib/utils'
-import OnboardingTooltip from '@/components/OnboardingTooltip'
 
 interface Event {
   id: string; title: string; category: string; start_datetime: string; end_datetime: string
@@ -45,8 +44,7 @@ export default function HomePage() {
   const [bookmarkToast, setBookmarkToast] = useState('')
   const bookmarkToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [hasDraft, setHasDraft] = useState(false)
-  const [tooltip, setTooltip] = useState<'create' | 'match' | 'groups' | null>(null)
-  const [pendingEventId, setPendingEventId] = useState<string | null>(null)
+  const [showWelcome, setShowWelcome] = useState(false)
   const router = useRouter()
 
   const handleDeleteDraft = async () => {
@@ -57,32 +55,8 @@ export default function HomePage() {
     if (files?.length) await supabase.storage.from('event-covers').remove(files.map((f: any) => `drafts/${user.id}/${f.name}`))
   }
 
-  const dismissTooltip = (key: 'create' | 'groups') => {
-    try { localStorage.setItem('gathr_tt_' + key, '1') } catch {}
-    if (key === 'create') {
-      try {
-        if (!localStorage.getItem('gathr_tt_groups')) { setTooltip('groups'); return }
-      } catch {}
-    }
-    setTooltip(null)
-  }
-
   const handleEventTap = (eventId: string) => {
-    try {
-      if (!localStorage.getItem('gathr_tt_match')) {
-        setPendingEventId(eventId)
-        setTooltip('match')
-        return
-      }
-    } catch {}
     router.push('/events/' + eventId)
-  }
-
-  const dismissMatchTooltip = (navigate: boolean) => {
-    try { localStorage.setItem('gathr_tt_match', '1') } catch {}
-    setTooltip(null)
-    if (navigate && pendingEventId) router.push('/events/' + pendingEventId)
-    setPendingEventId(null)
   }
 
   const { refreshing, pullProgress, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
@@ -334,14 +308,13 @@ export default function HomePage() {
     }
   }, [activeTab, events, profile, rsvpEventIds, connectionIds, friendRsvpEventIds, user?.id, userLocation])
 
-  // Show first-time tooltips once the feed has loaded
+  // Show welcome modal once per user (user-ID-keyed so it's tied to the account)
   useEffect(() => {
-    if (loading) return
+    if (loading || !user?.id) return
     try {
-      if (!localStorage.getItem('gathr_tt_create')) setTooltip('create')
-      else if (!localStorage.getItem('gathr_tt_groups')) setTooltip('groups')
+      if (!localStorage.getItem('gathr_welcome_' + user.id)) setShowWelcome(true)
     } catch {}
-  }, [loading])
+  }, [loading, user?.id])
 
   const getEmptyMessage = () => {
     switch (activeTab) {
@@ -746,38 +719,48 @@ export default function HomePage() {
         </div>
       )}
 
-      {tooltip === 'create' && (
-        <OnboardingTooltip
-          title="Tap + to create an event"
-          body="Add a title, time, place — your event is live in under 2 minutes. Draft auto-saves."
-          step="1 of 3"
-          onDismiss={() => dismissTooltip('create')}
-          arrowPosition="bottom-center"
-          style={{ bottom: 100, left: '50%', transform: 'translateX(-50%)' }}
-        />
-      )}
-
-      {tooltip === 'groups' && (
-        <OnboardingTooltip
-          title="Find groups in Communities"
-          body="Persistent groups around shared interests — run clubs, coffee crews, tech meetups."
-          step="2 of 3"
-          onDismiss={() => dismissTooltip('groups')}
-          arrowPosition="bottom-left"
-          style={{ bottom: 100, left: 16 }}
-        />
-      )}
-
-      {tooltip === 'match' && (
-        <OnboardingTooltip
-          title="RSVP to unlock your matches"
-          body="You'll see how many people going share your vibe — full profiles reveal after you attend."
-          step="3 of 3"
-          onDismiss={() => dismissMatchTooltip(true)}
-          onBackdropDismiss={() => dismissMatchTooltip(false)}
-          arrowPosition="bottom-center"
-          style={{ bottom: 120, left: '50%', transform: 'translateX(-50%)' }}
-        />
+      {showWelcome && (
+        <div className="fixed inset-0 bg-black/60 z-[80] flex items-end justify-center backdrop-blur-sm"
+          onClick={() => { try { localStorage.setItem('gathr_welcome_' + user?.id, '1') } catch {}; setShowWelcome(false) }}>
+          <div className="w-full max-w-md bg-[#141A14] border border-white/10 rounded-t-3xl p-6"
+            style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-[#E8B84B]/10 border border-[#E8B84B]/20 flex items-center justify-center flex-shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-[#F0EDE6]">Welcome to Gathr</h2>
+                <p className="text-xs text-white/40">The event is the excuse. The people are the point.</p>
+              </div>
+            </div>
+            <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-4 mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-5 h-5 rounded-full bg-[#7EC87E]/20 border border-[#7EC87E]/30 flex items-center justify-center flex-shrink-0">
+                  <div className="w-2 h-2 rounded-full bg-[#7EC87E]" />
+                </div>
+                <span className="text-xs font-semibold text-[#7EC87E]">Mystery Match</span>
+              </div>
+              <p className="text-sm text-[#F0EDE6] leading-relaxed">RSVP to any event and we'll show you how many people going share your vibe — full profiles unlock after you attend together.</p>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => { try { localStorage.setItem('gathr_welcome_' + user?.id, '1') } catch {}; setShowWelcome(false); router.push('/onboarding') }}
+                className="w-full bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B] font-semibold text-sm py-3.5 rounded-2xl active:scale-[0.98] transition-transform">
+                Take the tour →
+              </button>
+              <button
+                onClick={() => { try { localStorage.setItem('gathr_welcome_' + user?.id, '1') } catch {}; setShowWelcome(false) }}
+                className="w-full bg-[#E8B84B] text-[#0D110D] font-bold text-sm py-3.5 rounded-2xl active:scale-[0.98] transition-transform">
+                I'm ready
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <BottomNav />
