@@ -9,11 +9,16 @@ import { HomePageSkeleton } from '@/components/Skeleton'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { ALL_CITIES, CAT_GRADIENT, CAT_EMOJI, INTEREST_TO_CATS, cityToTimezone } from '@/lib/constants'
 import { isToday, isTomorrow, formatTime, formatDate, optimizedImgSrc } from '@/lib/utils'
+import { track } from '@/components/AnalyticsProvider'
+import PageTransition from '@/components/PageTransition'
 
 interface Event {
   id: string; title: string; category: string; start_datetime: string; end_datetime: string
   location_name: string; city: string; spots_left: number; capacity: number
   tags: string[]; visibility: string; is_featured: boolean; host_id: string; rsvp_count?: number
+  cover_url: string | null; latitude: number | null; longitude: number | null
+  ticket_type: 'free' | 'paid' | 'donation' | null; ticket_price: number | null
+  _dist?: number
 }
 
 const TABS = ['Trending', 'For You', 'Near Me', 'Friends', 'Mine']
@@ -43,7 +48,9 @@ export default function HomePage() {
   const cityToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [bookmarkToast, setBookmarkToast] = useState('')
   const bookmarkToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastFetchRef = useRef(0)
   const [hasDraft, setHasDraft] = useState(false)
+  const [fetchError, setFetchError] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
   const router = useRouter()
 
@@ -60,7 +67,7 @@ export default function HomePage() {
   }
 
   const { refreshing, pullProgress, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
-    async () => { if (user) await fetchAll(user.id) }
+    async () => { if (user) await fetchAll(user.id, true) }
   )
 
   useEffect(() => {
@@ -77,7 +84,7 @@ export default function HomePage() {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return
       supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session && !cancelled) fetchAll(session.user.id)
+        if (session && !cancelled) fetchAll(session.user.id) // debounced
       })
     }
     document.addEventListener('visibilitychange', onVisible)
@@ -150,8 +157,9 @@ export default function HomePage() {
         filter: 'city=eq.' + city,
       }, (payload) => {
         const updated = payload.new as Event
-        setEvents(prev => prev.map(e => e.id === updated.id ? { ...e, spots_left: updated.spots_left } : e))
-        setSoonEvents(prev => prev.map(e => e.id === updated.id ? { ...e, spots_left: updated.spots_left } : e))
+        setEvents(prev => prev.map(e => e.id === updated.id ? { ...e, ...updated } : e))
+        setSoonEvents(prev => prev.map(e => e.id === updated.id ? { ...e, ...updated } : e))
+        setFeaturedEvent(prev => prev?.id === updated.id ? { ...prev, ...updated } : prev)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -174,8 +182,12 @@ export default function HomePage() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   }
 
-  const fetchAll = async (userId: string) => {
+  const fetchAll = async (userId: string, force = false) => {
+    const now = Date.now()
+    if (!force && now - lastFetchRef.current < 5000) return
+    lastFetchRef.current = now
     try {
+    setFetchError(false)
     const [profileRes, eventsRes, rsvpRes, connRes, notifRes, bookmarkRes, draftRes] = await Promise.all([
       supabase.from('profiles').select('name,city,interests,profile_mode,avatar_url').eq('id', userId).single(),
       supabase.from('events').select('id,title,category,start_datetime,end_datetime,location_name,city,spots_left,capacity,tags,visibility,is_featured,host_id,cover_url,latitude,longitude,ticket_type,ticket_price').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(50),
@@ -212,6 +224,9 @@ export default function HomePage() {
       sessionStorage.setItem('gathr_match_check', '1')
       supabase.functions.invoke('after-event-matches').catch((err) => console.error('after-event-matches:', err))
     }
+    } catch (err) {
+      console.error('fetchAll failed:', err)
+      setFetchError(true)
     } finally {
       setLoading(false)
     }
@@ -232,11 +247,13 @@ export default function HomePage() {
       showBookmarkToast('Removed from bookmarks')
       const { error } = await supabase.from('event_bookmarks').delete().eq('event_id', eventId).eq('user_id', user.id)
       if (error) { setBookmarkedEventIds(prev => [...prev, eventId]); showBookmarkToast('Couldn\'t remove — try again') }
+      else track('event_unbookmarked', { event_id: eventId })
     } else {
       setBookmarkedEventIds(prev => [...prev, eventId])
       showBookmarkToast('Bookmarked ✦')
       const { error } = await supabase.from('event_bookmarks').insert({ event_id: eventId, user_id: user.id })
       if (error) { setBookmarkedEventIds(prev => prev.filter(id => id !== eventId)); showBookmarkToast('Couldn\'t save — try again') }
+      else track('event_bookmarked', { event_id: eventId })
     }
   }
 
@@ -246,6 +263,7 @@ export default function HomePage() {
     if (!newCity || newCity.trim().length > 100) return
     await supabase.from('profiles').update({ city: newCity }).eq('id', user.id)
     setProfile((prev: any) => prev ? { ...prev, city: newCity } : prev)
+    track('city_changed', { city: newCity })
     setCityToast(newCity)
     if (cityToastTimerRef.current) clearTimeout(cityToastTimerRef.current)
     cityToastTimerRef.current = setTimeout(() => setCityToast(''), 2500)
@@ -286,7 +304,7 @@ export default function HomePage() {
       case 2:
         if (userLocation) {
           const nearby = events
-            .map(e => ({ ...e, _dist: haversineDist(userLocation.lat, userLocation.lng, (e as any).latitude, (e as any).longitude) }))
+            .map(e => ({ ...e, _dist: haversineDist(userLocation.lat, userLocation.lng, e.latitude ?? 0, e.longitude ?? 0) }))
             .filter(e => !isNaN(e._dist) && e._dist <= 80)
             .sort((a, b) => a._dist - b._dist)
           setFilteredEvents(nearby)
@@ -331,6 +349,7 @@ export default function HomePage() {
   if (loading) return <HomePageSkeleton />
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#0D110D] pb-24"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -472,13 +491,13 @@ export default function HomePage() {
             className="rounded-3xl overflow-hidden mb-4 cursor-pointer active:scale-[0.98] transition-transform border border-[#E8B84B]/20">
             <div className="category-gradient-card h-36 relative overflow-hidden"
               style={{ '--cat-bg': CAT_GRADIENT[featuredEvent.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
-              {optimizedImgSrc((featuredEvent as any).cover_url, 800) && <img src={optimizedImgSrc((featuredEvent as any).cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
-              {!optimizedImgSrc((featuredEvent as any).cover_url, 800) && CAT_EMOJI[featuredEvent.category] && (
+              {CAT_EMOJI[featuredEvent.category] && (
                 <div className="absolute inset-0 flex items-center justify-center text-5xl opacity-25 pointer-events-none select-none">
                   {CAT_EMOJI[featuredEvent.category]}
                 </div>
               )}
+              {optimizedImgSrc(featuredEvent.cover_url, 800) && <img src={optimizedImgSrc(featuredEvent.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
               <div className="absolute top-3 left-3">
                 <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1">
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="#0D110D" stroke="none">
@@ -512,7 +531,7 @@ export default function HomePage() {
 
         <div className="flex border-b border-white/10 -mx-4 px-4 overflow-x-auto scrollbar-hide">
           {TABS.map((tab, i) => (
-            <button key={tab} onClick={() => { setActiveTab(i); try { sessionStorage.setItem('gathr_home_tab', String(i)) } catch {} }}
+            <button key={tab} onClick={() => { setActiveTab(i); try { sessionStorage.setItem('gathr_home_tab', String(i)) } catch {}; track('home_tab_switched', { tab }) }}
               className={'px-3 py-2.5 text-xs whitespace-nowrap border-b-2 -mb-px transition-colors ' + (activeTab === i ? 'text-[#E8B84B] border-[#E8B84B]' : 'text-white/40 border-transparent')}>
               {tab}
             </button>
@@ -540,6 +559,12 @@ export default function HomePage() {
           )}
         </div>
 
+        {fetchError && (
+          <div className="flex items-center gap-2.5 bg-[#E85B5B]/8 border border-[#E85B5B]/20 rounded-2xl px-4 py-3 mb-3">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E85B5B" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            <span className="text-xs text-[#E85B5B] flex-1">Couldn't load events — pull down to retry.</span>
+          </div>
+        )}
         {filteredEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center">
@@ -592,13 +617,13 @@ export default function HomePage() {
                   className={'bg-[#1C241C] rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/25' : 'border-white/10')}>
                   <div className="category-gradient-card h-28 relative overflow-hidden"
                     style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
-                    {optimizedImgSrc((event as any).cover_url, 800) && <img src={optimizedImgSrc((event as any).cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80"></div>
-                    {!optimizedImgSrc((event as any).cover_url, 800) && CAT_EMOJI[(event as any).category] && (
+                    {CAT_EMOJI[event.category] && (
                       <div className="absolute inset-0 flex items-center justify-center text-4xl opacity-25 pointer-events-none select-none">
-                        {CAT_EMOJI[(event as any).category]}
+                        {CAT_EMOJI[event.category]}
                       </div>
                     )}
+                    {optimizedImgSrc(event.cover_url, 800) && <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80"></div>
                     <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
                       <div className="flex gap-1">
                         {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1"><svg width="7" height="7" viewBox="0 0 24 24" fill="#0D110D" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Featured</span>}
@@ -636,9 +661,9 @@ export default function HomePage() {
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         {event.location_name}
                       </span>
-                      {activeTab === 2 && userLocation && (event as any)._dist !== undefined && (
+                      {activeTab === 2 && userLocation && event._dist !== undefined && (
                         <span className="text-[#7EC87E]">
-                          {(event as any)._dist < 1 ? Math.round((event as any)._dist * 1000) + 'm' : ((event as any)._dist).toFixed(1) + 'km'}
+                          {event._dist < 1 ? Math.round(event._dist * 1000) + 'm' : (event._dist).toFixed(1) + 'km'}
                         </span>
                       )}
                     </div>
@@ -647,10 +672,10 @@ export default function HomePage() {
                         {event.tags?.slice(0, 2).map(tag => (
                           <span key={tag} className="bg-[#2A4A2A]/40 text-[#7EC87E] text-[9px] px-1.5 py-0.5 rounded border border-[#7EC87E]/10">#{tag}</span>
                         ))}
-                        {(event as any).ticket_type === 'paid' && (event as any).ticket_price > 0 && (
-                          <span className="text-[9px] font-bold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-1.5 py-0.5 rounded">${(event as any).ticket_price}</span>
+                        {event.ticket_type === 'paid' && (event.ticket_price ?? 0) > 0 && (
+                          <span className="text-[9px] font-bold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-1.5 py-0.5 rounded">${event.ticket_price}</span>
                         )}
-                        {(event as any).ticket_type === 'donation' && (
+                        {event.ticket_type === 'donation' && (
                           <span className="text-[9px] text-[#7EC87E] bg-[#7EC87E]/10 border border-[#7EC87E]/20 px-1.5 py-0.5 rounded">Donation</span>
                         )}
                       </div>
@@ -765,5 +790,6 @@ export default function HomePage() {
 
       <BottomNav />
     </div>
+    </PageTransition>
   )
 }

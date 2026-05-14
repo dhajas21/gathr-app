@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { optimizedImgSrc, formatDate } from '@/lib/utils'
 import { cityToTimezone, CAT_GRADIENT } from '@/lib/constants'
+import PageTransition from '@/components/PageTransition'
 
 const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding', 'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness', 'Networking']
 const RECENT_SEARCHES_KEY = 'gathr_recent_searches'
@@ -315,6 +316,7 @@ export default function SearchPage() {
   )
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#0D110D] pb-24">
 
       {/* Header + Search bar */}
@@ -632,5 +634,6 @@ export default function SearchPage() {
 
       <BottomNav />
     </div>
+    </PageTransition>
   )
 }

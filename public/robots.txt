@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Allow: /terms
+Allow: /privacy
+
+Disallow: /home
+Disallow: /events/
+Disallow: /profile/
+Disallow: /communities/
+Disallow: /create
+Disallow: /notifications
+Disallow: /messages/
+Disallow: /search
+Disallow: /map
+Disallow: /setup
+Disallow: /tour
+Disallow: /auth/
+Disallow: /api/

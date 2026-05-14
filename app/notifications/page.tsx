@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { NotificationsPageSkeleton } from '@/components/Skeleton'
 import { optimizedImgSrc } from '@/lib/utils'
+import PageTransition from '@/components/PageTransition'
 
 export default function NotificationsPage() {
   const [user, setUser] = useState<any>(null)
@@ -298,6 +299,7 @@ export default function NotificationsPage() {
   )
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#0D110D] pb-24">
       <div className="flex items-center gap-3 px-4 pt-14 pb-3 border-b border-white/10">
         <button onClick={() => router.back()}
@@ -339,5 +341,6 @@ export default function NotificationsPage() {
 
       <BottomNav />
     </div>
+    </PageTransition>
   )
 }

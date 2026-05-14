@@ -18,6 +18,15 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const INTERNAL_TOKEN = Deno.env.get("INTERNAL_EMAIL_TOKEN");
 const FROM = "Gathr <onboarding@resend.dev>"
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
 const REPLY_TO = "officialgathr@gmail.com"
 const APP_URL = Deno.env.get("APP_ORIGIN")?.split(",")[0]?.trim() ?? "https://gathr-app-sigma.vercel.app";
 
@@ -81,54 +90,59 @@ type EmailPayload =
 function buildEmail(payload: EmailPayload): { subject: string; html: string } {
   switch (payload.type) {
     case "welcome": {
+      const name = escapeHtml(payload.to_name)
       const body = [
-        h1(`Welcome to Gathr, ${payload.to_name} 👋`),
+        h1(`Welcome to Gathr, ${name} 👋`),
         p("Discover events happening near you, connect with people who share your interests, and create your own events."),
         p("Your city is waiting."),
         btn("Explore events", `${APP_URL}/home`),
       ].join("\n")
       return {
-        subject: `Welcome to Gathr, ${payload.to_name}!`,
+        subject: `Welcome to Gathr, ${name}!`,
         html: shell("Your city is waiting — start exploring events.", body),
       }
     }
 
     case "event_rsvp": {
       const eventUrl = `${APP_URL}/events/${payload.event_id}`
+      const attendee = escapeHtml(payload.attendee_name)
+      const title = escapeHtml(payload.event_title)
       const body = [
         h1("Someone just joined your event"),
-        p(`<strong style="color:#e8f5e8;">${payload.attendee_name}</strong> RSVPed to <strong style="color:#e8f5e8;">${payload.event_title}</strong>.`),
+        p(`<strong style="color:#e8f5e8;">${attendee}</strong> RSVPed to <strong style="color:#e8f5e8;">${title}</strong>.`),
         btn("View event", eventUrl),
       ].join("\n")
       return {
-        subject: `${payload.attendee_name} joined "${payload.event_title}"`,
-        html: shell(`${payload.attendee_name} RSVPed to your event.`, body),
+        subject: `${attendee} joined "${title}"`,
+        html: shell(`${attendee} RSVPed to your event.`, body),
       }
     }
 
     case "connection_request": {
       const profileUrl = `${APP_URL}/profile/${payload.requester_id}`
+      const requester = escapeHtml(payload.requester_name)
       const body = [
         h1("You have a connection request"),
-        p(`<strong style="color:#e8f5e8;">${payload.requester_name}</strong> wants to connect with you on Gathr.`),
+        p(`<strong style="color:#e8f5e8;">${requester}</strong> wants to connect with you on Gathr.`),
         btn("View profile", profileUrl),
       ].join("\n")
       return {
-        subject: `${payload.requester_name} wants to connect`,
-        html: shell(`${payload.requester_name} sent you a connection request.`, body),
+        subject: `${requester} wants to connect`,
+        html: shell(`${requester} sent you a connection request.`, body),
       }
     }
 
     case "connection_accepted": {
       const profileUrl = `${APP_URL}/profile/${payload.accepter_id}`
+      const accepter = escapeHtml(payload.accepter_name)
       const body = [
         h1("You're now connected!"),
-        p(`<strong style="color:#e8f5e8;">${payload.accepter_name}</strong> accepted your connection request.`),
+        p(`<strong style="color:#e8f5e8;">${accepter}</strong> accepted your connection request.`),
         btn("Say hi", profileUrl),
       ].join("\n")
       return {
-        subject: `${payload.accepter_name} accepted your connection request`,
-        html: shell(`You and ${payload.accepter_name} are now connected.`, body),
+        subject: `${accepter} accepted your connection request`,
+        html: shell(`You and ${accepter} are now connected.`, body),
       }
     }
   }
@@ -145,11 +159,10 @@ Deno.serve(async (req) => {
 
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405)
 
-  // Shared-secret auth — same pattern as send-push
-  if (INTERNAL_TOKEN) {
-    const incoming = req.headers.get("X-Internal-Token") ?? ""
-    if (incoming !== INTERNAL_TOKEN) return json({ error: "Unauthorized" }, 403)
-  }
+  // Shared-secret auth — fail-closed: if the secret isn't configured, refuse all requests
+  if (!INTERNAL_TOKEN) return json({ error: "Not configured" }, 503)
+  const incoming = req.headers.get("X-Internal-Token") ?? ""
+  if (incoming !== INTERNAL_TOKEN) return json({ error: "Unauthorized" }, 403)
 
   if (!RESEND_API_KEY) return json({ error: "RESEND_API_KEY not configured" }, 500)
 

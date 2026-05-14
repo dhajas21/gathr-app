@@ -175,20 +175,11 @@ export default function CreateEventPage() {
     if (q.length < 3) { setVenueResults([]); setShowVenueDropdown(false); return }
     venueDebounceRef.current = setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ q, format: 'json', limit: '5', addressdetails: '1' })
-        const res = await fetch('https://nominatim.openstreetmap.org/search?' + params, {
-          headers: { 'Accept-Language': 'en', 'User-Agent': 'GathrApp/1.0 (gathr.app)' },
-        })
+        const res = await fetch('/api/geocode?' + new URLSearchParams({ q }))
         if (!res.ok) return
-        const data = await res.json()
-        const results = (data as any[]).map((r: any) => ({
-          display_name: r.name || r.display_name.split(',')[0],
-          address_line: r.display_name,
-          lat: r.lat,
-          lon: r.lon,
-        }))
-        setVenueResults(results)
-        setShowVenueDropdown(results.length > 0)
+        const { results } = await res.json()
+        setVenueResults(results ?? [])
+        setShowVenueDropdown((results ?? []).length > 0)
       } catch {}
     }, 500)
     return () => { if (venueDebounceRef.current) clearTimeout(venueDebounceRef.current) }
@@ -223,7 +214,7 @@ export default function CreateEventPage() {
 
   const addTag = () => {
     const t = tagInput.trim().toLowerCase()
-    if (t && !tags.includes(t) && tags.length < 10) { setTags([...tags, t]); setTagInput('') }
+    if (t && t.length <= 30 && !tags.includes(t) && tags.length < 10) { setTags([...tags, t]); setTagInput('') }
   }
 
   const removeTag = (tag: string) => setTags(tags.filter(t => t !== tag))

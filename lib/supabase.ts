@@ -24,5 +24,6 @@ export function connectionPairOr(userId: string): string {
  * Sorted so it's stable regardless of who initiated.
  */
 export function buildThreadId(a: string, b: string): string {
+  if (!isValidUUID(a) || !isValidUUID(b)) throw new Error('buildThreadId: invalid UUID')
   return [a, b].sort().join('_')
 }

@@ -43,7 +43,6 @@ export default function BottomNav() {
   const router = useRouter()
   const path = usePathname()
   const [unreadMessages, setUnreadMessages] = useState(0)
-  const [unreadNotifs, setUnreadNotifs] = useState(0)
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | undefined
@@ -54,13 +53,13 @@ export default function BottomNav() {
       const uid = session.user.id
 
       const fetchCounts = async () => {
-        const [msgRes, notifRes] = await Promise.all([
-          supabase.from('messages').select('*', { count: 'exact', head: true }).eq('recipient_id', uid).is('read_at', null),
-          supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', uid).eq('read', false),
-        ])
+        const { count } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('recipient_id', uid)
+          .is('read_at', null)
         if (cancelled) return
-        if (msgRes.count !== null) setUnreadMessages(msgRes.count)
-        if (notifRes.count !== null) setUnreadNotifs(notifRes.count)
+        if (count !== null) setUnreadMessages(count)
       }
 
       fetchCounts()
@@ -69,8 +68,6 @@ export default function BottomNav() {
         .channel('nav-badge')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'recipient_id=eq.' + uid }, fetchCounts)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: 'recipient_id=eq.' + uid }, fetchCounts)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + uid }, fetchCounts)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + uid }, fetchCounts)
         .subscribe()
     })
 
@@ -127,10 +124,7 @@ export default function BottomNav() {
         </button>
 
         <button onClick={() => nav(router, '/profile', path)} className={tabClass('/profile')}>
-          <div className="relative">
-            <ProfileIcon />
-            <Badge count={unreadNotifs} />
-          </div>
+          <ProfileIcon />
           <span className="text-[9px] font-semibold tracking-wider uppercase">Profile</span>
         </button>
 

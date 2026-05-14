@@ -19,17 +19,24 @@ export default function AuthPage() {
   const [resetSent, setResetSent] = useState(false)
   const router = useRouter()
 
+  const getRedirectTarget = () => {
+    try {
+      const p = new URLSearchParams(window.location.search).get('redirectTo')
+      return p && p.startsWith('/') && !p.startsWith('//') ? p : '/home'
+    } catch { return '/home' }
+  }
+
   const handleSignIn = async () => {
     if (!email || !password) { setError('Please fill in all fields'); return }
     setLoading(true); setError('')
     const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
     if (authError) { setError(authError.message); setLoading(false); return }
-    router.push('/home')
+    router.push(getRedirectTarget())
   }
 
   const handleSignUp = async () => {
     if (!name || !email || !password) { setError('Please fill in all fields'); return }
-    if (password.length < 12) { setError('Password must be at least 12 characters'); return }
+    if (password.length < 10) { setError('Password must be at least 10 characters'); return }
     setLoading(true); setError('')
     // Pass name + city into raw_user_meta_data so the DB trigger (handle_new_auth_user)
     // picks them up when auto-creating the profile row.
@@ -42,7 +49,7 @@ export default function AuthPage() {
     if (data.session) {
       // Email confirmation disabled — session immediately available, profile already created by trigger
       track('signup_completed', { method: 'email', confirmation_required: false })
-      router.push('/setup')
+      router.push(getRedirectTarget() === '/home' ? '/setup' : getRedirectTarget())
     } else if (data.user) {
       // Email confirmation required — profile gets created when they confirm
       track('signup_started', { method: 'email', confirmation_required: true })

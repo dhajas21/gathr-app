@@ -11,7 +11,7 @@ function buildCsp(nonce: string): string {
     `script-src 'self' 'nonce-${nonce}'`,
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: https://${SUPABASE_HOST} https://lh3.googleusercontent.com`,
-    `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST} https://nominatim.openstreetmap.org`,
+    `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST}`,
     "font-src 'self' data:",
     "worker-src blob:",
     "object-src 'none'",
@@ -61,6 +61,7 @@ export async function proxy(request: NextRequest) {
   if (!user) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/auth'
+    loginUrl.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(loginUrl)
   }
 

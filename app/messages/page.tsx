@@ -6,6 +6,7 @@ import { supabase, connectionPairOr, buildThreadId } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { MessagesPageSkeleton } from '@/components/Skeleton'
 import { optimizedImgSrc } from '@/lib/utils'
+import PageTransition from '@/components/PageTransition'
 
 export default function MessagesPage() {
   const [user, setUser] = useState<any>(null)
@@ -353,6 +354,7 @@ export default function MessagesPage() {
   if (loading) return <MessagesPageSkeleton />
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#0D110D] pb-24">
 
       <div className="px-4 pt-14 pb-3 border-b border-white/10">
@@ -642,6 +644,7 @@ export default function MessagesPage() {
         </div>
       )}
     </div>
+    </PageTransition>
   )
 }
 

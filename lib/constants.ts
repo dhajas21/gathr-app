@@ -99,13 +99,7 @@ export const EVENT_CATEGORIES = [
   'Markets & Pop-ups',
 ]
 
-export const ALL_CITIES = [
-  'Bellingham', 'Seattle', 'Bellevue', 'Tacoma', 'Olympia', 'Spokane',
-  'Portland', 'Eugene', 'Salem',
-  'Vancouver', 'Victoria', 'Surrey', 'Burnaby',
-  'San Francisco', 'Los Angeles', 'San Diego', 'Sacramento',
-  'Phoenix',
-]
+export const ALL_CITIES = CITIES.map(c => c.name)
 
 export const CAT_GRADIENT: Record<string, string> = {
   'Music': 'linear-gradient(135deg,#1E2E3A,#1A0E2A)',

@@ -9,6 +9,7 @@ import MysteryMatchCard from '@/components/MysteryMatchCard'
 import { optimizedImgSrc, formatDateVerbose, formatTime, isValidUUID, tzAbbreviation } from '@/lib/utils'
 import { cityToTimezone } from '@/lib/constants'
 import { track } from '@/components/AnalyticsProvider'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import FadeIn from '@/components/FadeIn'
 // canvas-confetti is dynamic-imported in the RSVP success handler to keep
 // it out of the main bundle for users who never RSVP.
@@ -89,6 +90,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [copied, setCopied] = useState(false)
   const [rsvpError, setRsvpError] = useState('')
   const [showPaidGate, setShowPaidGate] = useState(false)
+  const [showPushPrompt, setShowPushPrompt] = useState(false)
+  const { status: pushStatus, enable: enablePush } = usePushNotifications(user?.id ?? null)
   const commentInputRef = useRef<HTMLInputElement>(null)
   const inviteCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -270,6 +273,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     } else {
       fireConfetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#E8B84B', '#F0EDE6', '#7EC87E'] })
       track('event_rsvp_joined', { event_id: event.id, category: event.category, city: event.city })
+      try {
+        if (pushStatus === 'inactive' && !localStorage.getItem('gathr_push_prompted')) {
+          localStorage.setItem('gathr_push_prompted', '1')
+          setTimeout(() => setShowPushPrompt(true), 1200)
+        }
+      } catch {}
       const { data } = await supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', event.id).limit(12)
       if (data) setAttendees(data as any)
     }
@@ -1196,6 +1205,38 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 font-medium text-sm"
             >
               Maybe Later
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showPushPrompt && (
+        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setShowPushPrompt(false)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10 border-t border-white/10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+            <div className="flex items-start gap-3 mb-5">
+              <div className="w-11 h-11 rounded-2xl bg-[#E8B84B]/10 border border-[#E8B84B]/20 flex items-center justify-center flex-shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Stay in the loop</h3>
+                <p className="text-xs text-white/45 leading-relaxed">Get notified when the host posts updates, someone waves at you, or spots fill up.</p>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                const ok = await enablePush()
+                if (ok || !ok) setShowPushPrompt(false)
+              }}
+              className="w-full bg-[#E8B84B] text-[#0D110D] font-bold text-sm py-3.5 rounded-2xl mb-3 active:scale-[0.98] transition-transform"
+              style={{ boxShadow: '0 4px 16px rgba(232,184,75,0.25)' }}>
+              Enable Notifications
+            </button>
+            <button onClick={() => setShowPushPrompt(false)}
+              className="w-full bg-transparent text-white/35 text-sm py-2">
+              Not now
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { CommunitiesPageSkeleton } from '@/components/Skeleton'
+import PageTransition from '@/components/PageTransition'
 
 const CATEGORIES = ['All', 'Social', 'Music', 'Fitness & Running', 'Food & Drink', 'Tech & Startups', 'Arts & Creativity', 'Outdoors & Adventure', 'Wellness', 'Gaming', 'Nightlife']
 
@@ -125,6 +126,7 @@ export default function CommunitiesPage() {
   if (loading) return <CommunitiesPageSkeleton />
 
   return (
+    <PageTransition>
     <div className="min-h-screen bg-[#0D110D] pb-24"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -337,5 +339,6 @@ export default function CommunitiesPage() {
 
       <BottomNav />
     </div>
+    </PageTransition>
   )
 }
