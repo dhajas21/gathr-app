@@ -23,7 +23,7 @@ export default function HostDashboardPage() {
   const router = useRouter()
 
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | undefined
+    const channels: ReturnType<typeof supabase.channel>[] = []
     let cancelled = false
 
     ;(async () => {
@@ -35,22 +35,29 @@ export default function HostDashboardPage() {
       await fetchData(session.user.id)
       if (cancelled) return
 
-      channel = supabase
-        .channel('host-rsvps')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rsvps' }, (payload) => {
-          const eventId = (payload.new as any).event_id
-          if (!eventIdsRef.current.has(eventId)) return
-          setRsvpCounts(prev => ({ ...prev, [eventId]: (prev[eventId] || 0) + 1 }))
-        })
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'rsvps' }, (payload) => {
-          const eventId = (payload.old as any).event_id
-          if (!eventIdsRef.current.has(eventId)) return
-          setRsvpCounts(prev => ({ ...prev, [eventId]: Math.max(0, (prev[eventId] || 0) - 1) }))
-        })
-        .subscribe()
+      // One filtered channel per host event — avoids the previous unfiltered
+      // subscription that fired for every RSVP in the entire database.
+      for (const eventId of eventIdsRef.current) {
+        const ch = supabase
+          .channel('host-rsvps-' + eventId)
+          .on('postgres_changes', {
+            event: 'INSERT', schema: 'public', table: 'rsvps',
+            filter: 'event_id=eq.' + eventId,
+          }, () => {
+            setRsvpCounts(prev => ({ ...prev, [eventId]: (prev[eventId] || 0) + 1 }))
+          })
+          .on('postgres_changes', {
+            event: 'DELETE', schema: 'public', table: 'rsvps',
+            filter: 'event_id=eq.' + eventId,
+          }, () => {
+            setRsvpCounts(prev => ({ ...prev, [eventId]: Math.max(0, (prev[eventId] || 0) - 1) }))
+          })
+          .subscribe()
+        channels.push(ch)
+      }
     })()
 
-    return () => { cancelled = true; if (channel) supabase.removeChannel(channel) }
+    return () => { cancelled = true; channels.forEach(ch => supabase.removeChannel(ch)) }
   }, [router])
 
   const fetchData = async (uid: string) => {
