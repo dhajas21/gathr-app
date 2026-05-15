@@ -761,7 +761,7 @@ export default function ProfilePage() {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
-                  <span className="flex-1 text-[10px] text-white/40 leading-snug">Pin up to 3 badges to your public profile — they&apos;ll show under your name</span>
+                  <span className="flex-1 text-[10px] text-white/40 leading-snug">Pin up to 3 badges to your public profile. Gathr Founder and Founding Member badges show automatically — they don&apos;t count against your 3 pins.</span>
                   <button onClick={() => { setShowBadgeTip(false); try { localStorage.setItem('gathr_badge_tip_seen', '1') } catch {} }}
                     className="text-white/20 flex-shrink-0 pl-1">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

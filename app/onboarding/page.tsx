@@ -155,6 +155,9 @@ function SlideMatch() {
         <p className="text-[13px] text-white/45 leading-[1.55] max-w-[250px] mx-auto pt-1">
           Gathr shows you how many people going share your vibe — and reveals them at the start of the event.
         </p>
+        <p className="text-[11px] text-[#E8B84B]/45 leading-[1.5] max-w-[230px] mx-auto pt-1">
+          ✦ Gathr+ members can peek at who's going before they even RSVP.
+        </p>
       </div>
     </div>
   )

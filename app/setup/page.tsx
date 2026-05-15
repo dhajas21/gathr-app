@@ -516,6 +516,10 @@ export default function SetupPage() {
                   icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="1.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>,
                   title: 'Host something', desc: 'Tap + to create your first event',
                 },
+                {
+                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.65)" strokeWidth="1.5" strokeLinecap="round"><path d="M7 11.5a4.5 4.5 0 1 0 9 0 4.5 4.5 0 0 0-9 0"/><path d="M11.5 7V3M11.5 16v4M7 11.5H3M20 11.5h-4"/></svg>,
+                  title: 'Try Gathr+', desc: 'See who waved, peek before RSVPing — free 7-day trial',
+                },
               ].map(tip => (
                 <div key={tip.title} className="flex items-center gap-3 bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
                   <div className="w-9 h-9 rounded-xl bg-[#E8B84B]/8 border border-[#E8B84B]/15 flex items-center justify-center flex-shrink-0">
