@@ -36,6 +36,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   const [attendedEvents, setAttendedEvents] = useState<any[]>([])
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const [connectionId, setConnectionId] = useState<string | null>(null)
+  const [connectionDirection, setConnectionDirection] = useState<'sent' | 'received' | null>(null)
   const [mutualCount, setMutualCount] = useState(0)
   const [profileConnCount, setProfileConnCount] = useState(0)
   const [totalRsvpCount, setTotalRsvpCount] = useState(0)
@@ -79,6 +80,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     if (connectionRes.data) {
       setConnectionStatus(connectionRes.data.status)
       setConnectionId(connectionRes.data.id)
+      setConnectionDirection(connectionRes.data.requester_id === userId ? 'sent' : 'received')
     }
 
     if (theirConnsRes.data) setProfileConnCount(theirConnsRes.data.length)
@@ -121,11 +123,10 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
       if (data) {
         setConnectionStatus('pending')
         setConnectionId(data.id)
+        setConnectionDirection('sent')
       }
-    } else if (connectionStatus === 'pending' && connectionId) {
+    } else if (connectionStatus === 'pending' && connectionDirection === 'sent' && connectionId) {
       await supabase.from('connections').delete().eq('id', connectionId)
-      // Mark the notification as read so it's no longer actionable, but keep the row
-      // so the email/push dedup trigger can see it and skip duplicate notifications.
       await supabase.from('notifications')
         .update({ read: true })
         .eq('user_id', profileId)
@@ -133,6 +134,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
         .eq('type', 'connection_request')
       setConnectionStatus(null)
       setConnectionId(null)
+      setConnectionDirection(null)
     }
     setActionLoading(false)
   }
@@ -351,14 +353,16 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             className="flex-1 py-3.5 rounded-2xl bg-[#1C241C] border border-white/10 text-[#F0EDE6] text-sm font-medium text-center active:scale-95 transition-transform">
             💬 Message
           </button>
-          <button onClick={handleConnect} disabled={actionLoading || connectionStatus === 'accepted'}
+          <button
+            onClick={connectionStatus === 'pending' && connectionDirection === 'received' ? () => router.push('/notifications') : handleConnect}
+            disabled={actionLoading || connectionStatus === 'accepted'}
             className={'flex-[2] py-3.5 rounded-2xl text-sm font-bold text-center active:scale-95 transition-transform disabled:opacity-50 ' + (
               connectionStatus === 'accepted' ? 'bg-[#1C241C] border border-[#7EC87E]/30 text-[#7EC87E]'
               : connectionStatus === 'pending' ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]'
               : 'bg-[#E8B84B] text-[#0D110D]'
             )}
             style={{ boxShadow: !connectionStatus ? '0 4px 18px rgba(232,184,75,0.28)' : 'none' }}>
-            {actionLoading ? '...' : connectionStatus === 'accepted' ? '✓ Connected' : connectionStatus === 'pending' ? 'Withdraw Request' : 'Connect'}
+            {actionLoading ? '...' : connectionStatus === 'accepted' ? '✓ Connected' : connectionStatus === 'pending' && connectionDirection === 'received' ? 'Respond to Request →' : connectionStatus === 'pending' ? 'Withdraw Request' : 'Connect'}
           </button>
         </div>
       </div>

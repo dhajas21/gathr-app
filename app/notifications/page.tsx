@@ -36,8 +36,9 @@ export default function NotificationsPage() {
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'notifications',
           filter: 'user_id=eq.' + session.user.id,
-        }, (payload) => {
-          setNotifications(prev => [payload.new as any, ...prev])
+        }, async (payload) => {
+          const [enriched] = await hydrateConnectionStatuses([payload.new as any], session.user.id)
+          setNotifications(prev => [enriched, ...prev])
           fetchActorProfile((payload.new as any).actor_id)
         })
         .subscribe()
