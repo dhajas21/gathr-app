@@ -52,15 +52,31 @@ Deno.serve(async (req) => {
   const windowStart = new Date(Date.now() - WINDOW_HOURS * 3_600_000).toISOString()
   const now = new Date().toISOString()
 
-  // Step 1: events this user attended that ended in the last 48 hours
-  const { data: myRsvps, error: rsvpErr } = await adminClient
-    .from('rsvps')
-    .select('event_id, events!inner(id, title, end_datetime)')
-    .eq('user_id', user.id)
-    .gte('events.end_datetime', windowStart)
-    .lte('events.end_datetime', now)
+  // Step 1: prefer check-ins (verified attendance); fall back to RSVPs for events
+  // that pre-date the check-in feature or where nobody checked in.
+  const [checkInRes, rsvpRes] = await Promise.all([
+    adminClient
+      .from('check_ins')
+      .select('event_id, events!inner(id, title, end_datetime)')
+      .eq('user_id', user.id)
+      .gte('events.end_datetime', windowStart)
+      .lte('events.end_datetime', now),
+    adminClient
+      .from('rsvps')
+      .select('event_id, events!inner(id, title, end_datetime)')
+      .eq('user_id', user.id)
+      .gte('events.end_datetime', windowStart)
+      .lte('events.end_datetime', now),
+  ])
 
-  if (rsvpErr || !myRsvps?.length) {
+  // Merge: check-in takes priority; RSVPs only added for events with no check-in row for this user
+  const checkedInEventIds = new Set((checkInRes.data ?? []).map((r: any) => r.event_id))
+  const myRsvps = [
+    ...(checkInRes.data ?? []),
+    ...(rsvpRes.data ?? []).filter((r: any) => !checkedInEventIds.has(r.event_id)),
+  ]
+
+  if (!myRsvps.length) {
     return new Response(JSON.stringify({ matched: 0 }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
@@ -113,12 +129,28 @@ Deno.serve(async (req) => {
   if (qualifyingEvents.length > 0) {
     const qualifyingEventIds = qualifyingEvents.map((e: { id: string }) => e.id)
 
-    const { data: allCoAttendees, error: coErr } = await adminClient
-      .from('rsvps')
+    // For each qualifying event, prefer check-ins; fall back to RSVPs for events with none.
+    const { data: checkInAttendees } = await adminClient
+      .from('check_ins')
       .select('event_id, user_id, profiles!inner(matching_enabled)')
       .in('event_id', qualifyingEventIds)
       .neq('user_id', user.id)
       .eq('profiles.matching_enabled', true)
+
+    const eventsWithCheckIns = new Set((checkInAttendees ?? []).map((r: any) => r.event_id))
+    const rsvpFallbackIds = qualifyingEventIds.filter((id: string) => !eventsWithCheckIns.has(id))
+
+    const { data: rsvpAttendees } = rsvpFallbackIds.length
+      ? await adminClient
+          .from('rsvps')
+          .select('event_id, user_id, profiles!inner(matching_enabled)')
+          .in('event_id', rsvpFallbackIds)
+          .neq('user_id', user.id)
+          .eq('profiles.matching_enabled', true)
+      : { data: [] }
+
+    const allCoAttendees = [...(checkInAttendees ?? []), ...(rsvpAttendees ?? [])]
+    const coErr = false
 
     if (!coErr && allCoAttendees) {
       // Group by event_id client-side

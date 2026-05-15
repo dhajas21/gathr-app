@@ -57,8 +57,9 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
   }, [])
 
   const fetchReviewees = async (evtId: string, userId: string) => {
-    const [eventRes, myRsvpRes, rsvpRes, reviewedRes, connectionsRes] = await Promise.all([
+    const [eventRes, myCheckInRes, myRsvpRes, rsvpRes, reviewedRes, connectionsRes] = await Promise.all([
       supabase.from('events').select('title, end_datetime').eq('id', evtId).single(),
+      supabase.from('check_ins').select('id').eq('event_id', evtId).eq('user_id', userId).maybeSingle(),
       supabase.from('rsvps').select('id').eq('event_id', evtId).eq('user_id', userId).maybeSingle(),
       supabase.from('rsvps').select('user_id').eq('event_id', evtId).neq('user_id', userId),
       supabase.from('user_reviews').select('reviewed_id').eq('reviewer_id', userId).eq('event_id', evtId),
@@ -67,8 +68,9 @@ export default function SurveyPage({ params }: { params: Promise<{ id: string }>
 
     if (eventRes.data) setEventTitle(eventRes.data.title)
 
-    // Reviewer must have attended the event and event must have ended
-    if (!myRsvpRes.data) { setLoading(false); setSkippedAll(true); return }
+    // Reviewer must have checked in (or RSVPed for events that pre-date check-ins) and event must have ended
+    const isVerifiedAttendee = myCheckInRes.data || myRsvpRes.data
+    if (!isVerifiedAttendee) { setLoading(false); setSkippedAll(true); return }
     const eventEnded = eventRes.data ? new Date(eventRes.data.end_datetime).getTime() < Date.now() : false
     if (!eventEnded) { setLoading(false); setSkippedAll(true); return }
 

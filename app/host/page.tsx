@@ -11,6 +11,7 @@ import { cityToTimezone, CAT_GRADIENT } from '@/lib/constants'
 export default function HostDashboardPage() {
   const [events, setEvents] = useState<any[]>([])
   const [rsvpCounts, setRsvpCounts] = useState<Record<string, number>>({})
+  const [checkInCounts, setCheckInCounts] = useState<Record<string, number>>({})
   const [hasDraft, setHasDraft] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const eventIdsRef = useRef<Set<string>>(new Set())
@@ -80,11 +81,19 @@ export default function HostDashboardPage() {
 
       if (data.length > 0) {
         const ids = data.map((e: any) => e.id)
-        const { data: rsvpData } = await supabase.from('rsvps').select('event_id').in('event_id', ids)
+        const [{ data: rsvpData }, { data: ciData }] = await Promise.all([
+          supabase.from('rsvps').select('event_id').in('event_id', ids),
+          supabase.from('check_ins').select('event_id').in('event_id', ids),
+        ])
         if (rsvpData) {
           const counts: Record<string, number> = {}
           rsvpData.forEach((r: any) => { counts[r.event_id] = (counts[r.event_id] || 0) + 1 })
           setRsvpCounts(counts)
+        }
+        if (ciData) {
+          const counts: Record<string, number> = {}
+          ciData.forEach((r: any) => { counts[r.event_id] = (counts[r.event_id] || 0) + 1 })
+          setCheckInCounts(counts)
         }
       }
     } finally {
@@ -424,7 +433,8 @@ export default function HostDashboardPage() {
                 <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2 font-medium mt-2">Past</div>
                 <div className="space-y-2">
                   {past.map(event => {
-                    const count = rsvpCounts[event.id] || 0
+                    const rsvps = rsvpCounts[event.id] || 0
+                    const ci = checkInCounts[event.id] || 0
                     return (
                       <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                         className="bg-[#1C241C] border border-white/10 rounded-2xl p-3 flex items-center gap-3 cursor-pointer active:opacity-70">
@@ -439,8 +449,11 @@ export default function HostDashboardPage() {
                           <div className="text-[10px] text-white/25 mt-0.5">{formatDateLong(event.start_datetime, cityToTimezone(event.city))}</div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="text-sm font-bold text-white/40">{count}</div>
-                          <div className="text-[9px] text-white/20">attended</div>
+                          <div className="text-sm font-bold text-white/40">{ci > 0 ? ci : rsvps}</div>
+                          <div className="text-[9px] text-white/20">{ci > 0 ? 'checked in' : 'RSVPs'}</div>
+                          {ci > 0 && rsvps > 0 && (
+                            <div className="text-[9px] text-white/15">{rsvps} RSVPd</div>
+                          )}
                         </div>
                       </div>
                     )

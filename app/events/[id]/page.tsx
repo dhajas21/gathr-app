@@ -40,6 +40,8 @@ interface Event {
   host_id: string
   ticket_type?: string
   ticket_price?: number
+  latitude?: number | null
+  longitude?: number | null
 }
 
 interface Attendee {
@@ -91,6 +93,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [rsvpError, setRsvpError] = useState('')
   const [showPaidGate, setShowPaidGate] = useState(false)
   const [showPushPrompt, setShowPushPrompt] = useState(false)
+  const [checkedIn, setCheckedIn] = useState(false)
+  const [checkInLoading, setCheckInLoading] = useState(false)
+  const [checkInError, setCheckInError] = useState('')
+  const [pendingCheckIn, setPendingCheckIn] = useState<{ lat: number | null; lng: number | null; distanceM: number | null } | null>(null)
+  const checkInErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { status: pushStatus, enable: enablePush } = usePushNotifications(user?.id ?? null)
   const commentInputRef = useRef<HTMLInputElement>(null)
   const inviteCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -182,6 +189,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       if (inviteCopiedTimerRef.current) clearTimeout(inviteCopiedTimerRef.current)
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
       if (rsvpErrorTimerRef.current) clearTimeout(rsvpErrorTimerRef.current)
+      if (checkInErrorTimerRef.current) clearTimeout(checkInErrorTimerRef.current)
     }
   }, [eventId])
 
@@ -208,7 +216,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       }
     }
 
-    const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes, hostCountRes, bookmarkRes] = await Promise.all([
+    const [hostRes, rsvpRes, attendeesRes, countRes, commentsRes, hostCountRes, bookmarkRes, checkInRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', eventData.host_id).single(),
       supabase.from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).maybeSingle(),
       supabase.from('rsvps').select('user_id, profiles(id, name, avatar_url)').eq('event_id', id).limit(12),
@@ -216,6 +224,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       supabase.from('event_comments').select('id, user_id, text, created_at, profiles(id, name, avatar_url)').eq('event_id', id).order('created_at', { ascending: true }).limit(100),
       supabase.from('events').select('*', { count: 'exact', head: true }).eq('host_id', eventData.host_id),
       supabase.from('event_bookmarks').select('id').eq('event_id', id).eq('user_id', userId).maybeSingle(),
+      supabase.from('check_ins').select('id').eq('event_id', id).eq('user_id', userId).maybeSingle(),
     ])
 
     // Access confirmed — commit to state
@@ -226,6 +235,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (attendeesRes.data) setAttendees(attendeesRes.data as any)
     if (countRes.count !== null) setTotalAttendees(countRes.count)
     if (commentsRes.data) setComments(commentsRes.data as any)
+    if (checkInRes.data) setCheckedIn(true)
     if (bookmarkRes.data) setBookmarked(true)
     if (userId === eventData.host_id && (eventData.visibility === 'private' || eventData.visibility === 'unlisted')) {
       const { data: codeRow } = await supabase.from('events').select('invite_code').eq('id', id).single()
@@ -262,6 +272,59 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   } finally {
     setLoading(false)
   }
+  }
+
+  const haversineM = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371000
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLng = (lng2 - lng1) * Math.PI / 180
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  }
+
+  const commitCheckIn = async (lat: number | null, lng: number | null, distanceM: number | null) => {
+    if (!user || !event) return
+    setCheckInLoading(true)
+    const { error } = await supabase.from('check_ins').insert({
+      user_id: user.id, event_id: event.id, lat, lng, distance_m: distanceM,
+    })
+    if (error) {
+      setCheckInError('Check-in failed. Try again.')
+      if (checkInErrorTimerRef.current) clearTimeout(checkInErrorTimerRef.current)
+      checkInErrorTimerRef.current = setTimeout(() => setCheckInError(''), 4000)
+    } else {
+      setCheckedIn(true)
+    }
+    setPendingCheckIn(null)
+    setCheckInLoading(false)
+  }
+
+  const handleCheckIn = () => {
+    if (!user || !event || checkInLoading || checkedIn) return
+    setCheckInLoading(true)
+
+    if (!navigator.geolocation || !event.latitude || !event.longitude) {
+      setCheckInLoading(false)
+      setPendingCheckIn({ lat: null, lng: null, distanceM: null })
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const dist = Math.round(haversineM(pos.coords.latitude, pos.coords.longitude, event.latitude!, event.longitude!))
+        if (dist <= 500) {
+          commitCheckIn(pos.coords.latitude, pos.coords.longitude, dist)
+        } else {
+          setCheckInLoading(false)
+          setPendingCheckIn({ lat: pos.coords.latitude, lng: pos.coords.longitude, distanceM: dist })
+        }
+      },
+      () => {
+        setCheckInLoading(false)
+        setPendingCheckIn({ lat: null, lng: null, distanceM: null })
+      },
+      { timeout: 8000, maximumAge: 30000 },
+    )
   }
 
   const handleRsvp = async () => {
@@ -1096,26 +1159,56 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
-      {/* RSVP CTA */}
-      {!isHost && (
-        <div className="fixed bottom-24 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
-          {rsvpError && (
-            <div className="mb-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center">
-              {rsvpError}
-            </div>
-          )}
-          {(() => {
-            const isFull = event.capacity > 0 && event.spots_left === 0 && !rsvped
-            return (
+      {/* RSVP / Check-in CTA */}
+      {!isHost && event && (() => {
+        const nowMs = Date.now()
+        const startMs = new Date(event.start_datetime).getTime()
+        const endMs = new Date(event.end_datetime).getTime()
+        const inCheckInWindow = rsvped && nowMs >= startMs - 30 * 60000 && nowMs < endMs
+        const isFull = event.capacity > 0 && event.spots_left === 0 && !rsvped
+        return (
+          <div className="fixed bottom-24 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-[#0D110D] to-transparent">
+            {(rsvpError || checkInError) && (
+              <div className="mb-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center">
+                {rsvpError || checkInError}
+              </div>
+            )}
+            {inCheckInWindow ? (
+              checkedIn ? (
+                <div className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 bg-[#1C241C] border border-[#7EC87E]/30 text-[#7EC87E]">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Checked In
+                </div>
+              ) : (
+                <>
+                  <button onClick={handleCheckIn} disabled={checkInLoading}
+                    className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 bg-[#7EC87E] text-[#0D110D] active:scale-95 transition-all disabled:opacity-60"
+                    style={{ boxShadow: '0 5px 22px rgba(126,200,126,0.35)' }}>
+                    {checkInLoading ? 'Getting location…' : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        I'm Here
+                      </>
+                    )}
+                  </button>
+                  {rsvped && (
+                    <button onClick={() => setShowCancelRsvp(true)}
+                      className="w-full mt-2 py-2 text-center text-xs text-white/30 active:opacity-70">
+                      Cancel RSVP
+                    </button>
+                  )}
+                </>
+              )
+            ) : (
               <button onClick={handleRsvp} disabled={rsvpLoading || isFull}
                 className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B] animate-rsvp-confirm' : isFull ? 'bg-[#1C241C] border border-white/10 text-white/40' : 'bg-[#E8B84B] text-[#0D110D]'}`}
-                style={{boxShadow: rsvped || isFull ? 'none' : '0 5px 22px rgba(232,184,75,0.3)'}}>
+                style={{ boxShadow: rsvped || isFull ? 'none' : '0 5px 22px rgba(232,184,75,0.3)' }}>
                 {rsvpLoading ? (rsvped ? 'Cancelling...' : 'Joining...') : rsvped ? '✓ You\'re going · Cancel RSVP' : isFull ? 'Event Full' : event.ticket_type === 'paid' ? `Get Ticket${event.ticket_price ? ` · $${event.ticket_price.toFixed(2)}` : ''}` : event.ticket_type === 'donation' ? 'Join · Donation welcome' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
               </button>
-            )
-          })()}
-        </div>
-      )}
+            )}
+          </div>
+        )
+      })()}
 
       {/* Host manage bar */}
       {isHost && (
@@ -1291,6 +1384,40 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <button onClick={() => setShowPushPrompt(false)}
               className="w-full bg-transparent text-white/35 text-sm py-2">
               Not now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Check-in soft-confirm sheet */}
+      {pendingCheckIn && event && (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-end justify-center" onClick={() => setPendingCheckIn(null)}>
+          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl px-5 pt-5 pb-10 border-t border-white/10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-white/15 rounded-full mx-auto mb-5" />
+            <div className="flex flex-col items-center text-center mb-5">
+              <div className="w-12 h-12 bg-[#7EC87E]/10 border border-[#7EC87E]/20 rounded-2xl flex items-center justify-center mb-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(126,200,126,0.8)" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </div>
+              <div className="font-semibold text-[#F0EDE6] text-base mb-1">Confirm check-in</div>
+              {pendingCheckIn.distanceM !== null ? (
+                <p className="text-sm text-white/45 leading-relaxed">
+                  You're {pendingCheckIn.distanceM >= 1000 ? `${(pendingCheckIn.distanceM / 1000).toFixed(1)}km` : `${pendingCheckIn.distanceM}m`} from {event.location_name}. Confirm you're at the venue.
+                </p>
+              ) : (
+                <p className="text-sm text-white/45 leading-relaxed">
+                  Location couldn't be verified. Confirm you're at {event.location_name}.
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => commitCheckIn(pendingCheckIn.lat, pendingCheckIn.lng, pendingCheckIn.distanceM)}
+              disabled={checkInLoading}
+              className="w-full py-3.5 rounded-2xl bg-[#7EC87E] text-[#0D110D] font-bold text-sm active:scale-95 transition-transform disabled:opacity-50">
+              {checkInLoading ? 'Checking in…' : "Yes, I'm Here"}
+            </button>
+            <button onClick={() => setPendingCheckIn(null)}
+              className="w-full mt-2.5 py-2.5 text-white/35 text-sm text-center">
+              Cancel
             </button>
           </div>
         </div>
