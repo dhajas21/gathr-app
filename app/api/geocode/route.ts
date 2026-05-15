@@ -8,9 +8,10 @@ const ipTimestamps = new Map<string, number[]>()
 function isRateLimited(ip: string): boolean {
   const now = Date.now()
   const hits = (ipTimestamps.get(ip) ?? []).filter(t => now - t < 1000)
-  if (hits.length >= 5) return true
+  if (hits.length >= 5) { ipTimestamps.set(ip, hits); return true }
   hits.push(now)
-  ipTimestamps.set(ip, hits)
+  if (hits.length > 0) ipTimestamps.set(ip, hits)
+  else ipTimestamps.delete(ip)
   return false
 }
 

@@ -35,6 +35,14 @@ Deno.serve(async (req) => {
     })
   }
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(user.id)) {
+    return new Response(JSON.stringify({ error: 'Invalid user ID' }), {
+      status: 400,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
+
   // Service-role client for multi-table joins that bypass RLS
   const adminClient = createClient(
     Deno.env.get('SUPABASE_URL')!,

@@ -148,10 +148,11 @@ export function fromZonedTime(dateStr: string, timeStr: string, timeZone: string
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
   }).formatToParts(new Date(fakeUTC))
   const get = (t: string) => Number(parts.find(p => p.type === t)?.value ?? '0')
-  const hour = get('hour')
+  const rawHour = get('hour')
+  const midnight = rawHour === 24
   const asTzMs = Date.UTC(
-    get('year'), get('month') - 1, get('day'),
-    hour === 24 ? 0 : hour, get('minute'), get('second'),
+    get('year'), get('month') - 1, get('day') + (midnight ? 1 : 0),
+    midnight ? 0 : rawHour, get('minute'), get('second'),
   )
   const offset = fakeUTC - asTzMs
   return new Date(fakeUTC + offset)

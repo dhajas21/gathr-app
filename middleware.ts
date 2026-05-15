@@ -20,7 +20,7 @@ function buildCsp(nonce: string): string {
   ].join('; ')
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64')

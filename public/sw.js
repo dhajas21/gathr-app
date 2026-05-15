@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gathr-shell-v3'
-const SHELL_URLS = ['/', '/home', '/offline.html', '/icon-192.png', '/icon-512.png']
+const CACHE_NAME = 'gathr-shell-v4'
+const SHELL_URLS = ['/', '/offline.html', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

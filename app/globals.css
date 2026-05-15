@@ -111,10 +111,6 @@ input, select, textarea, button {
   box-shadow: 0 0 14px rgba(142, 110, 19, 0.22);
 }
 
-.font-display {
-  font-family: var(--font-syne), sans-serif;
-}
-
 /* ─── Founder badge ───────────────────────────── */
 .founder-badge-pill {
   background: linear-gradient(110deg, #2A1E04 0%, #1A1200 50%, #2A1E04 100%);
@@ -405,9 +401,6 @@ input, select, textarea, button {
 .font-editorial-italic { font-family: var(--font-fraunces), Georgia, serif; font-style: italic; }
 .font-mono-ui      { font-family: var(--font-geist-mono), ui-monospace, monospace; }
 
-/* Override the legacy .font-display (Syne) so existing usages adopt Bricolage
-   automatically. Remove Syne import in layout.tsx once you've audited. */
-
 /* ─── Motion tokens ────────────────────────────────────
    Use these instead of ad-hoc durations / easings. Names match Material 3 +
    Apple HIG conventions, calibrated for Gathr's pace. */
@@ -438,6 +431,36 @@ input, select, textarea, button {
   --space-10: 40px;
   --space-12: 48px;
 }
+
+/* ─── Tab content slide-in ─────────────────────────────
+   Triggered by adding key={activeTab} to the tab content container. */
+@keyframes tab-slide-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-tab-in {
+  animation: tab-slide-in var(--motion-medium) var(--ease-decelerate) both;
+}
+
+/* ─── RSVP confirmed pulse ──────────────────────────────
+   Brief scale bounce when the RSVP button transitions to "Going" state. */
+@keyframes rsvp-confirm {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.04); }
+  70%  { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+.animate-rsvp-confirm {
+  animation: rsvp-confirm 350ms var(--ease-emphasis) both;
+}
+
+/* ─── Cover image fade-in ───────────────────────────────
+   Images start invisible; JS sets opacity-100 via onLoad. */
+.cover-img {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+.cover-img.loaded { opacity: 1; }
 
 /* ─── Splash D — first launch + returning ──────────────
    Keep these scoped to .gathr-splash so they can't leak. */

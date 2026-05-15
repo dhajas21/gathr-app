@@ -51,7 +51,7 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 - Pre-search discovery state: recent searches, recently viewed events, interest-scored "Picked for you" recommendations, and a browse-by-category grid
 
 ### Mystery Match System
-- RSVP → see match count + blurred silhouettes (free users)
+- RSVP → see match count + blurred ghost profile cards (free users on upcoming events). The ghost cards use the real card layout at fading opacity with a blur filter, a lock icon overlay showing "X more matches hidden", and a gold upsell block below — making the value of upgrading immediately clear
 - Gathr+ members see partial first names + shared interests pre-event
 - Anonymous "wave" feature (Gathr+ only) — signal interest before the event; a mutual wave gives both users an early first-name reveal
 - Post-event: full profiles of co-attendees unlock for people who actually attended
@@ -150,7 +150,7 @@ A systematic polish pass has been applied to every page in the app (communities,
 - **Private community names:** lock SVG icon inline + "🔒 Request" button text
 
 ### Light Mode / Dark Mode
-Full dual-theme support — the app ships with a dark default and a warm cream light mode. Theme toggle in Settings. 156+ CSS overrides ensure every element reads correctly in both modes.
+Full dual-theme support — the app ships with a dark default and a warm cream light mode. Theme toggle in Settings. 130+ CSS overrides ensure every element reads correctly in both modes.
 
 ---
 
@@ -431,7 +431,7 @@ The app is a mobile-first web app — it runs in the browser on any device, no a
 - Transactional email (Resend) live for welcome, RSVP, and connection events; email templates HTML-escape all user-supplied content; authentication is fail-closed (missing token = 503, wrong token = 403)
 - Content Security Policy + auth redirect middleware active on every request
 - Web push notifications live and opt-in
-- All count management (spots left, member counts, XP) handled by database triggers — no race conditions. Count triggers use a transaction-local signal (`app.internal_update`) to bypass the guard trigger safely; they also skip gracefully during account-deletion cascades.
+- All count management (spots left, member counts, XP) is handled at the database level — no race conditions possible from the client. `hosted_count`, `attended_count`, and `connection_count` are maintained by Postgres triggers using a transaction-local signal (`app.internal_update`) to safely bypass the write guard. `xp` is a `GENERATED ALWAYS AS STORED` column computed directly from those counts — it can never be faked or capped by client-side array limits. Count triggers also skip gracefully during account-deletion cascades.
 - Gathr+ trial and billing status can't be manipulated by users — protected at the DB level
 - Account deletion cleanly removes all user data (events, RSVPs, communities, connections, messages, waves, notifications) via FK cascades — no orphan rows
 - Event street address gated behind RSVP — only RSVPed attendees and the host see the full address; the map pin shows venue name only to everyone else

@@ -220,7 +220,7 @@ export default function ProfilePage() {
       const interests = profile?.interests || []
       const hostedCount = profile?.hosted_count ?? hostedEvents.length
       const attendedCount = profile?.attended_count ?? attendedEvents.length
-      const xpVal = (hostedCount * 10) + (attendedCount * 5) + (connections.length * 3) + (interests.length * 2)
+      const xpVal = profile?.xp ?? ((hostedCount * 10) + (attendedCount * 5) + ((profile?.connection_count ?? connections.length) * 3) + (interests.length * 2))
       const levelVal = Math.floor(xpVal / 50) + 1
 
       const storedLevel = parseInt(localStorage.getItem('gathr_user_level') || '0')
@@ -237,7 +237,7 @@ export default function ProfilePage() {
 
       const uniqueAttendedCats = new Set(attendedEvents.map((e: any) => e.category)).size
       const uniqueHostedCats = new Set(hostedEvents.map((e: any) => e.category)).size
-      const allAch = computeAchievements(hostedCount, attendedCount, connections.length, interests, profile, levelVal, uniqueAttendedCats, uniqueHostedCats, communityCount, ownedCommunityCount, bookmarkCount)
+      const allAch = computeAchievements(hostedCount, attendedCount, profile?.connection_count ?? connections.length, interests, profile, levelVal, uniqueAttendedCats, uniqueHostedCats, communityCount, ownedCommunityCount, bookmarkCount)
       const seenRaw = localStorage.getItem('gathr_seen_achievements')
       const seen: string[] = seenRaw ? JSON.parse(seenRaw) : []
       const fresh = allAch.filter(a => a.val >= a.req && !seen.includes(a.title))
@@ -262,9 +262,7 @@ export default function ProfilePage() {
     try { if (!localStorage.getItem('gathr_badge_tip_seen')) setShowBadgeTip(true) } catch {}
     setXpBarWidth(0)
     const t = setTimeout(() => {
-      const hc = profile?.hosted_count ?? hostedEvents.length
-      const ac = profile?.attended_count ?? attendedEvents.length
-      const xpVal = (hc * 10) + (ac * 5) + (connections.length * 3) + ((profile?.interests || []).length * 2)
+      const xpVal = profile?.xp ?? (((profile?.hosted_count ?? hostedEvents.length) * 10) + ((profile?.attended_count ?? attendedEvents.length) * 5) + ((profile?.connection_count ?? connections.length) * 3) + ((profile?.interests || []).length * 2))
       setXpBarWidth(Math.round(((xpVal % 50) / 50) * 100))
     }, 120)
     return () => clearTimeout(t)
@@ -377,14 +375,15 @@ export default function ProfilePage() {
 
   const hostedCount = profile?.hosted_count ?? hostedEvents.length
   const attendedCount = profile?.attended_count ?? attendedEvents.length
-  const xp = (hostedCount * 10) + (attendedCount * 5) + (connections.length * 3) + (interests.length * 2)
+  const connCount = profile?.connection_count ?? connections.length
+  const xp = profile?.xp ?? ((hostedCount * 10) + (attendedCount * 5) + (connCount * 3) + (interests.length * 2))
   const level = Math.floor(xp / 50) + 1
   const xpInLevel = xp % 50
   const xpToNext = 50
 
   const uniqueAttendedCats = new Set(attendedEvents.map((e: any) => e.category)).size
   const uniqueHostedCats = new Set(hostedEvents.map((e: any) => e.category)).size
-  const ACHIEVEMENTS = computeAchievements(hostedCount, attendedCount, connections.length, interests, profile, level, uniqueAttendedCats, uniqueHostedCats, communityCount, ownedCommunityCount, bookmarkCount)
+  const ACHIEVEMENTS = computeAchievements(hostedCount, attendedCount, connCount, interests, profile, level, uniqueAttendedCats, uniqueHostedCats, communityCount, ownedCommunityCount, bookmarkCount)
 
   const tierColor = (tier: string, unlocked: boolean) =>
     !unlocked ? 'text-white/20' :
@@ -695,7 +694,7 @@ export default function ProfilePage() {
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.55)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>,
                   },
                   {
-                    num: connections.length, label: 'Connections', xp: connections.length * 3,
+                    num: connCount, label: 'Connections', xp: connCount * 3,
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.55)" strokeWidth="1.5" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
                   },
                   {
@@ -893,7 +892,7 @@ export default function ProfilePage() {
             <button onClick={() => {
               setShowAchievementUnlock(false)
               try {
-                const allUnlocked = computeAchievements(hostedCount, attendedCount, connections.length, profile?.interests || [], profile, Math.floor(((hostedCount * 10) + (attendedCount * 5) + (connections.length * 3) + ((profile?.interests || []).length * 2)) / 50) + 1, new Set(attendedEvents.map((e: any) => e.category)).size, new Set(hostedEvents.map((e: any) => e.category)).size, communityCount, ownedCommunityCount, bookmarkCount).filter(a => a.val >= a.req).map(a => a.title)
+                const allUnlocked = computeAchievements(hostedCount, attendedCount, connCount, profile?.interests || [], profile, level, new Set(attendedEvents.map((e: any) => e.category)).size, new Set(hostedEvents.map((e: any) => e.category)).size, communityCount, ownedCommunityCount, bookmarkCount).filter(a => a.val >= a.req).map(a => a.title)
                 localStorage.setItem('gathr_seen_achievements', JSON.stringify(allUnlocked))
               } catch {}
             }}

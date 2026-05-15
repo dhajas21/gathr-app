@@ -23,6 +23,7 @@ Optional (see `GATHR_OVERVIEW.md` → Deployment Setup Checklist for the full li
 - `NEXT_PUBLIC_SENTRY_DSN` — error tracking (Sentry)
 - `NEXT_PUBLIC_POSTHOG_KEY` — product analytics (PostHog)
 - `NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORM` — set `"true"` only on Supabase Pro plan with Image Transformations enabled
+- `NEXT_PUBLIC_FOUNDER_ID` — UUID of the founder account; controls which profile shows the founder badge. Defaults to the hardcoded fallback in `lib/constants.ts` if not set
 
 ## Tech stack
 
@@ -50,6 +51,8 @@ Optional (see `GATHR_OVERVIEW.md` → Deployment Setup Checklist for the full li
 - **Category colors**: `CAT_GRADIENT` in `lib/constants.ts` is the source of truth for image-less event tile backgrounds
 - **Font classes**: `font-display` (Bricolage Grotesque), `font-editorial` (Fraunces), `font-mono-ui` (Geist Mono)
 - **Light mode**: CSS class `data-theme="light"` on `<html>`; 130+ overrides in `app/globals.css`; inline gradient colors must use CSS variables (e.g. `var(--gradient-event-hero)`) so they can be themed
+- **Security**: middleware lives in `middleware.ts` at the root — Next.js only loads middleware from this exact filename. It generates a per-request CSP nonce; a static fallback CSP is also set in `next.config.ts`
+- **Private events**: `invite_code` is never included in the main event select — only fetched separately for the host. Invite validation happens server-side via a parameterized `eq('invite_code', param)` query
 
 ## Architecture notes
 

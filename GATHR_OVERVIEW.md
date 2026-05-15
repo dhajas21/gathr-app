@@ -81,7 +81,7 @@ app/
 
 ## Authentication & Middleware
 
-The middleware (`middleware.ts`) runs on every request via Next.js Edge Runtime. It re-exports from `proxy.ts` (which contains the full middleware logic) and injects a per-request CSP nonce. It uses `createServerClient` from `@supabase/ssr` (which reads cookies from the request) to check for a valid Supabase session. If there's no session and the route isn't public, it redirects to `/auth?redirectTo=<original-path>` — deep links survive the login flow.
+The middleware (`middleware.ts`) runs on every request via Next.js Edge Runtime. It generates a per-request CSP nonce and injects it via the `x-nonce` request header so `app/layout.tsx` can apply it to inline scripts. It uses `createServerClient` from `@supabase/ssr` (which reads cookies from the request) to check for a valid Supabase session. If there's no session and the route isn't public, it redirects to `/auth?redirectTo=<original-path>` — deep links survive the login flow. A static fallback CSP is also set in `next.config.ts` to cover any routes that bypass the middleware (e.g. direct static file serving).
 
 **Why `@supabase/ssr` instead of `@supabase/supabase-js` directly?** The SSR package handles the cookie-based session automatically — it reads and writes the Supabase auth token from `request.cookies`, which is what Next.js middleware needs. The browser client (`lib/supabase.ts`) uses the same package's `createBrowserClient` which manages the token in browser cookies instead.
 
@@ -101,7 +101,7 @@ All tables are in the `public` schema with **Row Level Security (RLS)** enabled 
 
 | Table | Purpose |
 |---|---|
-| `profiles` | One row per user. Name, avatar, city, bio, interests (array), XP, level, safety score/tier, Gathr+ status, matching_enabled, discoverable, profile_mode |
+| `profiles` | One row per user. Name, avatar, city, bio, interests (array), `xp` (GENERATED ALWAYS AS STORED — see below), `connection_count` (trigger-maintained), safety score/tier, Gathr+ status, matching_enabled, discoverable, profile_mode |
 | `events` | Events created by users. Title, category, description, location, datetime, capacity, spots_left, visibility (public/unlisted/private), tags, cover_url, host_id |
 | `rsvps` | Which user RSVPed to which event. `status: 'joined'` |
 | `event_bookmarks` | Saved events per user |
@@ -134,12 +134,13 @@ User-writable:
 - `avatar_url`, `bio_social`, `bio_professional`, `title_professional`, `org_professional`, `links`, `city`, `interests` (array, capped at 10), `profile_mode` ('social' / 'professional' / 'both'), `rsvp_visibility` ('public' / 'connections' / 'private'), `is_discoverable`, `matching_enabled`, `pinned_badges` (up to 3 badge titles user pins to their public profile)
 
 **System-managed** (locked down by `guard_profile_protected_columns_trg` — user UPDATE attempts on these columns RAISE an exception; only service-role or internal maintenance triggers can write):
-- `hosted_count`, `attended_count` (maintained by DB triggers on events/rsvps — triggers bypass the guard via the `app.internal_update` transaction-local config flag). **Important nuance:** `attended_count` increments on RSVP insert, not on event completion. It represents RSVPs, not verified physical attendance. Attendance-based achievements fire on RSVP accordingly. Gating on actual attendance requires a check-in system (deferred).
+- `hosted_count`, `attended_count`, `connection_count` (maintained by DB triggers on events/rsvps/connections respectively — all bypass the guard via `SET LOCAL app.internal_update = 'true'`). **Important nuance:** `attended_count` increments on RSVP insert, not on event completion. It represents RSVPs, not verified physical attendance. Attendance-based achievements fire on RSVP accordingly. Gating on actual attendance requires a check-in system (deferred). `connection_count` is maintained by `trg_connection_count` (SECURITY DEFINER, so it can UPDATE both sides of a connection — both `requester_id` and `addressee_id` profiles).
 - `safety_score`, `safety_tier` ('new' / 'verified' / 'trusted' / 'flagged'), `review_count` (maintained by review aggregation)
 - `gathr_plus`, `gathr_plus_expires_at`, `gathr_plus_trial_used`, `gathr_plus_trial_levels` (modifiable only via `claim-gathr-plus-trial` / `claim-level-trial` edge functions running with service-role)
 
-XP and level are **not stored** in the database. The client computes them from authoritative DB counts:
-`xp = profile.hosted_count×10 + profile.attended_count×5 + connections×3 + interests×2`, `level = floor(xp/50) + 1`. Earlier versions computed XP from the *fetched array length* of `hostedEvents`/`attendedEvents`, which were limited to 50/200 rows respectively — this capped a power user's XP at ~30 levels. Now corrected to use the trigger-maintained counts directly.
+`xp` is a **`GENERATED ALWAYS AS STORED`** column computed at the DB level:
+`xp = hosted_count×10 + attended_count×5 + connection_count×3 + array_length(interests,1)×2`
+It updates automatically whenever any of those trigger-maintained counts change. `level = floor(xp/50) + 1` is derived client-side. Earlier versions computed XP from fetched array lengths (capped at 50 hosted / 200 attended) which capped power-user XP; the generated column is uncapped and always authoritative.
 
 ### Key Column Details on `events`
 
@@ -160,6 +161,7 @@ All count management and notifications are handled by Postgres triggers — not 
 | `trigger_update_event_spots` | rsvps INSERT/DELETE | Increments/decrements `events.spots_left` |
 | `trigger_update_attended_count` | rsvps INSERT/DELETE | Updates `profiles.attended_count`. Sets `app.internal_update = 'true'` (transaction-local) before the UPDATE so the guard trigger allows the change. On DELETE, skips the UPDATE if the profile row is already gone (prevents errors during account-deletion cascades). |
 | `trigger_update_hosted_count` | events INSERT/DELETE | Updates `profiles.hosted_count`. Same `app.internal_update` signal + early-exit-on-missing-profile behaviour as above. |
+| `trg_connection_count` | connections INSERT/UPDATE(status)/DELETE | Updates `profiles.connection_count` for both parties on accept (+1/+1), un-accept (−1/−1), or delete-while-accepted (−1/−1). SECURITY DEFINER so it can UPDATE both requester and addressee profiles (RLS would otherwise restrict a user to their own row). Uses `SET LOCAL app.internal_update = 'true'` so `guard_profile_protected_columns_trg` allows the write. `GREATEST(0, ...)` prevents underflow. |
 | `post_like_count_trigger` | community_post_likes INSERT/DELETE | Updates `community_posts.like_count` |
 | `community_member_count_trigger` | community_members INSERT/UPDATE/DELETE | Updates `communities.member_count` (INSERT→+1, DELETE→-1, UPDATE pending→member →+1). Function has `SET search_path TO 'public'` to avoid "relation communities does not exist" errors in cron/service contexts. |
 | `rsvp_notification_trigger` | rsvps INSERT | Notifies event host: "X is going to your event" |
@@ -174,7 +176,7 @@ All count management and notifications are handled by Postgres triggers — not 
 | `rate_limit_feedback_trg` | feedback BEFORE INSERT | Blocks if user submitted >5 feedback messages in last hour |
 | `dispatch_push_notification_trg` | notifications AFTER INSERT | Fans out to send-push edge function via `pg_net.http_post`. Per-type logic: `rsvp` honours host's `notify_on_rsvp` + 30-min per-event rate limit (stored on `events.last_rsvp_push_at`); all other types push unconditionally. Reads `internal_push_token` and `send_push_url` from Supabase Vault. Fire-and-forget — failures never block notification creation. |
 | `community_post_comment_count_trigger` | community_post_comments INSERT/DELETE | Maintains `community_posts.comment_count` (replaces fetching all comments to count them on every load) |
-| `guard_profile_protected_columns_trg` | profiles BEFORE UPDATE | Rejects user writes to billing (`gathr_plus_*`), safety (`safety_*`, `review_count`), and trigger-maintained counts (`hosted_count`, `attended_count`). Bypassed by: (1) service-role (`auth.role() = 'service_role'`), or (2) internal maintenance triggers that set `current_setting('app.internal_update', true) = 'true'` before their UPDATE. |
+| `guard_profile_protected_columns_trg` | profiles BEFORE UPDATE | Rejects user writes to billing (`gathr_plus_*`), safety (`safety_*`, `review_count`), and trigger-maintained counts (`hosted_count`, `attended_count`, `connection_count`). Note: `xp` is a `GENERATED ALWAYS AS` column — PostgreSQL rejects manual writes at the engine level before any trigger fires, so it doesn't need guard coverage. Bypassed by: (1) service-role (`auth.role() = 'service_role'`), or (2) internal maintenance triggers that set `current_setting('app.internal_update', true) = 'true'` before their UPDATE. |
 | `on_auth_user_created` | auth.users INSERT | Auto-creates a `profiles` row from `raw_user_meta_data` (name, city, avatar). Eliminates orphan-profile risk when email confirmation is pending |
 | `on_profile_created_send_welcome` | profiles AFTER INSERT | Calls `dispatch_email()` → `send-email` edge function with `type: 'welcome'`. Reads email from `auth.users`. |
 | `on_rsvp_send_host_email` | rsvps AFTER INSERT | Notifies event host by email when a guest RSVPs (`type: 'event_rsvp'`). Skipped if RSVP-er is the host. |
@@ -223,8 +225,9 @@ These are SECURITY DEFINER functions that wrap multi-step operations into atomic
 |---|---|---|
 | `create_community(p_name, p_description, p_category, p_visibility, p_icon, p_banner_gradient)` | name (3–100 chars), description, category, visibility (public/unlisted/private), optional icon + gradient | Inserts the community row AND the owner `community_members` row in a single transaction. Returns the new community's UUID. The frontend on `/communities/create` now calls this RPC instead of two sequential inserts (which used to leave orphans on partial failure). |
 | `delete_community(p_community_id)` | community UUID | Authorization check (caller must be owner) + cascading clean-up of `community_post_comments` → `community_post_likes` → `community_chat_messages` → `community_posts` → `community_members` → unlinks `events.community_id` → deletes the community. All in one transaction. |
+| `get_mutual_connections(user_a, user_b)` | two UUIDs | Returns `TABLE(id uuid, name text, avatar_url text)` — the set of profiles connected to *both* users. Uses a single SQL `INTERSECT` at the DB level instead of fetching both full connection lists and intersecting client-side. SECURITY DEFINER STABLE. Called from `app/profile/[id]/page.tsx` instead of two `connections` fetches + JS Set intersection. |
 
-Both RPCs return clear PostgreSQL errors (auth = 42501, validation = 22023) that the frontend can surface. Authenticated role has `EXECUTE` permission.
+All RPCs return clear PostgreSQL errors (auth = 42501, validation = 22023) that the frontend can surface. Authenticated role has `EXECUTE` permission.
 
 ---
 
@@ -452,7 +455,7 @@ Supabase Edge Functions run on Deno, server-side, close to the database. Seven f
 
 **`claim-level-trial`** (JWT-verified):
 - Called from the profile page when a level milestone (5 or 10) is detected client-side
-- Computes XP and level server-side from authoritative DB counts (`hosted_count`, `attended_count`, connection count, interest count) — client cannot fake a level-up
+- Computes XP and level server-side from authoritative DB counts (`hosted_count`, `attended_count`, `connection_count`, `array_length(interests,1)`) — client cannot fake a level-up
 - Grants the appropriate Gathr+ preview trial (48h at level 5, 7-day at level 10) if `gathr_plus_trial_levels` doesn't already include that level
 - Writes `gathr_plus_expires_at` and `gathr_plus_trial_levels[]` via service-role (frontend can't, thanks to `guard_profile_protected_columns_trg`)
 
@@ -467,7 +470,7 @@ Supabase Edge Functions run on Deno, server-side, close to the database. Seven f
 - Handles post-publish geocoding server-side (the create form also does client-side autocomplete via Nominatim for real-time venue suggestions — see Tech Stack)
 - Called fire-and-forget from `/create` and `/events/[id]/edit` after publish/save with `{ event_id }`
 - Authorization check: only the event's host can request a geocode for it
-- Hits Nominatim with `User-Agent: GathrApp/1.0 (gathr.app)`; falls back to `CITY_COORDS[city]` lookup (mirrors `lib/constants.ts CITIES`) if Nominatim returns no result
+- Hits Nominatim with `User-Agent: GathrApp/1.0 (gathr.app)`; falls back to `CITY_COORDS[city]` lookup (all 32 cities from `lib/constants.ts CITIES` — kept in sync) if Nominatim returns no result
 - Updates `events.latitude` / `events.longitude` via service-role; idempotent
 - Frontend map view (`/map`) now ONLY queries events that already have coords (`not('latitude', 'is', null)`), so geocoding happens once at write time, never at read time
 
@@ -817,7 +820,7 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 | Private event data (host, attendees, comments) returned before access gate fired | Gate check now runs immediately after the event row is fetched — blocked users never trigger the parallel data queries |
 | Event cover image orphaned in storage when host deletes event | `handleDelete` extracts the storage path from `cover_url` and calls `supabase.storage.from('event-covers').remove()` after the DB delete |
 | CORS wildcard on edge functions allows any origin | All five edge functions read `APP_ORIGIN` env var for `Access-Control-Allow-Origin`; set this secret in Supabase to your production domain |
-| Profile XP capped at fetched-array length (50 hosted / 200 attended) | XP now derives from `profile.hosted_count` / `profile.attended_count` (DB-trigger-maintained); display still uses limited arrays |
+| Profile XP capped at fetched-array length (50 hosted / 200 attended) | `xp` is now a `GENERATED ALWAYS AS STORED` column on `profiles`, computed from trigger-maintained `hosted_count`, `attended_count`, `connection_count`, and `array_length(interests,1)` — always authoritative, never capped. Client reads `profile.xp` directly. |
 | Gathr+ trial exploitable via direct API write | `guard_profile_protected_columns_trg` rejects any user UPDATE to `gathr_plus_*` columns. Only `claim-gathr-plus-trial` (service-role) can flip the flag |
 | Host realtime subscription received every host's RSVPs platform-wide | Client-side filter via `eventIdsRef: Set<string>` drops payloads for events not owned by current host |
 | Map page geocoded events on every visit, never persisted | All geocoding moved to `geocode-event` edge function (proper User-Agent, server-side); map only queries events that already have lat/lng |

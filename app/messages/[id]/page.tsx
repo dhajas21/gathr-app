@@ -74,6 +74,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       supabase.removeChannel(presence)
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
       if (uploadErrorTimerRef.current) clearTimeout(uploadErrorTimerRef.current)
+      if (longPressTimer.current) clearTimeout(longPressTimer.current)
     }
   }, [threadId, user?.id])
 
@@ -541,6 +542,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
       {isOtherTyping && (
         <div className="px-4 pb-1 flex items-center gap-2">
+          {other?.avatar_url
+            ? <img src={other.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0 opacity-70" />
+            : <div className="w-6 h-6 rounded-full bg-[#2A4A2A] flex items-center justify-center flex-shrink-0 opacity-70">
+                <span className="text-[9px] font-bold text-[#7EC87E]">{other?.name?.[0] ?? '?'}</span>
+              </div>
+          }
           <div className="flex items-center gap-1.5 bg-[#1C241C] border border-white/10 rounded-2xl rounded-bl-sm px-3 py-2">
             <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '0ms' }} />
             <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: '150ms' }} />

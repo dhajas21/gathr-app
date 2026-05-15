@@ -126,7 +126,20 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           .select('id, user_id, text, created_at, profiles(id, name, avatar_url)')
           .eq('id', payload.new.id)
           .single()
-        if (data) setComments(prev => [...prev, data as any])
+        if (!data) return
+        setComments(prev => {
+          if (prev.some(c => c.id === data.id)) return prev
+          // Replace optimistic placeholder from own post if it matches
+          const optimisticIdx = prev.findIndex(c =>
+            c.id.startsWith('optimistic-') && c.user_id === data.user_id && c.text === (data as any).text
+          )
+          if (optimisticIdx !== -1) {
+            const next = [...prev]
+            next[optimisticIdx] = data as any
+            return next
+          }
+          return [...prev, data as any]
+        })
       })
       .subscribe()
 
@@ -140,32 +153,26 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       }, async (payload) => {
         setTotalAttendees(prev => prev + 1)
         setEvent(prev => prev ? { ...prev, spots_left: Math.max(0, prev.spots_left - 1) } : prev)
-        // Only show the +1 ghost for OTHER users' RSVPs (our own is already optimistic)
         const newRsvp = payload.new as { user_id?: string }
         if (newRsvp.user_id && newRsvp.user_id !== user?.id) {
           setRsvpGhostKey(k => k + 1)
+          const { data: prof } = await supabase.from('profiles').select('id, name, avatar_url').eq('id', newRsvp.user_id).single()
+          if (prof) setAttendees(prev => {
+            if (prev.some(a => a.user_id === newRsvp.user_id)) return prev
+            return [...prev, { user_id: newRsvp.user_id, profiles: prof } as any].slice(0, 12)
+          })
         }
-        const { data } = await supabase
-          .from('rsvps')
-          .select('user_id, profiles(id, name, avatar_url)')
-          .eq('event_id', eventId)
-          .limit(12)
-        if (data) setAttendees(data as any)
       })
       .on('postgres_changes', {
         event: 'DELETE',
         schema: 'public',
         table: 'rsvps',
         filter: 'event_id=eq.' + eventId,
-      }, async (payload) => {
+      }, (payload) => {
+        const gone = payload.old as { user_id?: string }
         setTotalAttendees(prev => Math.max(0, prev - 1))
         setEvent(prev => prev ? { ...prev, spots_left: prev.spots_left + 1 } : prev)
-        const { data } = await supabase
-          .from('rsvps')
-          .select('user_id, profiles(id, name, avatar_url)')
-          .eq('event_id', eventId)
-          .limit(12)
-        if (data) setAttendees(data as any)
+        if (gone.user_id) setAttendees(prev => prev.filter(a => a.user_id !== gone.user_id))
       })
       .subscribe()
 
@@ -174,6 +181,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       supabase.removeChannel(rsvpChannel)
       if (inviteCopiedTimerRef.current) clearTimeout(inviteCopiedTimerRef.current)
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+      if (rsvpErrorTimerRef.current) clearTimeout(rsvpErrorTimerRef.current)
     }
   }, [eventId])
 
@@ -181,16 +189,18 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     try {
     const { data: eventData } = await supabase
       .from('events')
-      .select('*')
+      .select('id, title, category, description, start_datetime, end_datetime, location_name, location_address, city, spots_left, capacity, tags, visibility, is_featured, host_id, ticket_type, ticket_price, latitude, longitude')
       .eq('id', id)
       .single()
 
     if (!eventData) { router.push('/home'); return }
 
-    // Privacy gate — evaluate before any further data is fetched
+    // Privacy gate — invite code validated server-side so invite_code never reaches the client
     if (eventData.visibility === 'private' && eventData.host_id !== userId) {
       const inviteParam = new URLSearchParams(window.location.search).get('invite')
-      const hasValidInvite = inviteParam === eventData.invite_code
+      const hasValidInvite = inviteParam
+        ? !!(await supabase.from('events').select('id').eq('id', id).eq('invite_code', inviteParam).maybeSingle()).data
+        : false
       if (!hasValidInvite) {
         const { data: rsvpCheck } = await supabase
           .from('rsvps').select('id').eq('event_id', id).eq('user_id', userId).maybeSingle()
@@ -217,7 +227,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (countRes.count !== null) setTotalAttendees(countRes.count)
     if (commentsRes.data) setComments(commentsRes.data as any)
     if (bookmarkRes.data) setBookmarked(true)
-    if (eventData.invite_code && userId === eventData.host_id) setInviteCode(eventData.invite_code)
+    if (userId === eventData.host_id && (eventData.visibility === 'private' || eventData.visibility === 'unlisted')) {
+      const { data: codeRow } = await supabase.from('events').select('invite_code').eq('id', id).single()
+      if (codeRow?.invite_code) setInviteCode(codeRow.invite_code)
+    }
 
     try {
       const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
@@ -432,16 +445,28 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     const trimmed = commentText.trim()
     if (!trimmed || !user || !eventId || postingComment) return
     if (trimmed.length > 500) return
-    setPostingComment(true)
+
+    // Resolve own profile for the optimistic comment from available in-page data
+    const myProfile =
+      attendees.find(a => a.user_id === user.id)?.profiles
+      ?? (host?.id === user.id ? { id: user.id, name: host.name, avatar_url: host.avatar_url ?? null } : null)
+      ?? { id: user.id, name: user.email?.split('@')[0] ?? 'You', avatar_url: null }
+
+    const tempId = 'optimistic-' + Date.now()
+    const optimistic = { id: tempId, user_id: user.id, text: trimmed, created_at: new Date().toISOString(), profiles: myProfile }
     setCommentText('')
+    setPostingComment(true)
+    setComments(prev => [...prev, optimistic as any])
+
     const { data: newComment, error } = await supabase
       .from('event_comments')
       .insert({ event_id: eventId, user_id: user.id, text: trimmed })
       .select('id, user_id, text, created_at, profiles(id, name, avatar_url)')
       .single()
     if (!error && newComment) {
-      setComments(prev => prev.some(c => c.id === (newComment as any).id) ? prev : [...prev, newComment as any])
+      setComments(prev => prev.map(c => c.id === tempId ? newComment as any : c))
     } else if (error) {
+      setComments(prev => prev.filter(c => c.id !== tempId))
       setCommentText(trimmed)
     }
     setPostingComment(false)
@@ -499,15 +524,16 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const handleAppleCalendar = () => {
     if (!event) return
     const fmt = (dt: string) => new Date(dt).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+    const icsEscape = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/:/g, '\\:').replace(/\r\n|\r|\n/g, '\\n')
     const ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'BEGIN:VEVENT',
       'DTSTART:' + fmt(event.start_datetime),
       'DTEND:' + fmt(event.end_datetime),
-      'SUMMARY:' + event.title.replace(/[;\r\n]/g, ' '),
-      'DESCRIPTION:' + (event.description || '').replace(/\r\n|\r|\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,'),
-      'LOCATION:' + [event.location_name, (rsvped || user?.id === event.host_id) ? event.location_address : null].filter(Boolean).join(', '),
+      'SUMMARY:' + icsEscape(event.title),
+      'DESCRIPTION:' + icsEscape(event.description || ''),
+      'LOCATION:' + icsEscape([event.location_name, (rsvped || user?.id === event.host_id) ? event.location_address : null].filter(Boolean).join(', ')),
       'END:VEVENT',
       'END:VCALENDAR',
     ].join('\r\n')
@@ -821,19 +847,47 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 ))}
               </div>
 
-              {/* Gathr+ upsell — free users on upcoming events with hidden matches */}
+              {/* Gathr+ upsell — blurred ghost cards for free users on upcoming events */}
               {eventState === 'upcoming' && !isGathrPlus && hiddenCount > 0 && (
-                <div className="mt-3.5 bg-[#E8B84B]/5 border border-[#E8B84B]/15 rounded-xl p-3">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[10px] font-bold text-[#E8B84B]">✦ Gathr+</span>
-                    <span className="text-[9px] text-white/25">unlock before the event</span>
+                <div className="mt-3.5">
+                  {/* Show up to 2 ghost previews blurred behind a frosted lock overlay */}
+                  <div className="space-y-3.5 relative">
+                    {matches.slice(freeVisibleCount, freeVisibleCount + 2).map((ghost: any, i: number) => (
+                      <div key={ghost.id + '-ghost'} className="relative select-none pointer-events-none" style={{ opacity: i === 0 ? 0.55 : 0.35 }}>
+                        <div className="blur-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-xl bg-[#1E3A1E] border border-white/[0.07] flex-shrink-0" />
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              <div className="h-3 w-20 bg-white/10 rounded-full" />
+                              <div className="h-2.5 w-28 bg-white/[0.07] rounded-full" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {/* Frosted glass lock banner */}
+                    <div
+                      className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center rounded-xl"
+                      style={{ background: 'linear-gradient(to bottom, transparent 0%, rgba(13,17,13,0.85) 40%)' }}>
+                      <div className="flex items-center gap-1.5">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <span className="text-[10px] font-bold text-[#E8B84B]">{hiddenCount} more {hiddenCount === 1 ? 'match' : 'matches'} hidden</span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[9px] text-white/40 mb-2 leading-relaxed">
-                    See {hiddenCount} more {hiddenCount === 1 ? 'match' : 'matches'}, partial names, shared interests, and send waves before you arrive.
-                  </p>
-                  <button onClick={() => router.push('/gathr-plus')} className="text-[10px] text-[#E8B84B] font-semibold">
-                    Learn more →
-                  </button>
+                  {/* Upsell card */}
+                  <div className="mt-3 bg-[#E8B84B]/5 border border-[#E8B84B]/15 rounded-xl p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-[10px] font-bold text-[#E8B84B]">✦ Gathr+</span>
+                      <span className="text-[9px] text-white/25">unlock before the event</span>
+                    </div>
+                    <p className="text-[9px] text-white/40 mb-2 leading-relaxed">
+                      See partial names, shared interests, and send waves to your matches before you arrive.
+                    </p>
+                    <button onClick={() => router.push('/gathr-plus')} className="text-[10px] text-[#E8B84B] font-semibold">
+                      Learn more →
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1054,7 +1108,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             const isFull = event.capacity > 0 && event.spots_left === 0 && !rsvped
             return (
               <button onClick={handleRsvp} disabled={rsvpLoading || isFull}
-                className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B]' : isFull ? 'bg-[#1C241C] border border-white/10 text-white/40' : 'bg-[#E8B84B] text-[#0D110D]'}`}
+                className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${rsvped ? 'bg-[#1C241C] border border-[#E8B84B]/30 text-[#E8B84B] animate-rsvp-confirm' : isFull ? 'bg-[#1C241C] border border-white/10 text-white/40' : 'bg-[#E8B84B] text-[#0D110D]'}`}
                 style={{boxShadow: rsvped || isFull ? 'none' : '0 5px 22px rgba(232,184,75,0.3)'}}>
                 {rsvpLoading ? (rsvped ? 'Cancelling...' : 'Joining...') : rsvped ? '✓ You\'re going · Cancel RSVP' : isFull ? 'Event Full' : event.ticket_type === 'paid' ? `Get Ticket${event.ticket_price ? ` · $${event.ticket_price.toFixed(2)}` : ''}` : event.ticket_type === 'donation' ? 'Join · Donation welcome' : `Join Event${event.spots_left > 0 && event.spots_left < 20 ? ` · ${event.spots_left} spots left` : ''}`}
               </button>
@@ -1227,8 +1281,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <button
               onClick={async () => {
-                const ok = await enablePush()
-                if (ok || !ok) setShowPushPrompt(false)
+                await enablePush()
+                setShowPushPrompt(false)
               }}
               className="w-full bg-[#E8B84B] text-[#0D110D] font-bold text-sm py-3.5 rounded-2xl mb-3 active:scale-[0.98] transition-transform"
               style={{ boxShadow: '0 4px 16px rgba(232,184,75,0.25)' }}>

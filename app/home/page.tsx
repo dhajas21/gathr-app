@@ -188,9 +188,11 @@ export default function HomePage() {
     lastFetchRef.current = now
     try {
     setFetchError(false)
+    const knownCity = profile?.city
+    const eventsBase = supabase.from('events').select('id,title,category,start_datetime,end_datetime,location_name,city,spots_left,capacity,tags,visibility,is_featured,host_id,cover_url,latitude,longitude,ticket_type,ticket_price').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(50)
     const [profileRes, eventsRes, rsvpRes, connRes, notifRes, bookmarkRes, draftRes] = await Promise.all([
       supabase.from('profiles').select('name,city,interests,profile_mode,avatar_url').eq('id', userId).single(),
-      supabase.from('events').select('id,title,category,start_datetime,end_datetime,location_name,city,spots_left,capacity,tags,visibility,is_featured,host_id,cover_url,latitude,longitude,ticket_type,ticket_price').eq('visibility', 'public').gte('start_datetime', new Date().toISOString()).order('start_datetime', { ascending: true }).limit(50),
+      knownCity ? eventsBase.eq('city', knownCity) : eventsBase,
       supabase.from('rsvps').select('event_id').eq('user_id', userId).limit(200),
       supabase.from('connections').select('requester_id, addressee_id').or(connectionPairOr(userId)).eq('status', 'accepted').limit(500),
       supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false),
@@ -496,7 +498,7 @@ export default function HomePage() {
                   {CAT_EMOJI[featuredEvent.category]}
                 </div>
               )}
-              {optimizedImgSrc(featuredEvent.cover_url, 800) && <img src={optimizedImgSrc(featuredEvent.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
+              {optimizedImgSrc(featuredEvent.cover_url, 800) && <img src={optimizedImgSrc(featuredEvent.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover cover-img" loading="lazy" onLoad={e => (e.currentTarget as HTMLImageElement).classList.add('loaded')} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
               <div className="absolute top-3 left-3">
                 <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1">
@@ -565,6 +567,7 @@ export default function HomePage() {
             <span className="text-xs text-[#E85B5B] flex-1">Couldn't load events — pull down to retry.</span>
           </div>
         )}
+        <div key={activeTab} className="animate-tab-in">
         {filteredEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center">
@@ -622,7 +625,7 @@ export default function HomePage() {
                         {CAT_EMOJI[event.category]}
                       </div>
                     )}
-                    {optimizedImgSrc(event.cover_url, 800) && <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
+                    {optimizedImgSrc(event.cover_url, 800) && <img src={optimizedImgSrc(event.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover cover-img" loading="lazy" onLoad={e => (e.currentTarget as HTMLImageElement).classList.add('loaded')} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80"></div>
                     <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
                       <div className="flex gap-1">
@@ -695,6 +698,7 @@ export default function HomePage() {
             })}
           </div>
         )}
+        </div>
       </div>
 
       {showCityPicker && (

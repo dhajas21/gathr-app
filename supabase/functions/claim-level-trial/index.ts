@@ -37,6 +37,14 @@ Deno.serve(async (req) => {
     })
   }
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(user.id)) {
+    return new Response(JSON.stringify({ error: 'Invalid user ID' }), {
+      status: 400,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
+
   // Compute XP and level from authoritative DB counts
   const [profileRes, hostedRes, rsvpRes, connRes] = await Promise.all([
     supabase.from('profiles').select('interests, gathr_plus_trial_levels').eq('id', user.id).single(),

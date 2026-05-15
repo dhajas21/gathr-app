@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase, connectionPairOr } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { PublicProfileSkeleton } from '@/components/Skeleton'
 import SafetyBadge from '@/components/SafetyBadge'
 import { isValidUUID, formatDateLong, optimizedImgSrc } from '@/lib/utils'
-import { cityToTimezone } from '@/lib/constants'
-
-import { FOUNDER_ID } from '@/lib/constants'
+import { cityToTimezone, CAT_EMOJI, FOUNDER_ID } from '@/lib/constants'
 
 const ACHIEVEMENT_LOOKUP: Record<string, { icon: string; tier: 'bronze' | 'silver' | 'gold' }> = {
   'First Event': { icon: '🎉', tier: 'bronze' }, 'Rising Host': { icon: '🎙', tier: 'silver' },
@@ -38,8 +36,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   const [connectionId, setConnectionId] = useState<string | null>(null)
   const [connectionDirection, setConnectionDirection] = useState<'sent' | 'received' | null>(null)
   const [mutualCount, setMutualCount] = useState(0)
-  const [profileConnCount, setProfileConnCount] = useState(0)
-  const [totalRsvpCount, setTotalRsvpCount] = useState(0)
   const [mutualProfiles, setMutualProfiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -62,15 +58,13 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
   }, [params, router])
 
   const fetchProfile = async (id: string, userId: string) => {
-    const [profileRes, hostedRes, connectionRes, myConnsRes, theirConnsRes, rsvpCountRes] = await Promise.all([
+    const [profileRes, hostedRes, connectionRes, mutualRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', id).single(),
       supabase.from('events').select('*').eq('host_id', id).eq('visibility', 'public').order('start_datetime', { ascending: false }).limit(10),
       supabase.from('connections').select('*')
         .or('and(requester_id.eq.' + userId + ',addressee_id.eq.' + id + '),and(requester_id.eq.' + id + ',addressee_id.eq.' + userId + ')')
         .limit(1).maybeSingle(),
-      supabase.from('connections').select('requester_id, addressee_id').or(connectionPairOr(userId)).eq('status', 'accepted'),
-      supabase.from('connections').select('requester_id, addressee_id').or(connectionPairOr(id)).eq('status', 'accepted'),
-      supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('user_id', id),
+      supabase.rpc('get_mutual_connections', { user_a: userId, user_b: id }),
     ])
 
     if (!profileRes.data) { router.push('/home'); return }
@@ -83,22 +77,9 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
       setConnectionDirection(connectionRes.data.requester_id === userId ? 'sent' : 'received')
     }
 
-    if (theirConnsRes.data) setProfileConnCount(theirConnsRes.data.length)
-    if (rsvpCountRes.count !== null) setTotalRsvpCount(rsvpCountRes.count)
-
-    if (myConnsRes.data && theirConnsRes.data) {
-      const myIds = new Set(myConnsRes.data.map((c: any) => c.requester_id === userId ? c.addressee_id : c.requester_id))
-      const theirIds = new Set(theirConnsRes.data.map((c: any) => c.requester_id === id ? c.addressee_id : c.requester_id))
-      const mutualIds: string[] = []
-      myIds.forEach(mid => { if (theirIds.has(mid)) mutualIds.push(mid as string) })
-      setMutualCount(mutualIds.length)
-      if (mutualIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, name, avatar_url')
-          .in('id', mutualIds.slice(0, 5))
-        if (profiles) setMutualProfiles(profiles)
-      }
+    if (mutualRes.data) {
+      setMutualCount(mutualRes.data.length)
+      setMutualProfiles(mutualRes.data.slice(0, 5))
     }
 
     const { data: rsvps } = await supabase.from('rsvps').select('event_id').eq('user_id', id)
@@ -146,14 +127,13 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
     router.push('/messages/' + threadId + (from ? '?from=' + from : ''))
   }
 
-  const categoryEmoji = (cat: string) =>
-    cat === 'Music' ? '🎸' : cat === 'Fitness' ? '🏃' : cat === 'Food & Drink' ? '🍺' : cat === 'Tech' ? '💻' : cat === 'Outdoors' ? '🥾' : '🎉'
+  const categoryEmoji = (cat: string) => CAT_EMOJI[cat] ?? '🎉'
 
   if (loading) return <PublicProfileSkeleton />
 
   if (!profile) return null
 
-  const profileXp = (hostedEvents.length * 10) + (totalRsvpCount * 5) + (profileConnCount * 3) + ((profile.interests || []).length * 2)
+  const profileXp = profile.xp ?? 0
   const profileLevel = Math.floor(profileXp / 50) + 1
   const profileTier = profileLevel >= 10 ? { name: 'Legend', icon: '👑' }
     : profileLevel >= 6 ? { name: 'Veteran', icon: '🔥' }
