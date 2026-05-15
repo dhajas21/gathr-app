@@ -8,28 +8,45 @@ import { track } from '@/components/AnalyticsProvider'
 const PERKS = [
   {
     icon: '🔮',
-    title: 'See who\'s going before the event',
-    body: 'Free members see 1 mystery match. Gathr+ shows all of them — partial names, shared interests, and their vibe.',
+    title: 'Pre-RSVP match preview',
+    body: 'See who\'s going before you commit — partial names, shared interests, and their vibe.',
+    badge: null,
+  },
+  {
+    icon: '👁️',
+    title: 'See who waved at you',
+    body: 'Know exactly who signalled interest before the event. Free users only see the count.',
+    badge: null,
   },
   {
     icon: '👋',
-    title: 'Send waves anonymously',
-    body: 'Signal curiosity before an event without revealing yourself. If they wave back, it\'s a mutual match — and names unlock.',
+    title: 'Unlimited waves',
+    body: 'Signal curiosity to anyone going. If they wave back, names unlock for both of you.',
+    badge: null,
   },
   {
-    icon: '✦',
-    title: 'Early reveal on mutual waves',
-    body: 'When two people wave at each other pre-event, both get a first-name reveal before anyone else.',
-  },
-  {
-    icon: '⭐',
-    title: 'Gathr+ badge on your profile',
-    body: 'Stand out to other members. The badge signals you\'re serious about showing up and meeting people.',
+    icon: '🗺️',
+    title: 'Paths Crossed history',
+    body: 'Discover everyone you\'ve co-attended events with — your own social serendipity map.',
+    badge: null,
   },
   {
     icon: '🎯',
-    title: 'Priority in match rankings',
-    body: 'Gathr+ members are ranked higher in other people\'s pre-event match lists.',
+    title: 'Priority matching rank',
+    body: 'Gathr+ members rank higher in other people\'s pre-event match lists.',
+    badge: null,
+  },
+  {
+    icon: '🌍',
+    title: 'Travel mode',
+    body: 'Match at events in any city, not just your home location.',
+    badge: 'Coming Soon',
+  },
+  {
+    icon: '✦',
+    title: 'Founding Member badge',
+    body: 'First 1,000 subscribers get a permanent Founding Member badge on their profile. Limited supply.',
+    badge: 'Limited',
   },
 ]
 
@@ -40,7 +57,7 @@ export default function GathrPlusPage() {
   const [activeTrial, setActiveTrial] = useState<string | null>(null)
   const [trialUsed, setTrialUsed] = useState(false)
   const [isSubscriber, setIsSubscriber] = useState(false)
-  const [showWaitlistConfirm, setShowWaitlistConfirm] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<'annual' | 'monthly'>('annual')
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
@@ -65,7 +82,6 @@ export default function GathrPlusPage() {
     const { data, error } = await supabase.functions.invoke('claim-gathr-plus-trial', { method: 'POST' })
     setLoading(false)
     if (error || !data?.success) {
-      // Edge function returns 4xx with { error }; supabase-js surfaces that as error
       const message = (data as any)?.error || error?.message || 'Could not activate your trial. Try again.'
       setErrorMsg(message)
       return
@@ -94,7 +110,7 @@ export default function GathrPlusPage() {
       : 'Start 7-Day Free Trial'
 
   return (
-    <div className="min-h-screen bg-[#0D110D] flex flex-col">
+    <div className="min-h-screen bg-[#0D110D] flex flex-col pb-safe">
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-14 pb-2">
@@ -116,40 +132,111 @@ export default function GathrPlusPage() {
       </div>
 
       {/* Perks */}
-      <div className="px-5 space-y-3 mb-6">
+      <div className="px-5 space-y-3 mb-8">
         {PERKS.map((perk, i) => (
           <div key={i} className="flex items-start gap-3 bg-[#1C241C] border border-white/[0.06] rounded-2xl p-3.5">
             <div className="w-9 h-9 bg-[#E8B84B]/8 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
               {perk.icon}
             </div>
-            <div>
-              <div className="text-sm font-semibold text-[#F0EDE6] mb-0.5">{perk.title}</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-sm font-semibold text-[#F0EDE6]">{perk.title}</span>
+                {perk.badge === 'Coming Soon' && (
+                  <span className="text-[9px] font-bold text-white/40 border border-white/15 rounded-full px-1.5 py-0.5 leading-none flex-shrink-0">
+                    SOON
+                  </span>
+                )}
+                {perk.badge === 'Limited' && (
+                  <span className="text-[9px] font-bold text-[#E8B84B]/70 border border-[#E8B84B]/20 rounded-full px-1.5 py-0.5 leading-none flex-shrink-0">
+                    LIMITED
+                  </span>
+                )}
+              </div>
               <div className="text-[11px] text-white/40 leading-relaxed">{perk.body}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Billing Coming Soon */}
-      <div className="px-5 mb-5">
-        <div className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl p-4 flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#E8B84B]/10 border border-[#E8B84B]/20 flex items-center justify-center text-base flex-shrink-0">💳</div>
-          <div className="flex-1">
-            <div className="text-xs font-bold text-[#E8B84B] mb-1">Paid Gathr+ — Coming Soon</div>
-            <p className="text-[10px] text-white/40 leading-relaxed mb-2">
-              Monthly and annual plans roll out alongside the public launch. Until then, try Gathr+ free for 7 days.
-            </p>
-            <button
-              onClick={() => setShowWaitlistConfirm(true)}
-              className="text-[10px] text-[#E8B84B]/70 underline">
-              Get notified when paid plans launch →
-            </button>
+      {/* Pricing */}
+      <div className="px-5 mb-6">
+        <div className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3 text-center">Choose a plan</div>
+
+        {/* Annual */}
+        <button
+          onClick={() => setSelectedPlan('annual')}
+          className={
+            'w-full flex items-center gap-3 rounded-2xl p-4 mb-3 border text-left transition-colors active:scale-[0.99] active:transition-transform ' +
+            (selectedPlan === 'annual'
+              ? 'bg-[#E8B84B]/10 border-[#E8B84B]/40'
+              : 'bg-[#1C241C] border-white/[0.06]')
+          }>
+          <div className={
+            'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ' +
+            (selectedPlan === 'annual' ? 'border-[#E8B84B]' : 'border-white/20')
+          }>
+            {selectedPlan === 'annual' && <div className="w-2.5 h-2.5 rounded-full bg-[#E8B84B]" />}
           </div>
-        </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-sm font-bold text-[#F0EDE6]">Annual</span>
+              <span className="text-[9px] font-bold text-[#0D110D] bg-[#E8B84B] rounded-full px-2 py-0.5 leading-none">BEST VALUE</span>
+            </div>
+            <div className="text-[11px] text-white/40">$39.99 / year · save 33%</div>
+          </div>
+          <div className="text-right">
+            <div className="text-base font-bold text-[#F0EDE6]">$3.33</div>
+            <div className="text-[10px] text-white/30">/ month</div>
+          </div>
+        </button>
+
+        {/* Monthly */}
+        <button
+          onClick={() => setSelectedPlan('monthly')}
+          className={
+            'w-full flex items-center gap-3 rounded-2xl p-4 border text-left transition-colors active:scale-[0.99] active:transition-transform ' +
+            (selectedPlan === 'monthly'
+              ? 'bg-[#E8B84B]/10 border-[#E8B84B]/40'
+              : 'bg-[#1C241C] border-white/[0.06]')
+          }>
+          <div className={
+            'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ' +
+            (selectedPlan === 'monthly' ? 'border-[#E8B84B]' : 'border-white/20')
+          }>
+            {selectedPlan === 'monthly' && <div className="w-2.5 h-2.5 rounded-full bg-[#E8B84B]" />}
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-bold text-[#F0EDE6] mb-0.5">Monthly</div>
+            <div className="text-[11px] text-white/40">$4.99 / month · cancel anytime</div>
+          </div>
+          <div className="text-right">
+            <div className="text-base font-bold text-[#F0EDE6]">$4.99</div>
+            <div className="text-[10px] text-white/30">/ month</div>
+          </div>
+        </button>
+
+        {/* Subscribe CTA */}
+        <button
+          onClick={() => { track('gathr_plus_subscribe_tap', { plan: selectedPlan }); router.push('/waitlist') }}
+          disabled={isSubscriber}
+          className="w-full mt-4 py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-base font-bold active:scale-95 transition-transform disabled:opacity-50"
+          style={{ boxShadow: '0 4px 24px rgba(232,184,75,0.25)' }}>
+          {isSubscriber ? 'Already subscribed' : `Get Gathr+ ${selectedPlan === 'annual' ? '· $39.99/yr' : '· $4.99/mo'}`}
+        </button>
+        <p className="text-[10px] text-white/20 text-center mt-2">
+          Billing launches at public release. You'll be notified before any charge.
+        </p>
       </div>
 
-      {/* CTA */}
-      <div className="px-5 pb-10">
+      {/* Divider */}
+      <div className="mx-5 mb-6 flex items-center gap-3">
+        <div className="flex-1 h-px bg-white/[0.06]" />
+        <span className="text-[10px] text-white/20 uppercase tracking-widest">or</span>
+        <div className="flex-1 h-px bg-white/[0.06]" />
+      </div>
+
+      {/* Trial CTA */}
+      <div className="px-5 pb-12">
         {activeTrial && !isSubscriber && (() => {
           const ms = new Date(activeTrial).getTime() - Date.now()
           const hrs = Math.floor(ms / 3600000)
@@ -176,38 +263,13 @@ export default function GathrPlusPage() {
         <button
           onClick={handleClaimTrial}
           disabled={loading || isSubscriber || !!activeTrial || trialUsed}
-          className="w-full py-4 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-base font-bold active:scale-95 transition-transform disabled:opacity-50"
-          style={{ boxShadow: '0 4px 24px rgba(232,184,75,0.35)' }}>
+          className="w-full py-4 rounded-2xl bg-[#1C241C] border border-[#E8B84B]/20 text-[#E8B84B] text-base font-bold active:scale-95 transition-transform disabled:opacity-40">
           {loading ? 'Activating…' : trialButtonLabel}
         </button>
         <p className="text-[10px] text-white/20 text-center mt-3">
-          The 7-day trial is free and one-time. No card required. Paid plans coming soon.
+          7-day free trial · one-time · no card required
         </p>
       </div>
-
-      {/* Notify-me sheet */}
-      {showWaitlistConfirm && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => setShowWaitlistConfirm(false)}>
-          <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
-            <div className="text-center mb-5">
-              <div className="text-3xl mb-3">💌</div>
-              <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Want a heads-up?</h3>
-              <p className="text-xs text-white/40">
-                We'll email you the day paid Gathr+ goes live — no spam.
-              </p>
-            </div>
-            <button onClick={() => { setShowWaitlistConfirm(false); router.push('/waitlist') }}
-              className="w-full py-3.5 rounded-2xl bg-[#E8B84B] text-[#0D110D] font-bold text-sm mb-3">
-              Take me to the waitlist
-            </button>
-            <button onClick={() => setShowWaitlistConfirm(false)}
-              className="w-full py-3.5 rounded-2xl bg-[#0D110D] border border-white/10 text-white/60 text-sm">
-              Maybe later
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   )

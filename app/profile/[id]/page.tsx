@@ -189,11 +189,16 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
               <span className="text-[10px] px-2.5 py-1 rounded-lg bg-[#2A4A2A]/40 border border-[#7EC87E]/20 text-[#7EC87E]">💼 Professional</span>
             )}
           </div>
-          {(profile.id === FOUNDER_ID || (profile.pinned_badges && profile.pinned_badges.length > 0)) && (
+          {(profile.id === FOUNDER_ID || profile.founding_member || (profile.pinned_badges && profile.pinned_badges.length > 0)) && (
             <div className="flex gap-1.5 mt-2 flex-wrap">
               {profile.id === FOUNDER_ID && (
                 <span className="text-[10px] px-2 py-1 rounded-lg border font-medium text-[#E8B84B] border-[#E8B84B]/50 bg-gradient-to-r from-[#2A1E04] to-[#100C02] shadow-[0_0_10px_rgba(232,184,75,0.25)]">
                   ✦ Gathr Founder
+                </span>
+              )}
+              {profile.founding_member && profile.id !== FOUNDER_ID && (
+                <span className="text-[10px] px-2 py-1 rounded-lg border font-semibold text-[#D4A843] border-[#D4A843]/35 bg-gradient-to-r from-[#221A06] to-[#1A1204]">
+                  ✦ Founding Member
                 </span>
               )}
               {(profile.pinned_badges || []).map((title: string) => {

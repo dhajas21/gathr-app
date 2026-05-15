@@ -104,6 +104,38 @@ const slides = [
     ),
   },
   {
+    tag: 'Gathr+',
+    headline: <>See the mystery<br />before you go.</>,
+    body: 'Gathr+ members see who waved at them, browse attendees before RSVPing, and discover everyone they\'ve crossed paths with at past events.',
+    visual: (
+      <div className="w-[200px] h-[150px] rounded-3xl border border-[#E8B84B]/20 overflow-hidden flex flex-col"
+        style={{ background: 'linear-gradient(160deg,#2A1E04,#100C02)', boxShadow: '0 0 32px rgba(232,184,75,0.12)' }}>
+        <div className="flex items-center gap-2 px-3 pt-3 pb-2 border-b border-[#E8B84B]/10">
+          <span className="text-[10px] text-[#E8B84B]">✦</span>
+          <span className="text-[9px] font-bold text-[#E8B84B]/70 uppercase tracking-widest">Gathr+</span>
+        </div>
+        <div className="flex-1 px-3 py-2 space-y-2">
+          {[
+            { icon: '🔮', label: 'Pre-RSVP preview' },
+            { icon: '👁️', label: 'See who waved' },
+            { icon: '🗺️', label: 'Paths Crossed' },
+          ].map(f => (
+            <div key={f.label} className="flex items-center gap-2">
+              <span className="text-[10px]">{f.icon}</span>
+              <span className="text-[9px] text-[#F0EDE6]/70">{f.label}</span>
+              <div className="ml-auto w-2 h-2 rounded-full bg-[#E8B84B]/40" />
+            </div>
+          ))}
+        </div>
+        <div className="px-3 pb-3">
+          <div className="rounded-xl py-1.5 text-center text-[9px] font-bold text-[#0D110D] bg-[#E8B84B]">
+            $3.33 / month
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
     tag: 'Hosting',
     headline: <>An event live<br />in under 2 min.</>,
     body: 'Pick a category, set a time, drop a location. Your draft auto-saves as you go. Paid tickets, private events, community events — all supported. No fees to host.',

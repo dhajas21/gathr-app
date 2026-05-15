@@ -86,6 +86,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [wavedIds, setWavedIds] = useState<Set<string>>(new Set())
   const [mutualWaveIds, setMutualWaveIds] = useState<Set<string>>(new Set())
   const [incomingWaveCount, setIncomingWaveCount] = useState(0)
+  const [incomingWaves, setIncomingWaves] = useState<any[]>([])
   const [inviteCode, setInviteCode] = useState('')
   const [inviteCopied, setInviteCopied] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -264,6 +265,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     const nowMs = Date.now()
     if (rsvpRes.data && endTime > nowMs - 48 * 3600000) {
       fetchMatches(id, userId)
+    } else if (!rsvpRes.data && nowMs < new Date(eventData.start_datetime).getTime()) {
+      // Pre-RSVP: fetch match data so Gathr+ users get a preview and free users
+      // see a count teaser. Gathr+ gating is enforced in the UI — match data
+      // (public profile info) is the same data visible post-RSVP anyway.
+      fetchMatches(id, userId)
     }
 
     if (rsvpRes.data && endTime < nowMs) {
@@ -421,7 +427,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       supabase.from('profiles').select('interests, gathr_plus, gathr_plus_expires_at').eq('id', userId).single(),
       supabase.from('connections').select('requester_id, addressee_id, status').or(connectionPairOr(userId)),
       supabase.from('waves').select('receiver_id').eq('sender_id', userId).eq('event_id', evtId),
-      supabase.from('waves').select('sender_id, is_mutual').eq('receiver_id', userId).eq('event_id', evtId),
+      supabase.rpc('get_incoming_waves', { p_event_id: evtId }),
     ])
 
     const myInterests: string[] = (myProfileRes.data?.interests || []).map((i: string) => i.toLowerCase())
@@ -447,11 +453,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     setMatches(scored)
     const expiresAt = myProfileRes.data?.gathr_plus_expires_at
     const trialActive = expiresAt ? new Date(expiresAt) > new Date() : false
-    setIsGathrPlus(myProfileRes.data?.gathr_plus === true || trialActive)
-    setWavedIds(new Set((myWavesRes.data || []).map((w: any) => w.receiver_id)))
-    const mutualIds = new Set((incomingWavesRes.data || []).filter((w: any) => w.is_mutual).map((w: any) => w.sender_id))
+    const isPlus = myProfileRes.data?.gathr_plus === true || trialActive
+    setIsGathrPlus(isPlus)
+    setWavedIds(new Set((myWavesRes.data || []).map((w: any) => w.receiver_id as string)))
+    const incomingData: any[] = incomingWavesRes.data || []
+    const mutualIds = new Set(incomingData.filter((w) => w.is_mutual).map((w) => w.sender_id as string))
     setMutualWaveIds(mutualIds)
-    setIncomingWaveCount((incomingWavesRes.data || []).length)
+    setIncomingWaveCount(incomingData.length)
+    setIncomingWaves(incomingData)
   }
 
   const handleWave = async (receiverId: string) => {
@@ -824,7 +833,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
 
-        {/* Mystery match teaser — shown to non-RSVPed, non-host on upcoming events */}
+        {/* No-data teaser — shown while match fetch is in-flight or event has no matches yet */}
         {!rsvped && !isHost && event && Date.now() < new Date(event.end_datetime).getTime() && matches.length === 0 && (
           <div className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl p-3.5 mb-3 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#E8B84B]/8 border border-[#E8B84B]/15 flex items-center justify-center flex-shrink-0">
@@ -840,14 +849,42 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
-        {/* People Matching */}
-        {matches.length > 0 && event && (() => {
+        {/* Free-user count teaser — match data loaded but user hasn't RSVPed or unlocked Gathr+ */}
+        {!rsvped && !isHost && !isGathrPlus && matches.length > 0 && event && Date.now() < new Date(event.start_datetime).getTime() && (
+          <div className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl p-3.5 mb-3">
+            <div className="flex items-center gap-3 mb-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#E8B84B]/8 border border-[#E8B84B]/15 flex items-center justify-center flex-shrink-0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.6)" strokeWidth="1.5" strokeLinecap="round">
+                  <circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold text-[#E8B84B]/70 mb-0.5">
+                  {matches.length} {matches.length === 1 ? 'person shares' : 'people share'} your vibe
+                </div>
+                <div className="text-[10px] text-white/40 leading-snug">
+                  RSVP to reveal them, or unlock pre-RSVP preview with Gathr+
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/gathr-plus')}
+              aria-label="Unlock pre-RSVP match preview with Gathr+"
+              className="w-full text-[10px] text-[#E8B84B]/60 font-semibold bg-[#E8B84B]/6 border border-[#E8B84B]/15 rounded-xl py-2 active:scale-95 transition-transform">
+              Unlock pre-RSVP preview with Gathr+ →
+            </button>
+          </div>
+        )}
+
+        {/* People Matching — shown when RSVPed, or when Gathr+ pre-RSVP on upcoming events */}
+        {matches.length > 0 && event && (rsvped || isGathrPlus) && (() => {
           const nowMs = Date.now()
           const eventState: 'upcoming' | 'ongoing' | 'ended' =
             nowMs < new Date(event.start_datetime).getTime() ? 'upcoming'
             : nowMs < new Date(event.end_datetime).getTime() ? 'ongoing'
             : 'ended'
           const isPostEvent = eventState === 'ended'
+          const isPreRsvpPreview = !rsvped && isGathrPlus && eventState === 'upcoming'
 
           const headerEmoji = eventState === 'upcoming' ? '🔮' : eventState === 'ongoing' ? '🎯' : '✨'
           const headerText = eventState === 'upcoming'
@@ -863,6 +900,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           return (
             <div className="bg-[#1C241C] border border-[#E8B84B]/15 rounded-2xl p-3.5 mb-3">
 
+              {/* Gathr+ preview label — only shown before RSVP */}
+              {isPreRsvpPreview && (
+                <div className="flex items-center gap-1.5 mb-2.5 pb-2.5 border-b border-white/[0.06]">
+                  <span className="text-[9px] font-bold text-[#E8B84B] uppercase tracking-widest">✦ Gathr+ Preview</span>
+                  <span className="text-[9px] text-white/30">· RSVP to unlock full profiles after the event</span>
+                </div>
+              )}
+
               {/* Header */}
               <div className="mb-3">
                 <div className="flex items-center gap-2 mb-1">
@@ -870,7 +915,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   <span className="text-xs font-semibold text-[#F0EDE6]">{headerText}</span>
                 </div>
                 <p className="text-[10px] text-white/40 leading-relaxed">
-                  {eventState === 'upcoming'
+                  {isPreRsvpPreview
+                    ? 'Partial names and shared interests visible now. Full reveals unlock when you attend.'
+                    : eventState === 'upcoming'
                     ? 'Full profiles unlock after the event. Show up to reveal who you matched with.'
                     : eventState === 'ongoing'
                     ? 'They\'re here. Find them in person or send a Hi.'
@@ -878,24 +925,72 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </p>
               </div>
 
-              {/* Incoming wave teaser */}
+              {/* Incoming waves — revealed for Gathr+, teaser+CTA for free users */}
               {incomingWaveCount > 0 && eventState === 'upcoming' && (
-                <div className="mb-3 bg-[#E8B84B]/5 border border-[#E8B84B]/20 rounded-xl p-2.5 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#E8B84B]/10 flex items-center justify-center flex-shrink-0">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.8)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-[10px] font-semibold text-[#E8B84B]">
-                      {incomingWaveCount === 1 ? 'Someone is curious about meeting you' : `${incomingWaveCount} people are curious about meeting you`}
-                      {mutualWaveIds.size > 0 && (
-                        <span className="ml-1.5 text-[#7EC87E]">· {mutualWaveIds.size} mutual 🔁</span>
-                      )}
+                isGathrPlus ? (
+                  <div className="mb-3 bg-[#E8B84B]/5 border border-[#E8B84B]/20 rounded-2xl p-3" aria-label="Gathr+ wave reveal">
+                    <div className="flex items-center gap-1.5 mb-2.5">
+                      <span className="text-[9px] font-bold text-[#E8B84B] uppercase tracking-widest">✦ Gathr+</span>
+                      <span className="text-[9px] text-white/30">·</span>
+                      <span className="text-[9px] text-white/40">
+                        {incomingWaveCount === 1 ? '1 person waved at you' : `${incomingWaveCount} people waved at you`}
+                        {mutualWaveIds.size > 0 && <span className="text-[#7EC87E] ml-1">· {mutualWaveIds.size} mutual 🔁</span>}
+                      </span>
                     </div>
-                    <div className="text-[9px] text-white/35 mt-0.5">
-                      {mutualWaveIds.size > 0 ? 'You both waved — show up to connect' : 'Attend the event to find out who'}
+                    <div className="space-y-2">
+                      {incomingWaves.map((wave) => (
+                        <div key={wave.sender_id} className="flex items-center gap-2.5">
+                          {optimizedImgSrc(wave.avatar_url, 96) ? (
+                            <img src={optimizedImgSrc(wave.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover border border-white/10 flex-shrink-0" loading="lazy" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-xl bg-[#2A4A2A] border border-white/10 flex items-center justify-center text-sm font-semibold text-[#7EC87E] flex-shrink-0">
+                              {wave.first_name?.charAt(0) || '?'}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-semibold text-[#F0EDE6]">{wave.first_name}</span>
+                              {wave.is_mutual && <span className="text-[9px] text-[#7EC87E]">mutual 👋</span>}
+                            </div>
+                            {wave.shared_interests?.length > 0 && (
+                              <div className="text-[10px] text-white/35 truncate mt-0.5">
+                                {wave.shared_interests.slice(0, 3).join(' · ')}
+                              </div>
+                            )}
+                          </div>
+                          {wavedIds.has(wave.sender_id) ? (
+                            <span className="text-[10px] text-[#E8B84B]/40 flex-shrink-0">Waved ✓</span>
+                          ) : (
+                            <button
+                              onClick={() => handleWave(wave.sender_id)}
+                              aria-label={`Wave back at ${wave.first_name}`}
+                              className="bg-white/5 border border-white/10 text-white/50 text-[10px] font-semibold px-2.5 py-1.5 rounded-xl active:scale-95 transition-transform flex-shrink-0">
+                              👋 Wave back
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="mb-3 bg-[#E8B84B]/5 border border-[#E8B84B]/20 rounded-xl p-2.5 flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#E8B84B]/10 flex items-center justify-center flex-shrink-0">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.8)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[10px] font-semibold text-[#E8B84B]">
+                        {incomingWaveCount === 1 ? 'Someone is curious about meeting you' : `${incomingWaveCount} people are curious about meeting you`}
+                        {mutualWaveIds.size > 0 && <span className="ml-1.5 text-[#7EC87E]">· {mutualWaveIds.size} mutual 🔁</span>}
+                      </div>
+                      <button
+                        onClick={() => router.push('/gathr-plus')}
+                        aria-label="Unlock Gathr+ to see who waved at you"
+                        className="text-[9px] text-[#E8B84B]/60 mt-0.5 active:opacity-70 transition-opacity">
+                        Unlock Gathr+ to see who →
+                      </button>
+                    </div>
+                  </div>
+                )
               )}
 
               {/* Match cards */}

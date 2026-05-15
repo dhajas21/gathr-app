@@ -472,11 +472,16 @@ export default function ProfilePage() {
               <span className="text-[9px] text-white/40">{xp} XP</span>
             </div>
           </div>
-          {(user?.id === FOUNDER_ID || pinnedBadges.length > 0) && (
+          {(user?.id === FOUNDER_ID || profile?.founding_member || pinnedBadges.length > 0) && (
             <div className="flex gap-1.5 mt-2 flex-wrap">
               {user?.id === FOUNDER_ID && (
                 <span className="founder-badge-pill text-[10px] px-2.5 py-1 rounded-lg border font-bold text-[#E8B84B] border-[#E8B84B]/60">
                   ✦ Gathr Founder
+                </span>
+              )}
+              {profile?.founding_member && user?.id !== FOUNDER_ID && (
+                <span className="text-[10px] px-2.5 py-1 rounded-lg border font-semibold text-[#D4A843] border-[#D4A843]/35 bg-gradient-to-r from-[#221A06] to-[#1A1204]">
+                  ✦ Founding Member
                 </span>
               )}
               {pinnedBadges.map(title => {
@@ -560,6 +565,37 @@ export default function ProfilePage() {
               </div>
               <span className="text-white/35 text-lg">›</span>
             </button>
+
+            {(() => {
+              const isGathrPlusActive = profile?.gathr_plus === true ||
+                (profile?.gathr_plus_expires_at && new Date(profile.gathr_plus_expires_at) > new Date())
+              return isGathrPlusActive ? (
+                <button onClick={() => router.push('/paths-crossed')}
+                  className="w-full bg-[#1C241C] border border-white/10 rounded-2xl p-3.5 flex items-center justify-between active:bg-white/5 transition-colors">
+                  <div className="text-left">
+                    <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-1">Paths Crossed</div>
+                    <div className="text-sm text-[#F0EDE6]">People you've shared events with</div>
+                  </div>
+                  <span className="text-[10px] text-[#E8B84B]/60">✦ →</span>
+                </button>
+              ) : (
+                <div className="w-full bg-[#1C241C] border border-white/[0.06] rounded-2xl p-3.5 flex items-center justify-between">
+                  <div className="text-left">
+                    <div className="text-[9px] uppercase tracking-widest text-white/20 font-medium mb-1">Paths Crossed</div>
+                    <div className="text-sm text-white/30">People you've shared events with</div>
+                    <button
+                      onClick={() => router.push('/gathr-plus')}
+                      aria-label="Unlock Paths Crossed with Gathr+"
+                      className="text-[10px] text-[#E8B84B]/55 mt-0.5 active:opacity-70 transition-opacity">
+                      Unlock with Gathr+ →
+                    </button>
+                  </div>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+              )
+            })()}
 
             {hostedEvents.length > 0 && (
               <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
@@ -734,6 +770,18 @@ export default function ProfilePage() {
               )}
 
               <div className="space-y-2.5">
+                {profile?.founding_member && user?.id !== FOUNDER_ID && (
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-[#D4A843]/30 bg-gradient-to-r from-[#221A06]/60 to-[#1A1204]/60">
+                    <div className="w-10 h-10 rounded-xl bg-[#D4A843]/10 border border-[#D4A843]/25 flex items-center justify-center flex-shrink-0">
+                      <span className="text-base">✦</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-[#D4A843]">Founding Member</div>
+                      <div className="text-[10px] text-[#D4A843]/50 mt-0.5">First 1,000 Gathr+ subscribers · Permanent badge</div>
+                    </div>
+                    <span className="text-[8px] px-2 py-1 rounded-lg border font-bold text-[#D4A843] border-[#D4A843]/30 uppercase tracking-widest flex-shrink-0">FOUNDER</span>
+                  </div>
+                )}
                 {user?.id === FOUNDER_ID && (
                   <div className="founder-badge-card flex items-center gap-3 p-3.5 rounded-2xl border border-[#E8B84B]/60">
                     <div className="founder-badge-icon w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0">
