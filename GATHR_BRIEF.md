@@ -61,13 +61,14 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 ### Communities (Groups)
 - Persistent community groups around shared interests
 - Post text + photos, comment, like, and real-time group chat
-- Public communities (instant join) and private communities (join request → owner approval) — private communities show a lock icon on the name and a "🔒 Request" join button
-- Leave community requires confirmation ("Yes, Leave Community" sheet — prevents accidental exits)
+- **Three visibility levels:** Public (instant join, posts readable by non-members) · Unlisted (direct link only — not in discovery, anyone with the link joins instantly, posts gated to members) · Private (join request → owner approval, posts fully gated) — private communities show a lock icon and "🔒 Request"; unlisted shows an "Unlisted" badge
+- Pending join requests stay in the Discover list with a disabled "Pending" button — not moved to "Your communities" until approved
+- Leave community requires confirmation ("Yes, Leave Community" sheet — prevents accidental exits); private communities show context-aware text: "You'll need to request approval to rejoin"
 - Community roles: owner, admin, member, pending
 - Owners and admins can moderate all content
 - Create an event directly from inside a community to link it to the group
 - Tap a post image to view full-screen
-- Discovery page: interest-based "Suggested for you" section, category filter pills with gold active glow, member counts formatted as k-abbreviations (1.2k, 10k)
+- Discovery page: interest-based "Suggested for you" section, category filter pills with gold active glow, member counts formatted as k-abbreviations (1.2k, 10k); unlisted communities excluded from discovery
 
 ### People & Connections
 - Send connection requests; once accepted, start a private DM thread
@@ -152,7 +153,7 @@ A systematic polish pass has been applied to every page in the app (communities,
 - **Member counts:** `formatCount()` helper → "1.2k", "10k" format (defined locally on communities and search pages)
 - **Action buttons (gold-tinted):** `bg-[#E8B84B]/10 border-[#E8B84B]/20 text-[#E8B84B] active:scale-95 transition-transform`
 - **All interactive buttons:** `active:scale-95 transition-transform` on tap — consistent feel
-- **Private community names:** lock SVG icon inline + "🔒 Request" button text
+- **Private community names:** lock SVG icon inline + "🔒 Request" button text; unlisted communities show a link-icon "Unlisted" badge
 
 ### Light Mode / Dark Mode
 Full dual-theme support — the app ships with a dark default and a warm cream light mode. Theme toggle in Settings. 130+ CSS overrides ensure every element reads correctly in both modes.

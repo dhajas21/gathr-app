@@ -53,6 +53,7 @@ export default function CommunitiesPage() {
   const [joined, setJoined] = useState<any[]>([])
   const [discover, setDiscover] = useState<any[]>([])
   const [joiningId, setJoiningId] = useState<string | null>(null)
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
   const [joinError, setJoinError] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
   const [search, setSearch] = useState('')
@@ -74,18 +75,24 @@ export default function CommunitiesPage() {
 
   const fetchCommunities = async (userId: string) => {
     const [memberData, profileData, allCommData] = await Promise.all([
-      supabase.from('community_members').select('community_id').eq('user_id', userId),
+      supabase.from('community_members').select('community_id, role').eq('user_id', userId),
       supabase.from('profiles').select('interests, city').eq('id', userId).single(),
-      supabase.from('communities').select('*').order('member_count', { ascending: false }).limit(50),
+      // Exclude unlisted — only discoverable via direct link
+      supabase.from('communities').select('*').neq('visibility', 'unlisted').order('member_count', { ascending: false }).limit(50),
     ])
 
     if (profileData.data) setProfile(profileData.data)
 
-    const joinedIds = memberData.data?.map((m: any) => m.community_id) || []
-    const allComms: any[] = allCommData.data || []
+    const memberMap: Record<string, string> = {}
+    memberData.data?.forEach((m: any) => { memberMap[m.community_id] = m.role })
+    const joinedIdSet = new Set(Object.keys(memberMap).filter(id => memberMap[id] !== 'pending'))
+    const pendingIdSet = new Set(Object.keys(memberMap).filter(id => memberMap[id] === 'pending'))
 
-    setJoined(allComms.filter(c => joinedIds.includes(c.id)))
-    setDiscover(allComms.filter(c => !joinedIds.includes(c.id)))
+    const allComms: any[] = allCommData.data || []
+    setPendingIds(pendingIdSet)
+    setJoined(allComms.filter(c => joinedIdSet.has(c.id)))
+    // Keep pending communities in discover so the user can see their request status
+    setDiscover(allComms.filter(c => !joinedIdSet.has(c.id)))
     setLoading(false)
   }
 
@@ -283,9 +290,9 @@ export default function CommunitiesPage() {
                         )}
                       </div>
                       <button onClick={(e) => { e.stopPropagation(); handleJoin(comm.id, comm.is_private) }}
-                        disabled={joiningId === comm.id}
+                        disabled={joiningId === comm.id || pendingIds.has(comm.id)}
                         className="bg-[#E8B84B]/10 border border-[#E8B84B]/30 text-[#E8B84B] text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-transform disabled:opacity-50">
-                        {joiningId === comm.id ? '...' : comm.is_private ? '🔒 Request' : '+ Join'}
+                        {joiningId === comm.id ? '...' : pendingIds.has(comm.id) ? 'Pending' : comm.is_private ? '🔒 Request' : '+ Join'}
                       </button>
                     </div>
                   </div>

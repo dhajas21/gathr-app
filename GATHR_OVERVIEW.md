@@ -55,8 +55,8 @@ app/
 ├── events/[id]/          Event detail — hero cover with back/share/bookmark/edit buttons, date+location card (full address gated behind RSVP), mystery match section (count + silhouettes for free → partial names+interests for Gathr+ → full reveal post-event). Pre-RSVP preview: Gathr+ members see match cards before RSVPing with a "✦ Gathr+ Preview" banner; free users see a count teaser with upgrade CTA. Incoming waves section: Gathr+ recipients see each sender's first name, avatar, and shared interests; free users see the count only with upgrade CTA. Attendees grid, about/comments. RSVP gated: address and map button only shown to RSVPed users and host. Check-in: RSVPed attendees see a mint "I'm Here" button during the event window (30 min before start through end). Tapping requests GPS — ≤500m = instant check-in; >500m = soft confirmation sheet showing distance. Writes a row to `check_ins`; replaces the button with a "✓ Checked In" confirmation. Check-in gates the post-event survey and match reveals (RSVP is accepted as fallback for backward compatibility).
 ├── create/               Multi-step event creation form (Step 1: cover photo, title, category, description, date/time, venue autocomplete, address; Step 2: capacity, tags, visibility, ticket type). Auto-save draft — progress bar with step labels; back button returns to step 1 or router.back().
 ├── host/                 Host dashboard — 3 tabs (Overview / Events / Insights). Overview: 4 stat tiles (upcoming, total RSVPs, avg attendance, events hosted), next-up event previews with RSVP progress bars, Host Pro waitlist CTA. Events tab: upcoming + past lists with View/Edit/Attendees-Message action buttons. Insights tab: best event, performance summary, top categories by RSVPs.
-├── communities/          Community discovery + joined communities list. Sections: Your communities (banner thumbnail rows with private lock icon + k-formatted member counts), Suggested for you (interest-matched, gold-bordered cards), Discover (all remaining). Category filter pills, search. Private communities show lock icon and "🔒 Request" button instead of "+ Join".
-├── communities/[id]/     Community detail — banner (with back + share + settings buttons for owner), info card (name, private lock badge, member count), stats bar (members/posts/events), tabs: Feed (post text+photos, like, comment, load-more), Events (upcoming event list + add/create for members), Members (pending requests panel for owner/admin, member list with "you" label and role badges), Chat (real-time group chat with optimistic updates, delete own messages). CTA bar adapts per state: Join / Request to Join / Cancel Request / Leave+Create / chat input.
+├── communities/          Community discovery + joined communities list. Sections: Your communities (non-pending memberships only — banner thumbnail rows with private lock icon + k-formatted member counts), Suggested for you (interest-matched, gold-bordered cards), Discover (public communities only — unlisted are excluded from discovery, still reachable via direct link). Category filter pills, search. Private communities show lock icon and "🔒 Request" button. Unlisted communities show a disabled "Pending" button if a request is already sent, or a direct "+ Join" on the detail page. Communities where the user has a pending request stay in the Discover list with a disabled "Pending" button (not moved to "Your communities").
+├── communities/[id]/     Community detail — banner (with back + share + settings buttons for owner), info card (name, private lock badge OR unlisted link-icon badge, member count), stats bar (members/posts/events), tabs: Feed (post text+photos, like, comment, load-more), Events (upcoming event list + add/create for members), Members (pending requests panel for owner/admin, member list with "you" label and role badges), Chat (real-time group chat with optimistic updates, delete own messages). CTA bar adapts per state: Join / Request to Join / Cancel Request / Leave+Create / chat input. Leave confirmation text is context-aware: private communities say "You'll need to request approval to rejoin"; public/unlisted say "You can rejoin anytime". Feed and posts are gated for both private AND unlisted communities — non-members see a locked state ("Private Community" or "Members Only").
 ├── search/               Universal search — events, communities, people, #tags. Results tabs (All/Events/People/Communities/Tags). Category chip filter row. Pre-search state: recent searches, recently viewed events, "Picked for you" scored recommendations, browse-by-category grid with subcategory expansion (SUBCAT_TO_PARENT resolves 33 subcategories to their top-level DB category). Vibe parser: 55+ synonyms, past-event exclusion, #tag extraction.
 │                         Vibe query parser — rules-based NLP, no LLM. Parses free text like "live music thursday night" or "#yoga this weekend" and extracts: day (today/tomorrow/named days/weekend), time-of-day (morning/afternoon/evening/night), category (55+ synonyms across all 9 categories), and remaining search terms for DB ilike. Detected filters shown as green pills in a result header card. Searches title, description, and location_name. Tag results shown in a separate section. Past events excluded from all results (gte now filter on both event and tag queries). Category synonyms cover: Music (music, dj, jazz, karaoke, hip hop…), Fitness (fitness, cycling, crossfit, climbing…), Food & Drink (restaurant, wine, pub, cooking…), Tech (gaming, crypto, web3, developer…), Outdoors (kayak, skiing, surfing…), Arts (theatre, comedy, photography…), Social (trivia, game night, pub quiz…), Wellness (meditation, pilates, sound bath…), Networking (business, conference, summit…).
 ├── map/                  Map view of events as Leaflet pins
@@ -108,7 +108,7 @@ All tables are in the `public` schema with **Row Level Security (RLS)** enabled 
 | `event_comments` | Comments on event pages. Text + user reference |
 | `event_drafts` | Auto-saved create-flow draft. One per user (upserted) |
 | `event_invites` | Invites sent for private events |
-| `communities` | Community groups. Name, description, category, icon, banner_gradient, visibility (public/private), member_count, is_private (computed column) |
+| `communities` | Community groups. Name, description, category, icon, banner_gradient, visibility (public/unlisted/private), member_count, is_private (computed column: `GENERATED ALWAYS AS (visibility = 'private') STORED`) |
 | `community_members` | Membership rows. `role`: owner / admin / member / pending |
 | `community_posts` | Posts inside a community. Text (nullable — image-only posts allowed), image_url, like_count, comment_count (both counts maintained by DB triggers) |
 | `community_post_likes` | Which user liked which post. Trigger updates `community_posts.like_count` |
@@ -329,19 +329,22 @@ The `SafetyBadge` component renders the correct badge UI for each tier.
 Communities are persistent groups. Key mechanics:
 
 **Visibility:**
-- **Public** — anyone can join instantly
-- **Private** — join requests go to `community_members` with `role: 'pending'`; owner sees pending requests and can accept/decline
+- **Public** — anyone can join instantly; posts visible read-only to non-members
+- **Unlisted** — not shown in discovery (browse/search) but accessible via direct link; anyone with the link can join instantly (no approval); posts gated to members only
+- **Private** — not shown in discovery; join requests go to `community_members` with `role: 'pending'`; owner sees pending requests and can accept/decline; posts and chat fully gated
 
-The `is_private` column is a **computed/generated column**: `GENERATED ALWAYS AS (visibility = 'private') STORED`. This means it's always in sync with `visibility` — no manual update needed.
+The `is_private` column is a **computed/generated column**: `GENERATED ALWAYS AS (visibility = 'private') STORED`. Always in sync — no manual update needed. Note: unlisted communities have `is_private = false`; use `visibility` column directly when you need to distinguish unlisted from public.
 
 **Member roles:** `owner` / `admin` / `member` / `pending`
 
 - **owner** — full control: manage members, promote/demote admins, delete any post/chat, delete the community
 - **admin** — can delete any post or chat message for moderation; cannot promote/demote others
 - **member** — can post, comment, like, and chat
-- **pending** — join request awaiting owner approval (private communities only)
+- **pending** — join request awaiting owner approval (private communities only; unlisted communities join directly as `member`)
 
-**Community posts:** Text posts (1000 char max) with optional image attachment (JPEG/PNG/WebP, max 5 MB). The `text` column is nullable — image-only posts are valid. In public communities, posts are visible read-only to non-members (they see like/comment counts but no interaction buttons); private community posts are fully hidden behind a lock screen. Members see full interactions: liking creates a row in `community_post_likes` and a DB trigger atomically increments `like_count`. Posts support **threaded comments** (500 char max) — replies are stored in `community_post_comments` and loaded lazily on expand. Comment counts are bulk-fetched on page load. Any member can delete their own post/comment; owners and admins can delete any content for moderation. Post deletion also removes the associated image from `community-post-images` storage. If the DB insert fails after a successful image upload, the uploaded file is rolled back. **Pagination:** the feed loads 30 posts on initial load; a "Load more" button (cursor-based via `created_at`) appends subsequent batches of 30. The Feed tab label shows the total DB count (`postCount`), not just the loaded slice.
+**Pending membership in discovery:** Communities where the current user has `role: 'pending'` remain in the Discover list with a disabled "Pending" button. They are NOT moved to "Your communities" — that section only shows non-pending memberships.
+
+**Community posts:** Text posts (1000 char max) with optional image attachment (JPEG/PNG/WebP, max 5 MB). The `text` column is nullable — image-only posts are valid. In **public** communities, posts are visible read-only to non-members (they see like/comment counts but no interaction buttons). In **unlisted** and **private** communities, posts are fully gated — non-members see a locked state screen ("Members Only" for unlisted, "Private Community" for private). Members see full interactions: liking creates a row in `community_post_likes` and a DB trigger atomically increments `like_count`. Posts support **threaded comments** (500 char max) — replies are stored in `community_post_comments` and loaded lazily on expand. Comment counts are bulk-fetched on page load. Any member can delete their own post/comment; owners and admins can delete any content for moderation. Post deletion also removes the associated image from `community-post-images` storage. If the DB insert fails after a successful image upload, the uploaded file is rolled back. **Pagination:** the feed loads 30 posts on initial load; a "Load more" button (cursor-based via `created_at`) appends subsequent batches of 30. The Feed tab label shows the total DB count (`postCount`), not just the loaded slice.
 
 **Community chat:** Real-time group chat within each community tab. Messages are stored in `community_chat_messages` and loaded via Supabase Realtime `postgres_changes` subscriptions on both INSERT (new messages) and DELETE (moderator removals propagate in real time). Owners and admins see an ✕ button on every message; members only see it on their own.
 
@@ -349,12 +352,13 @@ The `is_private` column is a **computed/generated column**: `GENERATED ALWAYS AS
 
 **Create event from community:** Navigating to `/create?community=[id]` (e.g. via the community Events tab's "Create Event" button) pre-wires the new event's `community_id`. After publish the user is redirected back to the community's Events tab.
 
-**RLS on community data:**
-- `community_posts` SELECT: members can read; non-members can only read posts in public communities
+**RLS on community data (all policies are `TO authenticated`):**
+- `community_posts` SELECT: members (non-pending) can always read; non-members can read posts only in communities where `visibility = 'public'` — unlisted and private post content is fully gated
 - `community_post_comments`: members can read/insert; own row delete + owner/admin moderation delete
-- `community_chat_messages` DELETE: own message or owner/admin moderator
-- `community_members` UPDATE: owner-only with `WITH CHECK (role IN ('member','admin'))` — prevents privilege escalation to owner
-- `community_members` DELETE: self-leave OR owner removing others
+- `community_chat_messages` DELETE: own message (`TO authenticated`) or owner/admin moderator (`TO authenticated`)
+- `community_members` UPDATE: owner-only (`TO authenticated`) with `WITH CHECK (role IN ('member','admin'))` — prevents privilege escalation to owner
+- `community_members` DELETE: self-leave (`TO authenticated`) OR owner removing others (`TO authenticated`)
+- All community-related policies use `TO authenticated` — anonymous users have no access to any community data
 
 **Member count:** Maintained exclusively by the `community_member_count_trigger` DB trigger. The client no longer writes `member_count` directly — it only updates local state optimistically.
 
@@ -810,7 +814,7 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 | ILIKE wildcard injection in search | `sanitize()` strips `%`, `_`, `\` before passing to PostgREST `.ilike()` |
 | Invalid UUID in `?from=` or `?community=` params | UUID regex validation before any DB query |
 | Privilege escalation via member role UPDATE | RLS `WITH CHECK (role IN ('member','admin'))` — can't self-promote to owner |
-| Private community posts leaking to non-members | RLS SELECT policy requires membership for private communities |
+| Unlisted/private community posts leaking to non-members | RLS SELECT policy (`community_posts_select`) checks `c.visibility = 'public'` OR membership — unlisted posts are fully gated, not just private ones |
 | Malicious file uploads bypassing frontend | Bucket-level MIME type enforcement in Supabase Storage |
 | Weak password accepted | Client disables submit until ≥ 10 chars + passwords match; Supabase Auth enforces server-side |
 | Avatar upload failure leaves stale preview | Error surfaced to user; DB update proceeds with old URL — no silent mismatch |

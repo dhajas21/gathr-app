@@ -572,6 +572,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   if (!community) return null
 
   const isOwnerOrAdmin = memberRole === 'owner' || memberRole === 'admin'
+  // Both private and unlisted restrict content to members only
+  const isRestricted = community.is_private || community.visibility === 'unlisted'
 
   return (
     <div className="min-h-screen bg-[#0D110D] pb-32">
@@ -630,6 +632,12 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   Private
                 </span>
               )}
+              {!community.is_private && community.visibility === 'unlisted' && (
+                <span className="inline-flex items-center gap-1 text-[9px] bg-white/10 border border-white/10 text-white/40 px-1.5 py-0.5 rounded">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  Unlisted
+                </span>
+              )}
             </div>
             <div className="text-xs text-white/40 mt-0.5">{community.member_count} members · {community.category}</div>
           </div>
@@ -677,15 +685,17 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         {/* FEED TAB */}
         {activeTab === 'feed' && (
           <div className="space-y-3">
-            {/* Private locked state for non-members */}
-            {community.is_private && !isMember && (
+            {/* Restricted (private or unlisted) locked state for non-members */}
+            {isRestricted && !isMember && (
               <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-5 text-center">
                 <div className="w-12 h-12 bg-[#0D110D] border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-2">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/40">
                     <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                   </svg>
                 </div>
-                <div className="text-sm font-semibold text-[#F0EDE6] mb-1">Private Community</div>
+                <div className="text-sm font-semibold text-[#F0EDE6] mb-1">
+                  {community.is_private ? 'Private Community' : 'Members Only'}
+                </div>
                 <div className="text-xs text-white/40">
                   {isPending ? 'Your request is being reviewed by the owner.' : 'Join to see posts and participate.'}
                 </div>
@@ -750,7 +760,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               </div>
             )}
 
-            {(!community.is_private || isMember) && posts.length === 0 && (
+            {(!isRestricted || isMember) && posts.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/35">
@@ -761,7 +771,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               </div>
             )}
 
-            {(!community.is_private || isMember) && posts.map(post => {
+            {(!isRestricted || isMember) && posts.map(post => {
               const profile = (post as any).profiles
               const isOwn = post.user_id === user?.id
               return (
@@ -871,7 +881,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               )
             })}
 
-            {(!community.is_private || isMember) && posts.length > 0 && posts.length < postCount && (
+            {(!isRestricted || isMember) && posts.length > 0 && posts.length < postCount && (
               <button onClick={loadMorePosts} disabled={loadingMore}
                 className="w-full py-3 text-xs text-white/40 font-medium active:text-white/60 transition-colors disabled:opacity-40">
                 {loadingMore ? 'Loading...' : `Load more · ${postCount - posts.length} remaining`}
@@ -1192,7 +1202,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
             <div className="text-center mb-5">
               <h3 className="text-base font-bold text-[#F0EDE6] mb-1">Leave this community?</h3>
-              <p className="text-xs text-white/40">You can rejoin anytime, but you'll lose your member status.</p>
+              <p className="text-xs text-white/40">
+                {community?.is_private
+                  ? "You'll need to request approval to rejoin."
+                  : "You can rejoin anytime."}
+              </p>
             </div>
             <button onClick={handleConfirmLeave} disabled={actionLoading}
               className="w-full py-3.5 rounded-2xl bg-[#3A1E1E] border border-red-500/20 text-red-400 font-bold text-sm mb-3 disabled:opacity-50">
