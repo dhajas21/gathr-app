@@ -50,9 +50,9 @@ app/
 ├── onboarding/           3-slide intro carousel (before auth)
 ├── auth/                 Sign in / sign up (email + Google)
 ├── setup/                Profile setup after first sign-in (name, city, interests, photo)
-├── tour/                 4-slide in-app feature tour: Mystery Match · Communities · Safety Tiers · Hosting. Reached via "Take the tour →" in the first-home-load welcome modal. Skip button always visible → /home.
+├── tour/                 5-slide in-app feature tour: Mystery Match · Communities · Safety Tiers · Gathr+ · Hosting. Reached via "Take the tour →" in the first-home-load welcome modal. Skip button always visible → /home.
 ├── home/                 Main feed (events + communities tabs). Header: Gathr wordmark + greeting, city pill, notifications bell. Search bar (tap-through to /search). "Happening Soon" horizontal scroll. Featured event card (gold pill category tag). Tab bar: Trending / For You / Near Me / Friends / Mine. Event cards with category gradient banners, tag pills, capacity "% full" indicator, bookmark toggle.
-├── events/[id]/          Event detail — hero cover with back/share/bookmark/edit buttons, date+location card (full address gated behind RSVP), mystery match section (match count + blurred silhouettes → partial names for Gathr+ → full reveal post-event), incoming wave teasers, Gathr+ upsell for hidden matches, attendees grid, about/comments. RSVP gated: address and map button only shown to RSVPed users and host. Check-in: RSVPed attendees see a mint "I'm Here" button during the event window (30 min before start through end). Tapping requests GPS — ≤500m = instant check-in; >500m = soft confirmation sheet showing distance. Writes a row to `check_ins`; replaces the button with a "✓ Checked In" confirmation. Check-in gates the post-event survey and match reveals (RSVP is accepted as fallback for backward compatibility).
+├── events/[id]/          Event detail — hero cover with back/share/bookmark/edit buttons, date+location card (full address gated behind RSVP), mystery match section (count + silhouettes for free → partial names+interests for Gathr+ → full reveal post-event). Pre-RSVP preview: Gathr+ members see match cards before RSVPing with a "✦ Gathr+ Preview" banner; free users see a count teaser with upgrade CTA. Incoming waves section: Gathr+ recipients see each sender's first name, avatar, and shared interests; free users see the count only with upgrade CTA. Attendees grid, about/comments. RSVP gated: address and map button only shown to RSVPed users and host. Check-in: RSVPed attendees see a mint "I'm Here" button during the event window (30 min before start through end). Tapping requests GPS — ≤500m = instant check-in; >500m = soft confirmation sheet showing distance. Writes a row to `check_ins`; replaces the button with a "✓ Checked In" confirmation. Check-in gates the post-event survey and match reveals (RSVP is accepted as fallback for backward compatibility).
 ├── create/               Multi-step event creation form (Step 1: cover photo, title, category, description, date/time, venue autocomplete, address; Step 2: capacity, tags, visibility, ticket type). Auto-save draft — progress bar with step labels; back button returns to step 1 or router.back().
 ├── host/                 Host dashboard — 3 tabs (Overview / Events / Insights). Overview: 4 stat tiles (upcoming, total RSVPs, avg attendance, events hosted), next-up event previews with RSVP progress bars, Host Pro waitlist CTA. Events tab: upcoming + past lists with View/Edit/Attendees-Message action buttons. Insights tab: best event, performance summary, top categories by RSVPs.
 ├── communities/          Community discovery + joined communities list. Sections: Your communities (banner thumbnail rows with private lock icon + k-formatted member counts), Suggested for you (interest-matched, gold-bordered cards), Discover (all remaining). Category filter pills, search. Private communities show lock icon and "🔒 Request" button instead of "+ Join".
@@ -68,11 +68,11 @@ app/
 ├── profile/[id]/         Public profile — avatar (with lightbox on tap), name + tier badge + safety badge, bio, mode pills, pinned achievement badges (gold/silver/bronze gradient styles), stats bar (Hosted/Going/Interests/Mutual), mutual connections section with avatar row, Hosting/Going tab with event list, fixed bottom CTA (Message + direction-aware Connect button: "Connect" / "Withdraw Request" when you sent / "Respond to Request →" when they sent / "✓ Connected").
 ├── profile/edit/         Edit profile — photo upload (with crop/compress), first/last name, bio, city, profile mode (Social/Professional/Both), RSVP visibility, interests (search + tag chips, up to 10).
 ├── settings/             Account settings — profile edit shortcut, Gathr+ status, appearance (theme toggle), account (email, change password with strength meter), profile mode toggles, privacy toggles (discoverable, matching, push notifications, RSVP notify), feedback sheet, sign out, delete account.
-├── gathr-plus/           Gathr+ upgrade page — hero icon, 5 perk cards (see who's going, anonymous waves, early reveal, badge, priority ranking), "Billing Coming Soon" card with notify-me waitlist link, trial CTA button (disabled if trial used or active). Notify-me sheet routes to /waitlist.
+├── gathr-plus/           Gathr+ upgrade page — hero icon, 7 perk cards (pre-RSVP match preview, wave sender reveal, unlimited waves, Paths Crossed, priority rank, Travel Mode [soon], Founding Member badge [limited]). Annual/monthly pricing cards ($39.99/yr · $4.99/mo) with radio selection — annual pre-selected with "BEST VALUE" pill, both route to /waitlist. Trial CTA below the plans (outlined secondary button, disabled if trial used/active). No waitlist sheet — direct router.push('/waitlist').
 ├── auth/reset/           Password reset — listens for PASSWORD_RECOVERY Supabase event; shows verifying state, then new+confirm password inputs with strength validation; auto-redirects /home after success.
 ├── privacy/              Privacy Policy
 ├── terms/                Terms of Service
-└── waitlist/             Host Pro early access waitlist — name, email, optional event-type textarea; feature preview list (paid ticketing, analytics, promoted events, mass messaging); join button with spinner. Success screen with "Back to Home" CTA.
+└── waitlist/             Unified early-access waitlist (serves Gathr+ billing and Host Pro signups) — name, email, optional "what are you excited about?" textarea; feature preview list (Gathr+ billing, paid tickets, Host Pro); join button with spinner. Success: "We'll reach out before billing goes live." CTA.
 ```
 
 **Public routes** (no auth required): `/`, `/onboarding`, `/auth`, `/tour`, `/privacy`, `/terms`, `/waitlist`. Every other route is protected by the middleware.
@@ -241,12 +241,14 @@ This is the core UX differentiator. Here's exactly how it works:
 - When you RSVP, the event detail page fetches other RSVPed users who have `matching_enabled = true` and aren't already connected to you
 - It counts them and shows a number ("3 people going share your vibe")
 - Their identities are hidden — you see a blurred silhouette card (the `MysteryMatchCard` component)
-- **Gathr+ members** see partial first names, shared interests, and can send an anonymous **wave** to signal interest
+- **Gathr+ members** see partial first names and shared interests even before RSVPing (pre-RSVP preview, gated by `isGathrPlus && !rsvped && upcoming`)
+- **Gathr+ members** can send a **wave** to any match; recipients who are also Gathr+ see the sender's first name, avatar, and shared interests via `get_incoming_waves()` RPC (SECURITY DEFINER — identity fields are NULL at the DB layer for non-Gathr+ callers, not just hidden in UI)
 
 **Waves:**
 - A wave is a row in `waves(sender_id, receiver_id, event_id)`
-- The receiver gets a notification: "Someone at [Event Name] sent you a wave 👋" — no identity revealed
-- A **mutual wave** (both users waved at each other for the same event) triggers a first-name-only reveal
+- Free recipients: see only the total wave count, no identity
+- Gathr+ recipients: `get_incoming_waves(p_event_id)` returns first_name, avatar_url, shared_interests per sender
+- A **mutual wave** (`is_mutual = true`) is visible to both tiers — mutual status shown regardless of subscription
 - There's a unique constraint on `(sender_id, receiver_id, event_id)` to prevent duplicate waves
 
 **After the event ends:**
@@ -360,16 +362,21 @@ The `is_private` column is a **computed/generated column**: `GENERATED ALWAYS AS
 
 ## Gathr+
 
-Gathr+ is the premium tier. Features:
-- See partial names and shared interests in pre-event match lists (free = count only)
-- Send anonymous waves to matches before events
-- Priority matching rank (appears higher in other users' match lists)
+Gathr+ is the premium tier. Pricing: $4.99/month · $39.99/year. Billing not yet live — subscribers join a waitlist via `/waitlist`. Features:
+- **Pre-RSVP match preview** — see who's going before RSVPing (free users see count + silhouette only)
+- **Wave sender reveal** — Gathr+ recipients see sender's first name, avatar, shared interests via `get_incoming_waves()` RPC (gated at DB layer, not just UI)
+- **Unlimited waves** — send waves to any match
+- **Paths Crossed** — `/paths-crossed` page; co-attendance history across all shared events, cursor-paginated, powered by `get_paths_crossed()` SECURITY DEFINER RPC
+- **Priority matching rank** — appears higher in other users' match lists
+- **Travel Mode** — coming soon
+- **Founding Member badge** — `profiles.founding_member = true` set by `grant_founding_member()` (capped at 1,000, service_role only); badge shows automatically on own + public profiles, doesn't count against 3-pin limit
 
-**Access tiers:**
-- `profiles.gathr_plus` (bool) — true means the user is a paid subscriber (set by the future billing webhook)
-- `profiles.gathr_plus_expires_at` (timestamptz) — a time-limited grant: 7-day free trial OR a level-milestone preview (48h at level 5, 7-day at level 10)
-- `profiles.gathr_plus_trial_used` (bool) — gates the one-time 7-day free trial
-- `profiles.gathr_plus_trial_levels` (int[]) — which level-milestone previews have already been claimed
+**Access columns on `profiles`:**
+- `gathr_plus` (bool) — paid subscriber flag (set by future billing webhook)
+- `gathr_plus_expires_at` (timestamptz) — time-limited grant: 7-day free trial OR level-milestone preview (48h at level 5, 7-day at level 10)
+- `gathr_plus_trial_used` (bool) — gates the one-time free trial
+- `gathr_plus_trial_levels` (int[]) — which level-milestone previews have been claimed
+- `founding_member` (bool) — permanent badge, survives subscription cancellation
 
 Client treats the user as Gathr+ if `gathr_plus === true` OR `gathr_plus_expires_at > now()`.
 
@@ -856,7 +863,7 @@ RLS means you never have to manually filter by `user_id` on reads — the databa
 > "Rate limiting is enforced at the database level — Postgres BEFORE INSERT triggers check a rate_limit_events log table and throw an exception if a user exceeds the limit. That means even if someone bypasses the frontend entirely and hits the Supabase API directly, they can't spam. Same with file uploads — bucket policies reject disallowed MIME types server-side."
 
 **"What's Gathr+?"**
-> "It's the premium tier. Free users see a match count and a blurred silhouette. Gathr+ members see partial names, shared interests, and can send an anonymous wave before the event to signal interest. There's also a milestone system — hit level 5 and you get a 48-hour preview, hit level 10 and you get a 7-day preview. It's a way to let engaged users try it before they commit to paying."
+> "It's the premium tier at $4.99/month or $39.99/year. Free users see a match count and a blurred silhouette. Gathr+ members can browse who's going before they even RSVP, and when someone waves at them they see that person's first name, photo, and shared interests — the wave identity reveal is enforced at the database layer, not just the UI, so it can't be bypassed by calling the API directly. There's also a Paths Crossed feed that shows everyone you've co-attended events with. And a milestone system — hit level 5 for a 48-hour preview, level 10 for a 7-day preview. Billing isn't live yet so right now it's free trial only, but the infrastructure is all in place."
 
 **"How does the realtime chat work?"**
 > "Supabase Realtime watches the Postgres write-ahead log and pushes INSERT events to subscribed clients over a WebSocket. The client subscribes on mount and unsubscribes on unmount. Typing indicators use Supabase Presence — a separate ephemeral pub/sub channel that doesn't touch the database, just broadcasts state between clients in the same channel."

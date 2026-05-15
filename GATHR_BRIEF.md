@@ -54,7 +54,7 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 ### Mystery Match System
 - RSVP → see match count + blurred ghost profile cards (free users on upcoming events). The ghost cards use the real card layout at fading opacity with a blur filter, a lock icon overlay showing "X more matches hidden", and a gold upsell block below — making the value of upgrading immediately clear
 - Gathr+ members see partial first names + shared interests pre-event
-- Anonymous "wave" feature (Gathr+ only) — signal interest before the event; a mutual wave gives both users an early first-name reveal
+- Wave feature (Gathr+ only) — signal interest before the event; Gathr+ recipients see sender's first name, avatar, shared interests. Free recipients see count only. Mutual waves shown to both tiers.
 - Post-event: full profiles of co-attendees unlock for people who checked in to the event ("I'm Here" GPS-based button during the event window). RSVP is accepted as a fallback for events that pre-date the check-in feature.
 - Safety-flagged accounts are hidden from all match lists
 
@@ -105,11 +105,15 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 - Founder badge: exclusive `✦ Gathr Founder` badge on the founder's profile — non-earnable, always shown first. Uses CSS classes `founder-badge-pill` / `founder-badge-card` / `founder-badge-icon` with multi-layer box-shadow glow, dark-gold gradient fill, and inset highlight. Light mode swaps to a warm cream-gold variant so the badge stays premium on the cream background.
 
 ### Gathr+ (Premium Attendee Tier)
-- Expanded pre-event match visibility (partial names + shared interests vs. just a count)
-- Send anonymous waves before events
-- Priority matching rank (appears higher in other users' match lists)
-- Access paths currently: (1) one-time 7-day free trial (server-enforced, can't be claimed twice), (2) level milestone previews (level 5 = 48h, level 10 = 7 days)
-- **Paid billing not yet wired** — the `/gathr-plus` page shows "Billing Coming Soon" with a waitlist. Plan: RevenueCat + Apple IAP + Google Play + Stripe for web. Build this before event ticketing.
+- **Pre-RSVP match preview** — see who's going before RSVPing (free = count teaser only)
+- **Wave sender reveal** — Gathr+ recipients see sender's first name, avatar, shared interests (gated at DB layer via `get_incoming_waves()` SECURITY DEFINER RPC; free callers get NULL identity fields, not just hidden UI)
+- **Unlimited waves** — send waves to any match at any event
+- **Paths Crossed** — `/paths-crossed` page; co-attendance history powered by `get_paths_crossed()` RPC
+- **Priority matching rank** — ranked higher in others' match lists
+- **Travel Mode** — coming soon
+- **Founding Member badge** — `profiles.founding_member = true`, granted to first 1,000 paid subscribers by `grant_founding_member()` (service_role only, 1,000-user cap enforced in SQL); permanent badge shown automatically on own + public profiles
+- **Pricing:** $4.99/month · $39.99/year (Save 33%). Annual pre-selected on upgrade page.
+- **Billing not yet live** — `/gathr-plus` page shows annual/monthly pricing cards both routing to `/waitlist`. Plan: RevenueCat + Apple IAP + Google Play + Stripe for web. Build before event ticketing.
 
 ### Host Pro (Planned — Waitlist Only)
 A paid tier for power hosts, currently a waitlist placeholder on the `/host` dashboard and `/waitlist` page. Listed benefits: paid tickets, analytics, and promoted events. Full planned feature set:
@@ -162,7 +166,7 @@ Full dual-theme support — the app ships with a dark default and a warm cream l
 | Mystery match (who's going, revealed post-event) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Safety tier system (peer reviews → public trust score) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Communities with real-time group chat | ✅ | Groups only | ✅ | ❌ | ❌ |
-| Anonymous wave (signal interest before event) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Wave (sender identity revealed to Gathr+ recipients) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Free to host | ✅ | ✅ | ❌ ($) | ❌ ($) | ✅ |
 | Modern mobile-first UX | ✅ | ❌ | ❌ | ❌ | ✅ |
 | Public social discovery | ✅ | ✅ | ✅ | ✅ | ❌ (private only) |
@@ -384,7 +388,7 @@ The mystery match mechanic is especially resonant in a city where people struggl
 - *"How do you solve the cold-start problem?"* — Organiser-first model. Seed events before inviting attendees. Stay in small cities until you have density.
 - *"What's your moat?"* — The social graph of who attends what compounds with scale. Every review, connection, and match makes the network more valuable and more defensible.
 - *"Why won't Facebook copy this?"* — They've tried and failed at local social repeatedly. Trust is the moat and Gathr is purpose-built for it.
-- *"What does LTV look like?"* — Three layers: Gathr+ at ~$4.99/mo or ~$34.99/yr (attendee tier), platform fee on paid event tickets (scale layer), Host Pro at ~$9.99–$19.99/mo for power organisers (high-value B2B-adjacent segment).
+- *"What does LTV look like?"* — Three layers: Gathr+ at $4.99/mo or $39.99/yr (attendee tier), platform fee on paid event tickets (scale layer), Host Pro at ~$9.99–$19.99/mo for power organisers (high-value B2B-adjacent segment).
 
 ---
 

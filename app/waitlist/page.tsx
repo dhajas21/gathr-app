@@ -43,12 +43,12 @@ export default function WaitlistPage() {
   if (done) return (
     <div className="min-h-screen bg-[#0D110D] flex flex-col items-center justify-center px-6 text-center gap-4">
       <div className="w-20 h-20 bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-3xl flex items-center justify-center mb-2">
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#E8B84B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 6 9 17l-5-5"/>
-  </svg>
-</div>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#E8B84B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6 9 17l-5-5"/>
+        </svg>
+      </div>
       <h1 className="text-2xl font-bold text-[#F0EDE6]">You're on the list!</h1>
-      <p className="text-sm text-white/45 max-w-[260px] leading-relaxed">We'll reach out when Host Pro opens up. Thanks for being an early supporter.</p>
+      <p className="text-sm text-white/45 max-w-[260px] leading-relaxed">We'll reach out before billing goes live. No charge until then — thanks for being an early supporter.</p>
       <button onClick={() => router.push('/home')}
         className="mt-4 bg-[#E8B84B] text-[#0D110D] px-8 py-3.5 rounded-2xl font-bold text-sm active:scale-95 transition-transform"
         style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.25)' }}>
@@ -70,14 +70,12 @@ export default function WaitlistPage() {
       <div className="flex-1 px-6 pt-4 pb-32">
 
         <div className="w-14 h-14 bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-2xl flex items-center justify-center mb-5">
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="1.5" strokeLinecap="round">
-    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-  </svg>
-</div>
+          <span className="text-2xl">✦</span>
+        </div>
 
-        <h1 className="font-display text-2xl font-bold text-[#F0EDE6] mb-2">Host Pro Early Access</h1>
+        <h1 className="font-display text-2xl font-bold text-[#F0EDE6] mb-2">Early Access</h1>
         <p className="text-sm text-white/45 leading-relaxed mb-8">
-          Get early access to paid ticketing, revenue analytics, promoted events, and more. We're rolling out to hosts gradually — join the list to be first.
+          Get notified the moment Gathr+ billing and Host Pro go live. No charge until you subscribe — you'll be contacted first.
         </p>
 
         <div className="space-y-4">
@@ -92,23 +90,26 @@ export default function WaitlistPage() {
           </div>
 
           <div>
-            <label className={labelClass}>What kind of events do you host? <span className="text-white/35">(optional)</span></label>
-            <textarea className={inputClass} rows={3} placeholder="Run club, open mics, startup meetups..." value={reason} onChange={e => setReason(e.target.value)} maxLength={400} />
+            <label className={labelClass}>What are you most excited about? <span className="text-white/35">(optional)</span></label>
+            <textarea className={inputClass} rows={3} placeholder="Gathr+ features, hosting tools, paid tickets…" value={reason} onChange={e => setReason(e.target.value)} maxLength={400} />
           </div>
 
           {error && <p className="text-red-400 text-xs">{error}</p>}
         </div>
 
         <div className="mt-6 bg-[#1C241C] border border-white/[0.07] rounded-2xl p-4 space-y-2.5">
+          <div className="text-[10px] uppercase tracking-widest text-white/25 mb-3">What's coming</div>
           {[
-            'Paid & donation ticketing',
-            'Revenue & attendance analytics',
-            'Promoted event placement',
-            'Direct messaging to all attendees',
-          ].map(text => (
-            <div key={text} className="flex items-center gap-2.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#E8B84B]/50 flex-shrink-0" />
-              <span className="text-sm text-white/50">{text}</span>
+            { label: 'Gathr+ billing', desc: '$4.99/mo · $39.99/yr — wave reveals, Paths Crossed, pre-RSVP preview' },
+            { label: 'Paid event tickets', desc: 'Stripe-powered — hosts collect revenue directly' },
+            { label: 'Host Pro', desc: 'Analytics, promoted events, mass messaging' },
+          ].map(item => (
+            <div key={item.label} className="flex items-start gap-2.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#E8B84B]/50 flex-shrink-0 mt-1.5" />
+              <div>
+                <div className="text-sm text-[#F0EDE6]/70 font-medium">{item.label}</div>
+                <div className="text-xs text-white/30 leading-snug">{item.desc}</div>
+              </div>
             </div>
           ))}
         </div>
