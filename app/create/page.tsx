@@ -271,7 +271,6 @@ export default function CreateEventPage() {
       start_datetime: startDatetime.toISOString(),
       end_datetime: endDatetime.toISOString(),
       location_name: venueName.trim(),
-      location_address: address.trim(),
       city,
       capacity: Math.min(10000, Math.max(0, parseInt(capacity) || 0)),
       spots_left: Math.min(10000, Math.max(0, parseInt(capacity) || 0)),
@@ -290,6 +289,13 @@ export default function CreateEventPage() {
     if (insertError) {
       setError(insertError.message)
       return
+    }
+
+    // Write street address to the RLS-gated table (host + RSVPed attendees only)
+    if (insertedEvent?.id && address.trim()) {
+      await supabase
+        .from('event_addresses')
+        .insert({ event_id: insertedEvent.id, location_address: address.trim() })
     }
 
     track('event_created', {

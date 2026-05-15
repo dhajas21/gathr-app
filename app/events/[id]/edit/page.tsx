@@ -61,8 +61,14 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       setCategory(data.category)
       setDescription(data.description || '')
       setVenueName(data.location_name || '')
-      setAddress(data.location_address || '')
       setCity(data.city || '')
+
+      const { data: addrData } = await supabase
+        .from('event_addresses')
+        .select('location_address')
+        .eq('event_id', id)
+        .maybeSingle()
+      setAddress(addrData?.location_address || '')
       setCapacity(data.capacity ? String(data.capacity) : '')
       setTags(data.tags || [])
       setPrivacy(data.visibility || 'public')
@@ -176,7 +182,6 @@ const addTag = () => {
       start_datetime: startDatetime.toISOString(),
       end_datetime: endDatetime.toISOString(),
       location_name: venueName.trim(),
-      location_address: address.trim(),
       city,
       capacity: cap,
       tags,
@@ -197,6 +202,12 @@ const addTag = () => {
       setSaving(false)
       return
     }
+
+    // Upsert the street address into the RLS-gated table
+    await supabase
+      .from('event_addresses')
+      .upsert({ event_id: eventId, location_address: address.trim() }, { onConflict: 'event_id' })
+
     // Server-side geocoding handles lat/lng — fire-and-forget invocation
     if (!showCoordOverride) {
       supabase.functions.invoke('geocode-event', { body: { event_id: eventId } }).catch(() => {})

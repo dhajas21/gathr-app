@@ -6,7 +6,7 @@
 // Only the host of the event can request a geocode for it.
 //
 // The function:
-//   1. Loads the event (location_address, location_name, city)
+//   1. Loads the event (location_name, city) + fetches location_address from event_addresses
 //   2. Calls Nominatim with a proper User-Agent identifying Gathr
 //   3. Updates events.latitude / events.longitude if a result is returned
 //   4. Falls back to CITY_COORDS[city] if Nominatim returns nothing
@@ -101,14 +101,20 @@ Deno.serve(async (req) => {
 
   const { data: event } = await adminClient
     .from('events')
-    .select('id, host_id, location_address, location_name, city')
+    .select('id, host_id, location_name, city')
     .eq('id', eventId)
     .maybeSingle()
 
   if (!event) return json({ error: 'Event not found' }, 404)
   if (event.host_id !== user.id) return json({ error: 'Only the host can geocode this event' }, 403)
 
-  const queryParts = [event.location_address?.trim(), event.location_name?.trim(), event.city?.trim()]
+  const { data: addrRow } = await adminClient
+    .from('event_addresses')
+    .select('location_address')
+    .eq('event_id', eventId)
+    .maybeSingle()
+
+  const queryParts = [addrRow?.location_address?.trim(), event.location_name?.trim(), event.city?.trim()]
     .filter(Boolean)
   if (queryParts.length === 0) return json({ error: 'Nothing to geocode' }, 400)
   const q = queryParts.join(', ')

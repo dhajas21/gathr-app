@@ -410,7 +410,7 @@ The mystery match mechanic is especially resonant in a city where people struggl
 - **Search — remaining polish:**
   - Trending searches — removed hardcoded list; bring back once PostHog has real top-5 query data
 - **Attendance achievement gating** — attendance achievements currently fire on RSVP (not verified attendance). The check-in system now exists (GPS "I'm Here" button → `check_ins` table, soft geo-lock). Remaining step: gate achievements on `start_datetime < now()` so they only fire after the event actually ends.
-- **RSVP-gated address server hardening** — street address is currently hidden client-side only; add RLS policy to enforce at the DB level as a future security hardening step
+- ~~**RSVP-gated address server hardening**~~ — Done. `location_address` moved from `events` to a separate `event_addresses` table. RLS enforces host-or-RSVPed at the DB level; the column no longer exists on `events` and cannot be read via direct API calls.
 - **Onboarding email drip** — day-3 and day-7 nudge emails (welcome email already live; drip sequence not built)
 - **Referral mechanism** — "Invite a friend, both get 1 week Gathr+" — build once billing is live
 - **Native iOS / Android apps** — currently mobile web; planned shell via Capacitor or similar

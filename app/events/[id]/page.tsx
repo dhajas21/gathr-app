@@ -30,7 +30,6 @@ interface Event {
   start_datetime: string
   end_datetime: string
   location_name: string
-  location_address: string
   city: string
   spots_left: number
   capacity: number
@@ -97,6 +96,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [checkInLoading, setCheckInLoading] = useState(false)
   const [checkInError, setCheckInError] = useState('')
   const [pendingCheckIn, setPendingCheckIn] = useState<{ lat: number | null; lng: number | null; distanceM: number | null } | null>(null)
+  const [locationAddress, setLocationAddress] = useState<string>('')
   const checkInErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { status: pushStatus, enable: enablePush } = usePushNotifications(user?.id ?? null)
   const commentInputRef = useRef<HTMLInputElement>(null)
@@ -197,7 +197,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     try {
     const { data: eventData } = await supabase
       .from('events')
-      .select('id, title, category, description, start_datetime, end_datetime, location_name, location_address, city, spots_left, capacity, tags, visibility, is_featured, host_id, ticket_type, ticket_price, latitude, longitude')
+      .select('id, title, category, description, start_datetime, end_datetime, location_name, city, spots_left, capacity, tags, visibility, is_featured, host_id, ticket_type, ticket_price, latitude, longitude')
       .eq('id', id)
       .single()
 
@@ -237,6 +237,16 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (commentsRes.data) setComments(commentsRes.data as any)
     if (checkInRes.data) setCheckedIn(true)
     if (bookmarkRes.data) setBookmarked(true)
+
+    // Fetch street address only if authorized — enforced at DB level by RLS on event_addresses
+    if (rsvpRes.data || userId === eventData.host_id) {
+      const { data: addrData } = await supabase
+        .from('event_addresses')
+        .select('location_address')
+        .eq('event_id', id)
+        .maybeSingle()
+      if (addrData?.location_address) setLocationAddress(addrData.location_address)
+    }
     if (userId === eventData.host_id && (eventData.visibility === 'private' || eventData.visibility === 'unlisted')) {
       const { data: codeRow } = await supabase.from('events').select('invite_code').eq('id', id).single()
       if (codeRow?.invite_code) setInviteCode(codeRow.invite_code)
@@ -563,7 +573,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const handleOpenMaps = () => {
     if (!event) return
-    const query = encodeURIComponent([event.location_name, event.location_address, event.city].filter(Boolean).join(', '))
+    const query = encodeURIComponent([event.location_name, locationAddress, event.city].filter(Boolean).join(', '))
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
     window.open(isIOS ? `https://maps.apple.com/?q=${query}` : `https://www.google.com/maps/search/${query}`, '_blank')
   }
@@ -578,7 +588,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       text: event.title,
       dates: fmt(event.start_datetime) + '/' + fmt(event.end_datetime),
       details: event.description || '',
-      location: [event.location_name, (rsvped || user?.id === event.host_id) ? event.location_address : null].filter(Boolean).join(', '),
+      location: [event.location_name, locationAddress].filter(Boolean).join(', '),
     })
     window.open('https://calendar.google.com/calendar/render?' + p.toString(), '_blank')
     setShowCalendarModal(false)
@@ -596,7 +606,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       'DTEND:' + fmt(event.end_datetime),
       'SUMMARY:' + icsEscape(event.title),
       'DESCRIPTION:' + icsEscape(event.description || ''),
-      'LOCATION:' + icsEscape([event.location_name, (rsvped || user?.id === event.host_id) ? event.location_address : null].filter(Boolean).join(', ')),
+      'LOCATION:' + icsEscape([event.location_name, locationAddress].filter(Boolean).join(', ')),
       'END:VEVENT',
       'END:VCALENDAR',
     ].join('\r\n')
@@ -734,7 +744,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-[#F0EDE6]">{event.location_name}</div>
-                <div className="text-xs text-white/45">{event.location_address || event.city}</div>
+                <div className="text-xs text-white/45">{locationAddress || event.city}</div>
               </div>
               <span className="text-[10px] text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2 py-1 rounded-lg flex-shrink-0">Open →</span>
             </button>
