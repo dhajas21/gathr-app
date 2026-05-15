@@ -52,7 +52,7 @@ app/
 ├── setup/                Profile setup after first sign-in (name, city, interests, photo)
 ├── tour/                 4-slide in-app feature tour: Mystery Match · Communities · Safety Tiers · Hosting. Reached via "Take the tour →" in the first-home-load welcome modal. Skip button always visible → /home.
 ├── home/                 Main feed (events + communities tabs). Header: Gathr wordmark + greeting, city pill, notifications bell. Search bar (tap-through to /search). "Happening Soon" horizontal scroll. Featured event card (gold pill category tag). Tab bar: Trending / For You / Near Me / Friends / Mine. Event cards with category gradient banners, tag pills, capacity "% full" indicator, bookmark toggle.
-├── events/[id]/          Event detail — hero cover with back/share/bookmark/edit buttons, date+location card (full address gated behind RSVP), mystery match section (match count + blurred silhouettes → partial names for Gathr+ → full reveal post-event), incoming wave teasers, Gathr+ upsell for hidden matches, attendees grid, about/comments. RSVP gated: address and map button only shown to RSVPed users and host.
+├── events/[id]/          Event detail — hero cover with back/share/bookmark/edit buttons, date+location card (full address gated behind RSVP), mystery match section (match count + blurred silhouettes → partial names for Gathr+ → full reveal post-event), incoming wave teasers, Gathr+ upsell for hidden matches, attendees grid, about/comments. RSVP gated: address and map button only shown to RSVPed users and host. Check-in: RSVPed attendees see a mint "I'm Here" button during the event window (30 min before start through end). Tapping requests GPS — ≤500m = instant check-in; >500m = soft confirmation sheet showing distance. Writes a row to `check_ins`; replaces the button with a "✓ Checked In" confirmation. Check-in gates the post-event survey and match reveals (RSVP is accepted as fallback for backward compatibility).
 ├── create/               Multi-step event creation form (Step 1: cover photo, title, category, description, date/time, venue autocomplete, address; Step 2: capacity, tags, visibility, ticket type). Auto-save draft — progress bar with step labels; back button returns to step 1 or router.back().
 ├── host/                 Host dashboard — 3 tabs (Overview / Events / Insights). Overview: 4 stat tiles (upcoming, total RSVPs, avg attendance, events hosted), next-up event previews with RSVP progress bars, Host Pro waitlist CTA. Events tab: upcoming + past lists with View/Edit/Attendees-Message action buttons. Insights tab: best event, performance summary, top categories by RSVPs.
 ├── communities/          Community discovery + joined communities list. Sections: Your communities (banner thumbnail rows with private lock icon + k-formatted member counts), Suggested for you (interest-matched, gold-bordered cards), Discover (all remaining). Category filter pills, search. Private communities show lock icon and "🔒 Request" button instead of "+ Join".
@@ -119,6 +119,7 @@ All tables are in the `public` schema with **Row Level Security (RLS)** enabled 
 | `notifications` | In-app notifications. type, title, body, link, read, actor_id |
 | `user_reviews` | Post-event safety reviews. Reviewer → target user at a specific event. 3 yes/no questions + optional safety flag |
 | `waves` | Anonymous "wave" signals (Gathr+ feature). sender_id, receiver_id, event_id. Unique per trio |
+| `check_ins` | Verified attendance records. One row per (user, event) — UNIQUE(user_id, event_id). Stores `lat`, `lng` (float, nullable), `distance_m` (float, nullable — null when GPS unavailable or denied). Created when a user taps "I'm Here" during the event window. RLS: users own their row (INSERT/SELECT as self); event hosts can SELECT rows for their events. |
 | `push_subscriptions` | Web push notification subscriptions (VAPID) |
 | `waitlist` | Email addresses from the pre-launch waitlist |
 | `rate_limit_events` | Log of user actions for rate limiting. user_id, action, created_at |
@@ -248,9 +249,10 @@ This is the core UX differentiator. Here's exactly how it works:
 - There's a unique constraint on `(sender_id, receiver_id, event_id)` to prevent duplicate waves
 
 **After the event ends:**
-- The `after-event-matches` Edge Function (invoked once per session from home page) scans for events the user attended that ended in the last 48 hours
+- The `after-event-matches` Edge Function (invoked once per session from home page) scans for events where the user checked in (preferred) or RSVPed (fallback for events that pre-date the check-in feature) that ended in the last 48 hours
 - For each such event with unconnected matching-enabled co-attendees, it sends a notification linking to the post-event survey
 - Full profiles are now visible in the attendee list on the event detail page
+- The post-event survey is accessible to users who checked in or RSVPed to the event
 
 **Safety filtering:**
 - Users with `safety_tier = 'Flagged'` are excluded from all match lists
@@ -299,7 +301,7 @@ These are checked and applied when XP is updated. The client reads `gathr_plus_e
 **Post-event reviews** (`user_reviews` table):
 - Triggered by the `after-event-matches` edge function via a notification
 - Survey: 3 yes/no questions (felt safe, comfortable, would meet again) + optional safety flag
-- Only available to RSVPed users, only after the event has ended
+- Only available to users who checked in or RSVPed to the event, only after the event has ended
 - Reviews are anonymous — no individual review is ever shown to the subject
 
 **Safety score** = average of (yes answers / total answers × 100) across all reviews received
@@ -477,8 +479,8 @@ Supabase Edge Functions run on Deno, server-side, close to the database. Seven f
 **`after-event-matches`** (JWT-verified):
 - Called once per session from the home page: `supabase.functions.invoke('after-event-matches')`
 - Reads the caller's identity from the JWT (no user ID needed in the request body — it's derived from the auth token)
-- Scans for events the user attended that ended in the last 48 hours
-- For each such event, finds unconnected co-attendees with `matching_enabled = true`
+- Scans for events where the user checked in (preferred) or RSVPed (fallback for events without any check-ins — backward compat) that ended in the last 48 hours. Both `check_ins` and `rsvps` are fetched in parallel; check-ins take priority per-event.
+- For each such event, finds unconnected co-attendees with `matching_enabled = true` — also prefers check-ins over RSVPs per event for the co-attendee fetch
 - Sends one notification per qualifying event (deduped against existing notifications)
 - Runs server-side so it can do multi-table joins efficiently without the client making 5+ sequential queries on load
 - Co-attendee lookups use a single `.in('event_id', qualifyingEventIds)` batch query — O(1) DB round-trips regardless of how many qualifying events there are; results are grouped by `event_id` client-side

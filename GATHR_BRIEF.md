@@ -37,6 +37,7 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 - Map view — pin-based event discovery
 - RSVP with confetti celebration on join; inline error toast if the join fails
 - RSVP cancellation with confirmation guard ("Cancel your RSVP?" sheet)
+- **Attendance check-in ("I'm Here" button)**: active 30 minutes before the event through end time. Tapping requests GPS — within 500m = instant check-in; beyond 500m = soft confirmation sheet showing exact distance. Declining location still allows check-in via confirmation. Check-in is recorded in the `check_ins` table, visible to the host, and gates post-event match reveals and the safety survey.
 - Full street address revealed only to RSVPed attendees and the host — everyone else sees venue name only (Maps button also gated; calendar exports honour the same rule)
 - Event bookmarks (saved events page)
 - Comments on events
@@ -54,7 +55,7 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 - RSVP → see match count + blurred ghost profile cards (free users on upcoming events). The ghost cards use the real card layout at fading opacity with a blur filter, a lock icon overlay showing "X more matches hidden", and a gold upsell block below — making the value of upgrading immediately clear
 - Gathr+ members see partial first names + shared interests pre-event
 - Anonymous "wave" feature (Gathr+ only) — signal interest before the event; a mutual wave gives both users an early first-name reveal
-- Post-event: full profiles of co-attendees unlock for people who actually attended
+- Post-event: full profiles of co-attendees unlock for people who checked in to the event ("I'm Here" GPS-based button during the event window). RSVP is accepted as a fallback for events that pre-date the check-in feature.
 - Safety-flagged accounts are hidden from all match lists
 
 ### Communities (Groups)
@@ -408,7 +409,7 @@ The mystery match mechanic is especially resonant in a city where people struggl
 - ~~**Contextual first-use tips**~~ — Done. All 5 live: host dashboard overview banner (`gathr_host_tip_seen`), event detail mystery match teaser (contextual, no localStorage — auto-hides on RSVP), profile achievements tab badge pin banner (`gathr_badge_tip_seen`), DM thread long-press-to-unsend banner (`gathr_unsend_tip_seen`), community feed chat-tab discovery banner (`gathr_community_chat_tip_seen`).
 - **Search — remaining polish:**
   - Trending searches — removed hardcoded list; bring back once PostHog has real top-5 query data
-- **Attendance achievement gating** — attendance achievements currently fire on RSVP (not verified attendance); gate on `start_datetime < now()` once a check-in system exists (QR, GPS, or host confirms)
+- **Attendance achievement gating** — attendance achievements currently fire on RSVP (not verified attendance). The check-in system now exists (GPS "I'm Here" button → `check_ins` table, soft geo-lock). Remaining step: gate achievements on `start_datetime < now()` so they only fire after the event actually ends.
 - **RSVP-gated address server hardening** — street address is currently hidden client-side only; add RLS policy to enforce at the DB level as a future security hardening step
 - **Onboarding email drip** — day-3 and day-7 nudge emails (welcome email already live; drip sequence not built)
 - **Referral mechanism** — "Invite a friend, both get 1 week Gathr+" — build once billing is live
@@ -435,6 +436,7 @@ The app is a mobile-first web app — it runs in the browser on any device, no a
 - Gathr+ trial and billing status can't be manipulated by users — protected at the DB level
 - Account deletion cleanly removes all user data (events, RSVPs, communities, connections, messages, waves, notifications) via FK cascades — no orphan rows
 - Event street address gated behind RSVP — only RSVPed attendees and the host see the full address; the map pin shows venue name only to everyone else
+- GPS-based attendance check-in ("I'm Here" button) is soft — attendees within 500m are checked in instantly; beyond 500m a confirmation sheet shows the distance and lets them confirm anyway. GPS coordinates are stored but never required — declining location access does not block check-in. Check-in unlocks post-event match reveals and gates the safety review survey.
 - Profile photo uploads are compressed client-side (max 800×800 px, 0.88 JPEG quality) before hitting storage — reduces upload size ~10–20× with no visible quality loss
 - Map tile rendering fixed — Leaflet CSS is loaded at the root layout level (not inside a lazy-loaded chunk) so tiles always render correctly on the map page
 - Connection request emails are deduplicated at the DB trigger level — repeated connect/withdraw/reconnect cycles never spam a user's inbox

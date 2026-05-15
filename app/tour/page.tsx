@@ -16,7 +16,7 @@ const slides = [
   {
     tag: 'The mystery match',
     headline: <>When you RSVP,<br />the match starts.</>,
-    body: 'You\'ll instantly see how many people going share your vibe — full profiles unlock after you attend. No awkward pre-screening. Just show up.',
+    body: 'You\'ll instantly see how many people going share your vibe — full profiles unlock after you check in. No awkward pre-screening. Just show up.',
     visual: (
       <div
         className="w-[200px] h-[150px] rounded-3xl border border-white/[0.06] relative overflow-hidden flex flex-col items-center justify-center gap-3"
@@ -42,7 +42,7 @@ const slides = [
           </div>
         </div>
         <p className="font-mono-ui text-[8px] tracking-[.16em] uppercase text-[#E8B84B]/50">
-          Attending reveals the match
+          Check in to reveal
         </p>
       </div>
     ),
