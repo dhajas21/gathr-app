@@ -147,12 +147,52 @@ export default function ProfilePage() {
 
   const lastLoadAtRef = useRef<number>(0)
   useEffect(() => {
+    let userId: string
+    let connChannel: ReturnType<typeof supabase.channel> | undefined
+
     const loadData = () => {
       lastLoadAtRef.current = Date.now()
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) { router.push('/auth'); return }
+        userId = session.user.id
         setUser(session.user)
         fetchAll(session.user.id)
+
+        // Realtime: when a connection is accepted (either direction), update the
+        // count immediately without waiting for the 60s stale refetch.
+        connChannel = supabase
+          .channel('profile-connections-' + session.user.id)
+          .on('postgres_changes', {
+            event: 'UPDATE', schema: 'public', table: 'connections',
+            filter: 'addressee_id=eq.' + session.user.id,
+          }, (payload) => {
+            if ((payload.new as any).status === 'accepted') {
+              setConnections(prev => {
+                const exists = prev.some((c: any) =>
+                  c.requester_id === (payload.new as any).requester_id &&
+                  c.addressee_id === (payload.new as any).addressee_id
+                )
+                if (exists) return prev
+                return [...prev, { requester_id: (payload.new as any).requester_id, addressee_id: (payload.new as any).addressee_id }]
+              })
+            }
+          })
+          .on('postgres_changes', {
+            event: 'UPDATE', schema: 'public', table: 'connections',
+            filter: 'requester_id=eq.' + session.user.id,
+          }, (payload) => {
+            if ((payload.new as any).status === 'accepted') {
+              setConnections(prev => {
+                const exists = prev.some((c: any) =>
+                  c.requester_id === (payload.new as any).requester_id &&
+                  c.addressee_id === (payload.new as any).addressee_id
+                )
+                if (exists) return prev
+                return [...prev, { requester_id: (payload.new as any).requester_id, addressee_id: (payload.new as any).addressee_id }]
+              })
+            }
+          })
+          .subscribe()
       })
     }
 
@@ -168,7 +208,10 @@ export default function ProfilePage() {
       loadData()
     }
     document.addEventListener('visibilitychange', handleVisibility)
-    return () => { document.removeEventListener('visibilitychange', handleVisibility) }
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (connChannel) supabase.removeChannel(connChannel)
+    }
   }, [router])
 
   useEffect(() => {
