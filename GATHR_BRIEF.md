@@ -438,6 +438,7 @@ The app is a mobile-first web app — it runs in the browser on any device, no a
 - Profile photo uploads are compressed client-side (max 800×800 px, 0.88 JPEG quality) before hitting storage — reduces upload size ~10–20× with no visible quality loss
 - Map tile rendering fixed — Leaflet CSS is loaded at the root layout level (not inside a lazy-loaded chunk) so tiles always render correctly on the map page
 - Connection request emails are deduplicated at the DB trigger level — repeated connect/withdraw/reconnect cycles never spam a user's inbox
+- Realtime subscriptions are properly scoped — the host dashboard uses one filtered channel per event (not an unfiltered firehose of all RSVPs in the DB); the profile page subscribes to connections changes so the count updates live when a request is accepted without requiring a page refresh
 - Venue autocomplete in the create form proxies through a server-side `/api/geocode` route — user IPs are never sent to Nominatim at any step; post-publish geocoding runs through the `geocode-event` edge function as before
 
 The biggest technical gap before launch is **billing** (RevenueCat + IAP). Everything else is done.
