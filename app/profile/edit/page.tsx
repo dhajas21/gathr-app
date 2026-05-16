@@ -9,6 +9,22 @@ import ImageCropModal from '@/components/ImageCropModal'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_FILE_SIZE = 2 * 1024 * 1024
 
+const LOOKING_FOR_OPTIONS = [
+  { value: 'new_to_city',           label: 'New to the city',        desc: 'Building a local social life' },
+  { value: 'activity_partners',     label: 'Activity partners',      desc: 'Someone to hike, ski, or cook with' },
+  { value: 'deepen_friendships',    label: 'Deeper friendships',     desc: 'Move past the surface-level stuff' },
+  { value: 'life_change_community', label: 'Going through a change', desc: 'Big move, new chapter, fresh start' },
+  { value: 'do_more_stuff',         label: 'Just do more things',    desc: 'Get off the couch and out there' },
+  { value: 'curious',               label: 'Just curious',           desc: 'No agenda — see what happens' },
+] as const
+
+const VIBE_OPTIONS = [
+  { value: 'low_key',     label: 'Low-key',           desc: 'Brunches, walks, chill hangs',        emoji: '☕' },
+  { value: 'active',      label: 'Active',            desc: 'Hikes, sports, outdoor adventures',   emoji: '🏔️' },
+  { value: 'high_energy', label: 'High energy',       desc: 'Concerts, parties, big group things', emoji: '⚡' },
+  { value: 'mix',         label: 'Mix of everything', desc: 'Depends on the day',                  emoji: '🎲' },
+] as const
+
 export default function EditProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -28,6 +44,9 @@ export default function EditProfilePage() {
   const [saveError, setSaveError] = useState('')
   const [interestSearch, setInterestSearch] = useState('')
   const [rsvpVisibility, setRsvpVisibility] = useState('public')
+  const [lookingFor, setLookingFor] = useState<string[]>([])
+  const [vibe, setVibe] = useState<string | null>(null)
+  const [offering, setOffering] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const interestInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -36,7 +55,7 @@ export default function EditProfilePage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUserId(session.user.id)
-      supabase.from('profiles').select('name,bio_social,city,interests,profile_mode,rsvp_visibility,avatar_url').eq('id', session.user.id).single()
+      supabase.from('profiles').select('name,bio_social,city,interests,profile_mode,rsvp_visibility,avatar_url,looking_for,vibe,offering').eq('id', session.user.id).single()
         .then(({ data }) => {
           if (data) {
             const parts = (data.name || '').trim().split(' ')
@@ -47,6 +66,9 @@ export default function EditProfilePage() {
             setInterests(data.interests || [])
             setMode(data.profile_mode || 'social')
             setRsvpVisibility(data.rsvp_visibility || 'public')
+            if (data.looking_for?.length) setLookingFor(data.looking_for)
+            if (data.vibe)     setVibe(data.vibe)
+            if (data.offering) setOffering(data.offering)
             setAvatarUrl(data.avatar_url || null)
             if (data.avatar_url) setAvatarPreview(data.avatar_url)
           }
@@ -147,7 +169,16 @@ export default function EditProfilePage() {
       finalAvatarUrl = null
     }
     const { error } = await supabase.from('profiles').update({
-      name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '), bio_social: bio.trim(), city, interests, profile_mode: mode, avatar_url: finalAvatarUrl, rsvp_visibility: rsvpVisibility,
+      name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '),
+      bio_social: bio.trim(),
+      city,
+      interests,
+      looking_for: lookingFor.length ? lookingFor : null,
+      vibe: vibe || null,
+      offering: offering.trim() || null,
+      profile_mode: mode,
+      avatar_url: finalAvatarUrl,
+      rsvp_visibility: rsvpVisibility,
     }).eq('id', userId)
     setSaving(false)
     if (error) { setSaveError('Failed to save changes. Please try again.'); return }
@@ -249,6 +280,23 @@ export default function EditProfilePage() {
         </div>
 
         <div>
+          <label className="text-xs text-white/50 mb-1.5 block">
+            What&apos;s your thing? <span className="text-white/25">(optional)</span>
+          </label>
+          <textarea
+            className={inputClass}
+            rows={3}
+            placeholder={'e.g. "I make a mean sourdough and know every trail in a 30-mile radius."'}
+            value={offering}
+            onChange={e => setOffering(e.target.value.slice(0, 150))}
+          />
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px] text-white/35">Shown on your public profile</span>
+            <span className={'text-[10px] ' + (offering.length >= 140 ? 'text-[#E8B84B]/70' : 'text-white/25')}>{offering.length}/150</span>
+          </div>
+        </div>
+
+        <div>
           <label className="text-xs text-white/50 mb-1.5 block">City</label>
           <select className={inputClass} value={city} onChange={e => setCity(e.target.value)}>
             {CITY_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -272,6 +320,61 @@ export default function EditProfilePage() {
                 </div>
                 <div className={'w-4 h-4 rounded-full border-2 flex items-center justify-center ml-auto flex-shrink-0 ' + (mode === opt.value ? 'border-[#E8B84B]' : 'border-white/20')}>
                   {mode === opt.value && <div className="w-2 h-2 rounded-full bg-[#E8B84B]" />}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-white/50 mb-2 block">What brings you here? <span className="text-white/25">(up to 3)</span></label>
+          <div className="space-y-2">
+            {LOOKING_FOR_OPTIONS.map(opt => {
+              const selected = lookingFor.includes(opt.value)
+              const maxed = lookingFor.length >= 3 && !selected
+              return (
+                <div key={opt.value}
+                  onClick={() => {
+                    if (maxed) return
+                    setLookingFor(prev =>
+                      prev.includes(opt.value) ? prev.filter(v => v !== opt.value) : [...prev, opt.value]
+                    )
+                  }}
+                  className={'flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all '
+                    + (selected ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : maxed ? 'border-white/5 bg-[#1C241C] opacity-40' : 'border-white/10 bg-[#1C241C]')}>
+                  <div className={'w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 '
+                    + (selected ? 'border-[#E8B84B] bg-[#E8B84B]' : 'border-white/20')}>
+                    {selected && (
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#0D110D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 6l3 3 5-5"/>
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-[#F0EDE6]">{opt.label}</div>
+                    <div className="text-xs text-white/40">{opt.desc}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-white/50 mb-2 block">Your vibe <span className="text-white/25">(private — used for matching)</span></label>
+          <div className="space-y-2">
+            {VIBE_OPTIONS.map(opt => (
+              <div key={opt.value} onClick={() => setVibe(vibe === opt.value ? null : opt.value)}
+                className={'flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all '
+                  + (vibe === opt.value ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
+                <span className="text-xl w-7 text-center">{opt.emoji}</span>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-[#F0EDE6]">{opt.label}</div>
+                  <div className="text-xs text-white/40">{opt.desc}</div>
+                </div>
+                <div className={'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 '
+                  + (vibe === opt.value ? 'border-[#E8B84B]' : 'border-white/20')}>
+                  {vibe === opt.value && <div className="w-2 h-2 rounded-full bg-[#E8B84B]" />}
                 </div>
               </div>
             ))}

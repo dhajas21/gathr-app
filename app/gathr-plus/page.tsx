@@ -48,6 +48,12 @@ const PERKS = [
     body: 'First 1,000 subscribers get a permanent Founding Member badge on their profile. Limited supply.',
     badge: 'Limited',
   },
+  {
+    icon: '❤️',
+    title: 'Open to dating mode',
+    body: 'Opt in to signal you\'re open to romantic connection. Only visible to other Gathr+ members who\'ve also opted in.',
+    badge: null,
+  },
 ]
 
 export default function GathrPlusPage() {

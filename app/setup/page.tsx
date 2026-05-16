@@ -6,7 +6,23 @@ import { supabase } from '@/lib/supabase'
 import { POPULAR_INTERESTS, ALL_INTERESTS, CITY_NAMES } from '@/lib/constants'
 import ImageCropModal from '@/components/ImageCropModal'
 
-const STEPS = ['photo', 'mode', 'interests', 'city', 'privacy', 'done']
+const STEPS = ['photo', 'mode', 'interests', 'looking_for', 'vibe', 'offering', 'city', 'privacy', 'done']
+
+const LOOKING_FOR_OPTIONS = [
+  { value: 'new_to_city',            label: 'New to the city',       desc: 'Building a local social life from scratch' },
+  { value: 'activity_partners',      label: 'Activity partners',     desc: 'Someone to hike, ski, or cook with' },
+  { value: 'deepen_friendships',     label: 'Deeper friendships',    desc: 'Move past the surface-level stuff' },
+  { value: 'life_change_community',  label: 'Going through a change', desc: 'Big move, new chapter, fresh start' },
+  { value: 'do_more_stuff',          label: 'Just do more things',   desc: 'Get off the couch and out there' },
+  { value: 'curious',                label: 'Just curious',          desc: 'No agenda — let\'s see what happens' },
+] as const
+
+const VIBE_OPTIONS = [
+  { value: 'low_key',     label: 'Low-key',            desc: 'Brunches, walks, chill hangs',        emoji: '☕' },
+  { value: 'active',      label: 'Active',             desc: 'Hikes, sports, outdoor adventures',   emoji: '🏔️' },
+  { value: 'high_energy', label: 'High energy',        desc: 'Concerts, parties, big group things', emoji: '⚡' },
+  { value: 'mix',         label: 'Mix of everything',  desc: 'Depends on the day',                  emoji: '🎲' },
+] as const
 
 // ─── SVG atoms ────────────────────────────────────────────────────
 function IconBox({ children }: { children: React.ReactNode }) {
@@ -80,6 +96,9 @@ export default function SetupPage() {
   const [saveError, setSaveError] = useState('')
   const [photoError, setPhotoError] = useState('')
   const [nameError, setNameError] = useState('')
+  const [lookingFor, setLookingFor] = useState<string[]>([])
+  const [vibe, setVibe] = useState<string | null>(null)
+  const [offering, setOffering] = useState('')
   const [isResuming, setIsResuming] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -90,7 +109,7 @@ export default function SetupPage() {
       setUser(session.user)
       supabase
         .from('profiles')
-        .select('name, bio_social, avatar_url, profile_mode, interests, city, rsvp_visibility')
+        .select('name, bio_social, avatar_url, profile_mode, interests, city, rsvp_visibility, looking_for, vibe, offering')
         .eq('id', session.user.id)
         .maybeSingle()
         .then(({ data }) => {
@@ -106,6 +125,9 @@ export default function SetupPage() {
           if (data.interests?.length) setInterests(data.interests)
           if (data.city)           setCity(data.city)
           if (data.rsvp_visibility) setRsvpVisibility(data.rsvp_visibility)
+          if (data.looking_for?.length) setLookingFor(data.looking_for)
+          if (data.vibe)     setVibe(data.vibe)
+          if (data.offering) setOffering(data.offering)
           if (data.name) {
             setStep(2); setIsResuming(true)
           }
@@ -197,6 +219,9 @@ export default function SetupPage() {
       bio_social: bio.trim() || undefined,
       profile_mode: mode,
       interests,
+      looking_for: lookingFor.length ? lookingFor : null,
+      vibe: vibe || null,
+      offering: offering.trim() || null,
       city,
       rsvp_visibility: rsvpVisibility,
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
@@ -415,8 +440,111 @@ export default function SetupPage() {
           </>
         )}
 
-        {/* ── Step 3: City ──────────────────────────────────────── */}
+        {/* ── Step 3: Looking for ───────────────────────────────── */}
         {step === 3 && (
+          <>
+            <IconBox>
+              <svg {...si} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+            </IconBox>
+            <h1 className="font-display text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2">
+              What brings you<br />to <span className="text-[#E8B84B]">Gathr?</span>
+            </h1>
+            <p className="text-sm text-white/45 text-center mb-6 max-w-[240px] font-light">Pick up to 3. Helps us connect you with the right people.</p>
+            <div className="w-full space-y-2">
+              {LOOKING_FOR_OPTIONS.map(opt => {
+                const selected = lookingFor.includes(opt.value)
+                const maxed = lookingFor.length >= 3 && !selected
+                return (
+                  <button key={opt.value}
+                    onClick={() => {
+                      if (maxed) return
+                      setLookingFor(prev =>
+                        prev.includes(opt.value) ? prev.filter(v => v !== opt.value) : [...prev, opt.value]
+                      )
+                    }}
+                    className={'w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left '
+                      + (selected ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : maxed ? 'border-white/5 bg-[#1C241C] opacity-40' : 'border-white/10 bg-[#1C241C]')}>
+                    <div className={'w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 '
+                      + (selected ? 'border-[#E8B84B] bg-[#E8B84B]' : 'border-white/20')}>
+                      {selected && (
+                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#0D110D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 6l3 3 5-5"/>
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-[#F0EDE6]">{opt.label}</div>
+                      <div className="text-xs text-white/40">{opt.desc}</div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            {lookingFor.length === 3 && (
+              <p className="text-[10px] text-[#E8B84B]/60 mt-2">Max 3 selected</p>
+            )}
+          </>
+        )}
+
+        {/* ── Step 4: Vibe ──────────────────────────────────────── */}
+        {step === 4 && (
+          <>
+            <IconBox>
+              <svg {...si} viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </IconBox>
+            <h1 className="font-display text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2">
+              What's your<br /><span className="text-[#E8B84B]">vibe?</span>
+            </h1>
+            <p className="text-sm text-white/45 text-center mb-6 max-w-[240px] font-light">We'll use this privately to improve your matches.</p>
+            <div className="w-full space-y-2">
+              {VIBE_OPTIONS.map(opt => (
+                <button key={opt.value} onClick={() => setVibe(opt.value)}
+                  className={'w-full flex items-center gap-3 p-4 rounded-2xl border transition-all '
+                    + (vibe === opt.value ? 'border-[#E8B84B]/40 bg-[#E8B84B]/5' : 'border-white/10 bg-[#1C241C]')}>
+                  <span className="text-2xl w-8 text-center">{opt.emoji}</span>
+                  <div className="flex-1 text-left">
+                    <div className="text-sm font-semibold text-[#F0EDE6]">{opt.label}</div>
+                    <div className="text-xs text-white/40">{opt.desc}</div>
+                  </div>
+                  <div className={'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 '
+                    + (vibe === opt.value ? 'border-[#E8B84B]' : 'border-white/20')}>
+                    {vibe === opt.value && <div className="w-2 h-2 rounded-full bg-[#E8B84B]" />}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Step 5: Offering ──────────────────────────────────── */}
+        {step === 5 && (
+          <>
+            <IconBox>
+              <svg {...si} viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </IconBox>
+            <h1 className="font-display text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2">
+              What's your<br /><span className="text-[#E8B84B]">thing?</span>
+            </h1>
+            <p className="text-sm text-white/45 text-center mb-6 max-w-[240px] font-light">What do you bring to the table? This shows on your profile. Optional.</p>
+            <div className="w-full">
+              <textarea
+                value={offering}
+                onChange={e => setOffering(e.target.value.slice(0, 150))}
+                placeholder={'e.g. “I make a mean sourdough and know every trail in a 30-mile radius.”'}
+                rows={4}
+                className="w-full bg-[#1C241C] border border-white/10 rounded-2xl px-4 py-3.5 text-[#F0EDE6] placeholder-white/20 outline-none focus:border-[#E8B84B]/40 text-sm resize-none leading-relaxed"
+              />
+              <div className="flex justify-end mt-1">
+                <span className={'text-[10px] ' + (offering.length >= 140 ? 'text-[#E8B84B]/70' : 'text-white/25')}>
+                  {offering.length}/150
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Step 6: City ──────────────────────────────────────── */}
+        {step === 6 && (
           <>
             <IconBox><LocationIcon /></IconBox>
             <h1 className="font-display text-2xl font-bold text-[#F0EDE6] text-center leading-tight mb-2">
@@ -453,8 +581,8 @@ export default function SetupPage() {
           </>
         )}
 
-        {/* ── Step 4: Privacy ───────────────────────────────────── */}
-        {step === 4 && (
+        {/* ── Step 7: Privacy ───────────────────────────────────── */}
+        {step === 7 && (
           <>
             <IconBox><ShieldIcon /></IconBox>
             <h1 className="font-display text-2xl font-bold text-[#F0EDE6] leading-tight mb-1">
@@ -492,8 +620,8 @@ export default function SetupPage() {
           </>
         )}
 
-        {/* ── Step 5: Done ──────────────────────────────────────── */}
-        {step === 5 && (
+        {/* ── Step 8: Done ──────────────────────────────────────── */}
+        {step === 8 && (
           <div className="flex flex-col items-center text-center pt-6">
             <div className="w-20 h-20 bg-gradient-to-br from-[#E8B84B]/20 to-[#E8B84B]/5 border border-[#E8B84B]/20 rounded-3xl flex items-center justify-center mb-5">
               <SparkIcon size={28} opacity={0.8} />

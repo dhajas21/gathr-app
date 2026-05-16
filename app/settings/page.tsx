@@ -41,6 +41,9 @@ export default function SettingsPage() {
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [gathrPlus, setGathrPlus] = useState(false)
   const [gathrPlusExpiresAt, setGathrPlusExpiresAt] = useState<string | null>(null)
+  const [openToDating, setOpenToDating] = useState(false)
+  const [savingDating, setSavingDating] = useState(false)
+  const [showDatingNote, setShowDatingNote] = useState(false)
   const passwordSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
@@ -50,7 +53,7 @@ export default function SettingsPage() {
       setUser(session.user)
       ;(async () => {
         try {
-          const { data } = await supabase.from('profiles').select('name, avatar_url, profile_mode, is_discoverable, matching_enabled, notify_on_rsvp, city, gathr_plus, gathr_plus_expires_at').eq('id', session.user.id).maybeSingle()
+          const { data } = await supabase.from('profiles').select('name, avatar_url, profile_mode, is_discoverable, matching_enabled, notify_on_rsvp, city, gathr_plus, gathr_plus_expires_at, open_to_dating').eq('id', session.user.id).maybeSingle()
           if (data) {
             setProfile(data)
             setProfileMode(data.profile_mode || 'both')
@@ -60,6 +63,7 @@ export default function SettingsPage() {
             const trialActive = data.gathr_plus_expires_at ? new Date(data.gathr_plus_expires_at) > new Date() : false
             setGathrPlus(data.gathr_plus === true || trialActive)
             setGathrPlusExpiresAt(trialActive && !data.gathr_plus ? data.gathr_plus_expires_at : null)
+            setOpenToDating(data.open_to_dating === true)
           }
         } catch (e) {
           console.error(e)
@@ -143,6 +147,29 @@ export default function SettingsPage() {
     const { error } = await supabase.from('profiles').update({ notify_on_rsvp: next }).eq('id', user.id)
     if (error) setNotifyOnRsvp(!next)
     setSavingNotifyOnRsvp(false)
+  }
+
+  const handleToggleDating = async () => {
+    if (savingDating) return
+    if (!gathrPlus) { router.push('/gathr-plus'); return }
+    const next = !openToDating
+    setOpenToDating(next)
+    if (next) setShowDatingNote(true)
+    setSavingDating(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/toggle-dating-intent`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: next }),
+      })
+      if (!res.ok) { setOpenToDating(!next); setShowDatingNote(false) }
+    } catch {
+      setOpenToDating(!next)
+      setShowDatingNote(false)
+    } finally {
+      setSavingDating(false)
+    }
   }
 
   const handleToggleMatching = async () => {
@@ -513,6 +540,34 @@ export default function SettingsPage() {
             </div>
             <div className={'w-11 h-6 rounded-full transition-all flex-shrink-0 relative ' + (notifyOnRsvp ? 'bg-[#7EC87E]' : 'bg-white/15')}>
               <div className={'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ' + (notifyOnRsvp ? 'left-[22px]' : 'left-0.5')} />
+            </div>
+          </button>
+
+          <button
+            onClick={handleToggleDating}
+            disabled={savingDating}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] active:bg-white/[0.03] transition-colors"
+          >
+            <div className="text-left flex-1 pr-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-[#F0EDE6]">Open to dating connections</span>
+                {!gathrPlus && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#E8B84B]/15 border border-[#E8B84B]/25 text-[#E8B84B] font-semibold tracking-wide">GATHR+</span>
+                )}
+              </div>
+              <div className="text-[10px] text-white/35 mt-0.5">
+                {gathrPlus
+                  ? 'Only visible to other Gathr+ members who\'ve also opted in'
+                  : 'Upgrade to Gathr+ to enable'}
+              </div>
+              {showDatingNote && openToDating && (
+                <div className="mt-1.5 text-[10px] text-[#E8B84B]/70 bg-[#E8B84B]/6 border border-[#E8B84B]/15 rounded-lg px-2 py-1 leading-snug">
+                  ✓ Enabled — only mutual Gathr+ opt-ins can see this
+                </div>
+              )}
+            </div>
+            <div className={'w-11 h-6 rounded-full transition-all flex-shrink-0 relative ' + (openToDating && gathrPlus ? 'bg-[#E8B84B]' : 'bg-white/15')}>
+              <div className={'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ' + (openToDating && gathrPlus ? 'left-[22px]' : 'left-0.5')} />
             </div>
           </button>
 

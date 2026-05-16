@@ -411,54 +411,40 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const fetchMatches = async (evtId: string, userId: string) => {
-    const { data: rsvpData } = await supabase
-      .from('rsvps')
-      .select('user_id')
-      .eq('event_id', evtId)
-      .neq('user_id', userId)
-      .limit(100)
-
-    if (!rsvpData || rsvpData.length === 0) return
-
-    const attendeeIds = rsvpData.map((r: any) => r.user_id)
-
-    const [profilesRes, myProfileRes, connectionsRes, myWavesRes, incomingWavesRes] = await Promise.all([
-      supabase.from('profiles').select('id, name, avatar_url, interests, bio_social, attended_count, safety_tier, review_count').in('id', attendeeIds).eq('matching_enabled', true),
-      supabase.from('profiles').select('interests, gathr_plus, gathr_plus_expires_at').eq('id', userId).single(),
-      supabase.from('connections').select('requester_id, addressee_id, status').or(connectionPairOr(userId)),
+    const [rpcRes, myWavesRes, incomingWavesRes, connectionsRes] = await Promise.all([
+      supabase.rpc('get_event_matches', { p_event_id: evtId, p_viewer_id: userId }),
       supabase.from('waves').select('receiver_id').eq('sender_id', userId).eq('event_id', evtId),
       supabase.rpc('get_incoming_waves', { p_event_id: evtId }),
+      // Keep separate: RPC filters accepted connections but pending still needs Connect-button state
+      supabase.from('connections').select('requester_id, addressee_id, status').or(connectionPairOr(userId)),
     ])
 
-    const myInterests: string[] = (myProfileRes.data?.interests || []).map((i: string) => i.toLowerCase())
-    const connections = connectionsRes.data || []
+    if (rpcRes.error) return
+
+    const data: any[] = rpcRes.data || []
+
+    if (data.length > 0) {
+      setIsGathrPlus(data[0].is_gathr_plus_viewer === true)
+    }
+
+    // Remap RPC fields to the shape MysteryMatchCard and inline render code expect
+    setMatches(data.map((r: any) => ({
+      ...r,
+      id: r.candidate_id,
+      name: r.first_name,
+      shared: r.shared_interests || [],
+    })))
 
     const connMap: Record<string, string> = {}
-    connections.forEach((c: any) => {
+    ;(connectionsRes.data || []).forEach((c: any) => {
       const otherId = c.requester_id === userId ? c.addressee_id : c.requester_id
       connMap[otherId] = c.status
     })
     setMatchConnStatuses(connMap)
 
-    const scored = (profilesRes.data || [])
-      .filter((p: any) => !connMap[p.id] && p.safety_tier !== 'flagged')
-      .map((p: any) => {
-        const their = (p.interests || []).map((i: string) => i.toLowerCase())
-        const shared = myInterests.filter(i => their.includes(i))
-        const trust = (p.avatar_url ? 1 : 0) + (p.bio_social ? 1 : 0) + (their.length >= 3 ? 1 : 0) + ((p.attended_count || 0) >= 3 ? 1 : 0)
-        return { ...p, shared, trust }
-      })
-      .sort((a: any, b: any) => b.shared.length - a.shared.length || b.trust - a.trust)
-
-    setMatches(scored)
-    const expiresAt = myProfileRes.data?.gathr_plus_expires_at
-    const trialActive = expiresAt ? new Date(expiresAt) > new Date() : false
-    const isPlus = myProfileRes.data?.gathr_plus === true || trialActive
-    setIsGathrPlus(isPlus)
     setWavedIds(new Set((myWavesRes.data || []).map((w: any) => w.receiver_id as string)))
     const incomingData: any[] = incomingWavesRes.data || []
-    const mutualIds = new Set(incomingData.filter((w) => w.is_mutual).map((w) => w.sender_id as string))
-    setMutualWaveIds(mutualIds)
+    setMutualWaveIds(new Set(incomingData.filter((w) => w.is_mutual).map((w) => w.sender_id as string)))
     setIncomingWaveCount(incomingData.length)
     setIncomingWaves(incomingData)
   }

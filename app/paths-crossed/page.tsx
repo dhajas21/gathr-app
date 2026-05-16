@@ -298,6 +298,11 @@ export default function PathsCrossedPage() {
                 <div className="flex-1 min-w-0 pt-0.5">
                   <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                     <span className="text-sm font-semibold text-[#F0EDE6]">{item.name}</span>
+                    {item.is_dating_match && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="rgba(232,184,75,0.75)" stroke="rgba(232,184,75,0.85)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                      </svg>
+                    )}
                     <SafetyBadge tier={item.safety_tier || 'new'} reviewCount={item.review_count} size="sm" />
                   </div>
                   <div className="text-[10px] text-white/35">

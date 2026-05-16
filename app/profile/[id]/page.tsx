@@ -236,6 +236,35 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
 
       <div className="px-4 pt-4 space-y-3">
 
+        {profile.offering && (
+          <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
+            <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2 font-medium">Their thing</div>
+            <p className="text-sm text-[#F0EDE6]/80 leading-relaxed font-light italic">
+              &ldquo;{profile.offering}&rdquo;
+            </p>
+          </div>
+        )}
+
+        {profile.looking_for && profile.looking_for.length > 0 && (
+          <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
+            <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">Here for</div>
+            <div className="flex flex-wrap gap-2">
+              {(profile.looking_for as string[]).map((val: string) => {
+                const label: Record<string, string> = {
+                  new_to_city: 'New to the city', activity_partners: 'Activity partners',
+                  deepen_friendships: 'Deeper friendships', life_change_community: 'Going through a change',
+                  do_more_stuff: 'Just do more things', curious: 'Just curious',
+                }
+                return (
+                  <span key={val} className="text-xs px-2.5 py-1 rounded-lg bg-[#E8B84B]/8 border border-[#E8B84B]/20 text-[#E8B84B]/80">
+                    {label[val] ?? val}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {profile.interests && profile.interests.length > 0 && (
           <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
             <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">Interests</div>
