@@ -121,6 +121,7 @@ function TierIcon({ level, size = 24 }: { level: number; size?: number }) {
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [nudgeSeen, setNudgeSeen] = useState(false)
   const [hostedEvents, setHostedEvents] = useState<any[]>([])
   const [attendedEvents, setAttendedEvents] = useState<any[]>([])
   const [connections, setConnections] = useState<any[]>([])
@@ -308,6 +309,7 @@ export default function ProfilePage() {
       if (connProfiles) setConnections(connProfiles)
     }
 
+    setNudgeSeen(localStorage.getItem('gathr_match_profile_nudge_seen') === '1')
     setLoading(false)
   }
 
@@ -456,6 +458,24 @@ export default function ProfilePage() {
           )}
           {profile?.offering && (
             <div className="text-sm text-white/40 mt-1.5 leading-relaxed font-light italic">&ldquo;{profile.offering}&rdquo;</div>
+          )}
+          {!profile?.looking_for?.length && !nudgeSeen && (
+            <div className="mt-3 bg-[#1C241C] border border-[#E8B84B]/20 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-semibold text-[#E8B84B]">Boost your matches</div>
+                <div className="text-[11px] text-white/40 mt-0.5">Tell us what brings you here — 30 seconds.</div>
+              </div>
+              <button
+                onClick={() => router.push('/setup?step=3')}
+                className="shrink-0 text-[11px] font-semibold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-lg px-2.5 py-1.5 active:scale-95 transition-transform">
+                Complete →
+              </button>
+              <button
+                onClick={() => { localStorage.setItem('gathr_match_profile_nudge_seen', '1'); setNudgeSeen(true) }}
+                className="shrink-0 text-white/25">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           )}
           <div className="flex gap-2 mt-3">
             <button onClick={() => handleToggleMode('social')}

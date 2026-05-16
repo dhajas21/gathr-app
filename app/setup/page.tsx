@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { POPULAR_INTERESTS, ALL_INTERESTS, CITY_NAMES } from '@/lib/constants'
 import ImageCropModal from '@/components/ImageCropModal'
@@ -102,6 +102,7 @@ export default function SetupPage() {
   const [isResuming, setIsResuming] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -129,7 +130,9 @@ export default function SetupPage() {
           if (data.vibe)     setVibe(data.vibe)
           if (data.offering) setOffering(data.offering)
           if (data.name) {
-            setStep(2); setIsResuming(true)
+            const paramStep = parseInt(searchParams.get('step') ?? '', 10)
+            setStep(paramStep >= 3 && paramStep <= 5 ? paramStep : 2)
+            setIsResuming(true)
           }
         })
     })
