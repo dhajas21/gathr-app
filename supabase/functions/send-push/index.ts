@@ -1,4 +1,4 @@
-// send-push (v6+):
+// send-push (v7+):
 // Fans out a Web Push notification to all of a user's push_subscriptions
 // in response to an internal call from the dispatch_push_notification
 // Postgres trigger.
@@ -7,19 +7,22 @@
 //   - verify_jwt is DISABLED at the function-config level. Standard JWT
 //     verification accepts anon keys, which would let any browser trigger
 //     arbitrary pushes. Instead we use a shared-secret header.
-//   - The trigger fetches INTERNAL_PUSH_TOKEN from Supabase Vault and
-//     passes it as X-Internal-Token. We compare against the env var with
-//     the same name. Mismatch -> 403.
+//   - Both this function and the dispatch_push_notification trigger read
+//     the token from Supabase Vault via get_internal_push_token(). This
+//     keeps a single source of truth and eliminates the env-var/vault
+//     mismatch that caused 401s.
 //
 // Inputs (JSON body from the Postgres trigger):
 //   { user_id, title, body, link, type }
 //
 // Behaviour:
-//   1. Look up push_subscriptions rows for the user.
-//   2. Build per-type title via formatPushCopy() so notifications read
+//   1. Read expected token from Vault via get_internal_push_token() RPC.
+//   2. Reject if X-Internal-Token header doesn't match.
+//   3. Look up push_subscriptions rows for the user.
+//   4. Build per-type title via formatPushCopy() so notifications read
 //      naturally regardless of the underlying DB title.
-//   3. webpush.sendNotification() to each subscription.
-//   4. Auto-prune dead push_subscriptions on send failure so we don't
+//   5. webpush.sendNotification() to each subscription.
+//   6. Auto-prune dead push_subscriptions on send failure so we don't
 //      keep retrying expired endpoints.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -30,7 +33,6 @@ const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const INTERNAL_PUSH_TOKEN = Deno.env.get("INTERNAL_PUSH_TOKEN") ?? "";
 // VAPID requires a contact URL/email so push services (Mozilla/Apple/Google)
 // can reach a real human if a subscription misbehaves. Configurable via env
 // so we don't have a personal address baked into source.
@@ -71,8 +73,11 @@ function formatPushCopy(notif: { type?: string; title?: string; body?: string })
 
 Deno.serve(async (req) => {
   try {
+    // Read expected token from Vault — single source of truth shared with the
+    // dispatch_push_notification DB trigger so they can never drift out of sync.
+    const { data: expectedToken } = await supabase.rpc("get_internal_push_token");
     const incomingToken = req.headers.get("X-Internal-Token") ?? "";
-    if (!INTERNAL_PUSH_TOKEN || incomingToken !== INTERNAL_PUSH_TOKEN) {
+    if (!expectedToken || incomingToken !== expectedToken) {
       return new Response("forbidden", { status: 403 });
     }
 
