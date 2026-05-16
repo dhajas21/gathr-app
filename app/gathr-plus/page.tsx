@@ -88,7 +88,7 @@ export default function GathrPlusPage() {
     const { data, error } = await supabase.functions.invoke('claim-gathr-plus-trial', { method: 'POST' })
     setLoading(false)
     if (error || !data?.success) {
-      const message = (data as any)?.error || error?.message || 'Could not activate your trial. Try again.'
+      const message = (error as any)?.error || (data as any)?.error || error?.message || 'Could not activate your trial. Try again.'
       setErrorMsg(message)
       return
     }
@@ -124,12 +124,33 @@ export default function GathrPlusPage() {
       </div>
 
       {/* Hero */}
-      <div className="px-5 pt-4 pb-6 text-center">
-        <div className="w-16 h-16 rounded-[22px] bg-gradient-to-br from-[#E8B84B] to-[#C49A35] mx-auto mb-4 flex items-center justify-center"
-          style={{ boxShadow: '0 8px 32px rgba(232,184,75,0.35)' }}>
-          <span className="text-3xl">✦</span>
+      <div className="px-5 pt-6 pb-8 text-center relative overflow-hidden">
+        {/* Ambient radial glow */}
+        <div className="absolute left-1/2 -translate-x-1/2 w-80 h-56 pointer-events-none"
+          style={{ top: '-10px', background: 'radial-gradient(ellipse at center, rgba(232,184,75,0.16) 0%, transparent 68%)' }} />
+
+        {/* Icon cluster */}
+        <div className="relative w-24 h-24 mx-auto mb-5">
+          {/* Halo ring */}
+          <div className="absolute -inset-4 rounded-[36px]"
+            style={{ background: 'radial-gradient(ellipse, rgba(232,184,75,0.13) 0%, transparent 70%)' }} />
+          {/* Border ring */}
+          <div className="absolute inset-0 rounded-[28px] border border-[#E8B84B]/18" />
+          {/* Main badge */}
+          <div className="w-24 h-24 rounded-[28px] bg-gradient-to-br from-[#E8B84B] to-[#B8882A] flex items-center justify-center relative"
+            style={{ boxShadow: '0 16px 52px rgba(232,184,75,0.50), 0 0 0 1px rgba(232,184,75,0.28)' }}>
+            <span className="text-[46px] leading-none" style={{ filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.35))' }}>✦</span>
+          </div>
+          {/* Orbiting sparkles */}
+          <span className="absolute -top-1.5 -right-2 text-[#E8B84B]/55 text-sm leading-none">✦</span>
+          <span className="absolute top-3 -left-3.5 text-[#E8B84B]/28 text-[9px] leading-none">✦</span>
+          <span className="absolute -bottom-2 right-1 text-[#E8B84B]/35 text-[8px] leading-none">✦</span>
         </div>
-        <h1 className="text-2xl font-bold text-[#F0EDE6] mb-1">
+
+        {/* Label */}
+        <div className="text-[9px] font-bold tracking-[0.22em] text-[#E8B84B]/50 uppercase mb-2">Premium membership</div>
+
+        <h1 className="text-[28px] font-bold text-[#F0EDE6] mb-2 tracking-tight">
           Gathr<span className="text-[#E8B84B]">+</span>
         </h1>
         <p className="text-sm text-white/40 max-w-[260px] mx-auto leading-relaxed">

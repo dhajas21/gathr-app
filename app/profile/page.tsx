@@ -454,6 +454,9 @@ export default function ProfilePage() {
           {profile?.bio_social && (
             <div className="text-sm text-white/60 mt-2 leading-relaxed font-light">{profile.bio_social}</div>
           )}
+          {profile?.offering && (
+            <div className="text-sm text-white/40 mt-1.5 leading-relaxed font-light italic">&ldquo;{profile.offering}&rdquo;</div>
+          )}
           <div className="flex gap-2 mt-3">
             <button onClick={() => handleToggleMode('social')}
               className={'flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg border transition-all active:scale-95 ' +

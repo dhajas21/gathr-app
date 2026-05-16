@@ -129,7 +129,7 @@ const slides = [
         </div>
         <div className="px-3 pb-3">
           <div className="rounded-xl py-1.5 text-center text-[9px] font-bold text-[#0D110D] bg-[#E8B84B]">
-            $3.33 / month
+            $4.99 / month
           </div>
         </div>
       </div>

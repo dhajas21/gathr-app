@@ -105,6 +105,24 @@ export default function HomePage() {
     }
   }, [router])
 
+  // When a connection is accepted (either direction), force-refresh so the
+  // Friends tab immediately shows the new connection's events.
+  useEffect(() => {
+    if (!user?.id) return
+    const ch = supabase
+      .channel('home-connections-' + user.id)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'connections',
+        filter: 'requester_id=eq.' + user.id,
+      }, (payload) => { if ((payload.new as any).status === 'accepted') fetchAll(user.id, true) })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'connections',
+        filter: 'addressee_id=eq.' + user.id,
+      }, (payload) => { if ((payload.new as any).status === 'accepted') fetchAll(user.id, true) })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [user?.id])
+
   // Realtime subscription on the user's own profile row — when interests / city
   // / mode change from ANYWHERE (this tab, another tab, another device), the
   // home feed receives the update instantly without waiting for refocus.
@@ -751,9 +769,12 @@ export default function HomePage() {
       {showWelcome && (
         <div className="fixed inset-0 bg-black/60 z-[80] flex items-end justify-center backdrop-blur-sm"
           onClick={() => { try { localStorage.setItem('gathr_welcome_' + user?.id, '1') } catch {}; setShowWelcome(false) }}>
-          <div className="w-full max-w-md bg-[#141A14] border border-white/10 rounded-t-3xl p-6"
+          <div className="w-full max-w-md bg-[#141A14] border border-white/10 rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto"
             style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
-            onClick={e => e.stopPropagation()}>
+            onClick={e => e.stopPropagation()}
+            onTouchStart={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
+            onTouchEnd={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
             <div className="flex items-center gap-3 mb-4">
               <div className="w-11 h-11 rounded-2xl bg-[#E8B84B]/10 border border-[#E8B84B]/20 flex items-center justify-center flex-shrink-0">

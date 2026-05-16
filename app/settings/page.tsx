@@ -44,6 +44,7 @@ export default function SettingsPage() {
   const [openToDating, setOpenToDating] = useState(false)
   const [savingDating, setSavingDating] = useState(false)
   const [showDatingNote, setShowDatingNote] = useState(false)
+  const [datingError, setDatingError] = useState('')
   const passwordSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
@@ -152,6 +153,7 @@ export default function SettingsPage() {
   const handleToggleDating = async () => {
     if (savingDating) return
     if (!gathrPlus) { router.push('/gathr-plus'); return }
+    setDatingError('')
     const next = !openToDating
     setOpenToDating(next)
     if (next) setShowDatingNote(true)
@@ -163,8 +165,15 @@ export default function SettingsPage() {
         headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: next }),
       })
-      if (!res.ok) { setOpenToDating(!next); setShowDatingNote(false) }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        const msg = res.status === 429 ? 'Too many toggles — try again tomorrow.' : (body?.error || 'Something went wrong.')
+        setDatingError(msg)
+        setOpenToDating(!next)
+        setShowDatingNote(false)
+      }
     } catch {
+      setDatingError('Could not reach server — check your connection.')
       setOpenToDating(!next)
       setShowDatingNote(false)
     } finally {
@@ -563,6 +572,11 @@ export default function SettingsPage() {
               {showDatingNote && openToDating && (
                 <div className="mt-1.5 text-[10px] text-[#E8B84B]/70 bg-[#E8B84B]/6 border border-[#E8B84B]/15 rounded-lg px-2 py-1 leading-snug">
                   ✓ Enabled — only mutual Gathr+ opt-ins can see this
+                </div>
+              )}
+              {datingError && (
+                <div className="mt-1.5 text-[10px] text-[#E85B5B] bg-[#E85B5B]/8 border border-[#E85B5B]/20 rounded-lg px-2 py-1 leading-snug">
+                  {datingError}
                 </div>
               )}
             </div>

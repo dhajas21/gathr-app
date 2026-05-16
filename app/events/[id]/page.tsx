@@ -198,7 +198,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     try {
     const { data: eventData } = await supabase
       .from('events')
-      .select('id, title, category, description, start_datetime, end_datetime, location_name, city, spots_left, capacity, tags, visibility, is_featured, host_id, ticket_type, ticket_price, latitude, longitude')
+      .select('id, title, category, description, start_datetime, end_datetime, location_name, city, spots_left, capacity, tags, visibility, is_featured, host_id, ticket_type, ticket_price, latitude, longitude, cover_url')
       .eq('id', id)
       .single()
 

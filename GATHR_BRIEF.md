@@ -196,7 +196,7 @@ The mystery match mechanic is genuinely differentiated. No competitor does pre-e
 **Current:** Gathr+ premium tier (free trial + level milestone previews only — billing not yet live)
 
 **Three revenue layers (in build order):**
-1. **Gathr+ subscriptions** — ~$4.99/mo / ~$34.99/yr (attendee tier, builds first)
+1. **Gathr+ subscriptions** — ~$4.99/mo / ~$39.99/yr (attendee tier, builds first)
 2. **Event ticketing platform fee** — small % on paid events once Stripe Connect is live
 3. **Host Pro subscriptions** — ~$9.99–$19.99/mo for analytics, promoted events, mass messaging (builds after ticketing)
 
