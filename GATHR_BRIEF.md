@@ -54,6 +54,8 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 ### Mystery Match System
 - RSVP → see match count + blurred ghost profile cards (free users on upcoming events). The ghost cards use the real card layout at fading opacity with a blur filter, a lock icon overlay showing "X more matches hidden", and a gold upsell block below — making the value of upgrading immediately clear
 - Gathr+ members see partial first names + shared interests pre-event
+- **Match scoring (Phase 0.5):** compatibility between two users is computed by `compute_match_score()` — a weighted formula that considers shared interests, onboarding signal alignment (intent, vibe, energy type, preferred event types), and profile completeness. Scores drive the ranked match list on the event page and filter for mutual dating intent in Paths Crossed.
+- **Pre-RSVP match preview:** Gathr+ members see scored match cards (first name, shared interests, compatibility indicator) *before* RSVPing via `get_event_matches()` RPC — free users see only the blurred count until they RSVP
 - Wave feature (Gathr+ only) — signal interest before the event; Gathr+ recipients see sender's first name, avatar, shared interests. Free recipients see count only. Mutual waves shown to both tiers.
 - Post-event: full profiles of co-attendees unlock for people who checked in to the event ("I'm Here" GPS-based button during the event window). RSVP is accepted as a fallback for events that pre-date the check-in feature.
 - Safety-flagged accounts are hidden from all match lists
@@ -109,10 +111,11 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 - **Pre-RSVP match preview** — see who's going before RSVPing (free = count teaser only)
 - **Wave sender reveal** — Gathr+ recipients see sender's first name, avatar, shared interests (gated at DB layer via `get_incoming_waves()` SECURITY DEFINER RPC; free callers get NULL identity fields, not just hidden UI)
 - **Unlimited waves** — send waves to any match at any event
-- **Paths Crossed** — `/paths-crossed` page; co-attendance history powered by `get_paths_crossed()` RPC
+- **Paths Crossed** — `/paths-crossed` page; co-attendance history powered by `get_paths_crossed()` RPC. Pairs where both users have `open_to_dating = true` (mutual dating opt-in) are flagged as `is_dating_match = true` and visually highlighted in the feed — a subtle cue that the other person is open to more than just friendship
 - **Priority matching rank** — ranked higher in others' match lists
 - **Travel Mode** — coming soon
 - **Founding Member badge** — `profiles.founding_member = true`, granted to first 1,000 paid subscribers by `grant_founding_member()` (service_role only, 1,000-user cap enforced in SQL); permanent badge shown automatically on own + public profiles
+- **Open to Dating Mode** — Gathr+ members may opt in to signal openness to romantic connections. The `open_to_dating` flag is stored on the profile and is visible only to other active Gathr+ members who have also opted in — it surfaces in Paths Crossed and pre-event match lists exclusively between mutually opted-in users. Non-Gathr+ users never see the flag. Toggle is rate-limited to prevent abuse. Protected DB column: cannot be written by the client, only by Gathr-controlled server functions.
 - **Pricing:** $4.99/month · $39.99/year (Save 33%). Annual pre-selected on upgrade page.
 - **Billing not yet live** — `/gathr-plus` page shows annual/monthly pricing cards both routing to `/waitlist`. Plan: RevenueCat + Apple IAP + Google Play + Stripe for web. Build before event ticketing.
 
@@ -131,6 +134,8 @@ Bellingham, Seattle, Bellevue, Tacoma, Olympia, Spokane, Portland, Eugene, Salem
 
 ### Profile & Onboarding Polish
 - Signup collects **first name and last name** as separate fields (concatenated into the existing `name` column — no DB change). First name is required before advancing past step 0.
+- **Phase 0.5 onboarding signals** — collected after interests, before profile photo: (1) *Social intent* (Make friends / Date / Network professionally / All of the above) — maps to `social_intent`; (2) *Social vibe* (Introvert recharging / Extrovert energised / Depends on the day) — maps to `social_vibe`; (3) *Energy type* (High-energy / Chill / Mix of both) — maps to `energy_type`; (4) *Preferred event types* (multi-select: Small & Intimate, Large & Lively, Spontaneous, Planned Ahead, Daytime, Evening/Night) — stored as `preferred_event_types text[]`. These signals feed `compute_match_score()` and are shown on the Paths Crossed and match cards for mutual context.
+- **"What's your thing" offering field** — a short free-text prompt on the profile edit page (`offering` column). Users describe what they bring to a meet: a skill, a hobby, something they love sharing. Displayed on profile cards in match lists and Paths Crossed, giving matches a conversation starter beyond shared interests.
 - **Image crop/zoom** on all three upload points: profile photo (circular 1:1), community banner (16:9), event cover (16:9) — pinch-to-zoom and a gold crop frame, powered by `react-easy-crop`
 - **Image compression**: after crop, profile photos are canvas-resized to a max of 800×800 px at 0.88 JPEG quality before upload — typical 3–5 MB crops become ~150–250 KB, cutting upload time dramatically
 - **Setup resumption**: returning users who left mid-onboarding are auto-advanced to the interests step (always the missing piece), with all prior choices prefilled and a branded "Welcome back" banner
@@ -168,6 +173,7 @@ Full dual-theme support — the app ships with a dark default and a warm cream l
 | Safety tier system (peer reviews → public trust score) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Communities with real-time group chat | ✅ | Groups only | ✅ | ❌ | ❌ |
 | Wave (sender identity revealed to Gathr+ recipients) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Open to Dating Mode (opt-in, mutual Gathr+ only) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Free to host | ✅ | ✅ | ❌ ($) | ❌ ($) | ✅ |
 | Modern mobile-first UX | ✅ | ❌ | ❌ | ❌ | ✅ |
 | Public social discovery | ✅ | ✅ | ✅ | ✅ | ❌ (private only) |
@@ -416,6 +422,7 @@ The mystery match mechanic is especially resonant in a city where people struggl
   - Trending searches — removed hardcoded list; bring back once PostHog has real top-5 query data
 - **Attendance achievement gating** — attendance achievements currently fire on RSVP (not verified attendance). The check-in system now exists (GPS "I'm Here" button → `check_ins` table, soft geo-lock). Remaining step: gate achievements on `start_datetime < now()` so they only fire after the event actually ends.
 - ~~**RSVP-gated address server hardening**~~ — Done. `location_address` moved from `events` to a separate `event_addresses` table. RLS enforces host-or-RSVPed at the DB level; the column no longer exists on `events` and cannot be read via direct API calls.
+- ~~**Phase 0.5 onboarding signals**~~ — Done. Social intent, social vibe, energy type, and preferred event types collected in onboarding; feed `compute_match_score()` and display on match/Paths Crossed cards. Offering field ("What's your thing") also live on profile edit.
 - **Onboarding email drip** — day-3 and day-7 nudge emails (welcome email already live; drip sequence not built)
 - **Referral mechanism** — "Invite a friend, both get 1 week Gathr+" — build once billing is live
 - **Native iOS / Android apps** — currently mobile web; planned shell via Capacitor or similar
