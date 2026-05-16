@@ -16,7 +16,7 @@ export default function NotificationsPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<{ notifId: string; msg: string } | null>(null)
   const fetchedActorIds = useRef<Set<string>>(new Set())
   const PAGE_SIZE = 30
   const router = useRouter()
@@ -171,10 +171,10 @@ export default function NotificationsPage() {
       .eq('status', 'pending')
       .select()
     if (error) {
-      setActionError('Something went wrong. Please try again.')
+      setActionError({ notifId: notif.id, msg: 'Something went wrong. Please try again.' })
     } else if (!data || data.length === 0) {
       // 0 rows updated — request may have been withdrawn or already accepted
-      setActionError('This request is no longer pending.')
+      setActionError({ notifId: notif.id, msg: 'This request is no longer pending.' })
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, _resolved: true } : n))
     } else {
       await markRead(notif.id)
@@ -195,9 +195,9 @@ export default function NotificationsPage() {
       .eq('status', 'pending')
       .select()
     if (error) {
-      setActionError('Something went wrong. Please try again.')
+      setActionError({ notifId: notif.id, msg: 'Something went wrong. Please try again.' })
     } else if (!data || data.length === 0) {
-      setActionError('This request is no longer pending.')
+      setActionError({ notifId: notif.id, msg: 'This request is no longer pending.' })
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, _resolved: true } : n))
     } else {
       await markRead(notif.id)
@@ -232,6 +232,14 @@ export default function NotificationsPage() {
         return <svg {...s} stroke="#7EC87E"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       case 'event_reminder':
         return <svg {...s} stroke="#E8B84B"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      case 'wave':
+        return <svg {...s} stroke="#E8B84B"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+      case 'achievement':
+        return <svg {...s} stroke="#E8B84B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      case 'community_event':
+        return <svg {...s} stroke="#7EC87E"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      case 'survey_prompt':
+        return <svg {...s} stroke="#7EC87E"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>
       default:
         return <svg {...s} stroke="#E8B84B"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     }
@@ -322,8 +330,8 @@ export default function NotificationsPage() {
                   View profile
                 </button>
               </div>
-              {actionError && actionLoading === null && (
-                <p className="text-[10px] text-[#E85B5B] mt-1.5">{actionError}</p>
+              {actionError && actionError.notifId === notif.id && actionLoading === null && (
+                <p className="text-[10px] text-[#E85B5B] mt-1.5">{actionError.msg}</p>
               )}
             </div>
           )}
@@ -331,7 +339,8 @@ export default function NotificationsPage() {
           {/* Connection accepted state */}
           {isConnReq && accepted && (
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-xs text-[#7EC87E] font-medium">✓ Connected</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7EC87E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span className="text-xs text-[#7EC87E] font-medium">Connected</span>
               <span className="text-[10px] text-[#E8B84B]/60">· Tap to view profile</span>
             </div>
           )}
@@ -374,8 +383,8 @@ export default function NotificationsPage() {
     <div className="min-h-screen bg-[#0D110D] pb-24">
       <div className="flex items-center gap-3 px-4 pt-14 pb-3 border-b border-white/10">
         <button onClick={() => router.back()}
-          className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[#F0EDE6] active:scale-95 transition-transform flex-shrink-0">
-          ←
+          className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center active:scale-95 transition-transform flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/60"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div className="flex-1">
           <h1 className="font-bold text-[#F0EDE6] text-xl font-display">Activity</h1>
@@ -389,7 +398,7 @@ export default function NotificationsPage() {
       {notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-3 px-4">
           <div className="w-14 h-14 rounded-2xl bg-[#1C241C] border border-white/10 flex items-center justify-center mb-1">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(126,200,126,0.45)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#7EC87E]/45"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           </div>
           <p className="text-white/40 text-sm text-center">No activity yet</p>
           <p className="text-white/25 text-xs text-center max-w-[240px]">RSVPs, connection requests, comments, and messages will show up here.</p>

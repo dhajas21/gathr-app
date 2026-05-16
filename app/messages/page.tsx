@@ -279,7 +279,7 @@ export default function MessagesPage() {
 
   const handleAccept = async (connectionId: string) => {
     const conn = connections.find(c => c.id === connectionId)
-    const { error } = await supabase.from('connections').update({ status: 'accepted' }).eq('id', connectionId)
+    const { error } = await supabase.from('connections').update({ status: 'accepted' }).eq('id', connectionId).eq('status', 'pending')
     if (error) return
     setConnections(prev => prev.filter(c => c.id !== connectionId))
     if (conn) {
@@ -391,7 +391,7 @@ export default function MessagesPage() {
                 <img src={optimizedImgSrc(conn.requester.avatar_url, 96)!} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
               ) : (
                 <div className="w-9 h-9 bg-[#2A4A2A] rounded-xl flex items-center justify-center flex-shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(126,200,126,0.5)" strokeWidth="1.75" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="text-[#7EC87E]/50"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
                 </div>
               )}
               <div className="flex-1 min-w-0">
@@ -466,9 +466,12 @@ export default function MessagesPage() {
                 <div className="flex-1 min-w-0 text-left">
                   <div className="text-sm font-medium text-[#F0EDE6]/85">{chat.community?.name}</div>
                   <div className="text-xs text-white/35 truncate mt-0.5">
-                    {chat.lastMessage
-                      ? ((chat.lastMessage.profiles as any)?.name ? (chat.lastMessage.profiles as any).name + ': ' : '') + chat.lastMessage.text
-                      : 'Tap to open chat'}
+                    {chat.lastMessage ? (() => {
+                      const txt = chat.lastMessage.text || ''
+                      const preview = txt.startsWith('[image]') ? '📷 Photo' : txt.startsWith('[file:') ? '📎 File' : txt
+                      const sender = (chat.lastMessage.profiles as any)?.name
+                      return (sender ? sender + ': ' : '') + preview
+                    })() : 'Tap to open chat'}
                   </div>
                 </div>
                 {chat.lastMessage && (
@@ -503,7 +506,7 @@ export default function MessagesPage() {
                       <img src={optimizedImgSrc(conn.otherProfile.avatar_url, 96)!} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0"  loading="lazy" />
                     ) : (
                       <div className="w-10 h-10 bg-[#2A4A2A] rounded-xl flex items-center justify-center flex-shrink-0">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(126,200,126,0.5)" strokeWidth="1.75" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="text-[#7EC87E]/50"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
                     </div>
                     )}
                     <div className="flex-1 text-left">
@@ -527,7 +530,7 @@ export default function MessagesPage() {
         <div className="mt-2">
           {showSwipeTip && (
             <div className="mx-4 mb-2 flex items-center gap-2.5 bg-[#1C241C] border border-white/10 rounded-2xl px-3 py-2.5">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#E8B84B]/70 flex-shrink-0"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
               <span className="flex-1 text-[10px] text-white/40 leading-snug">Swipe left on a conversation to mark read or delete</span>
               <button onClick={() => { setShowSwipeTip(false); try { localStorage.setItem('gathr_swipe_tip_seen', '1') } catch {} }}
                 className="text-white/20 flex-shrink-0 pl-1">

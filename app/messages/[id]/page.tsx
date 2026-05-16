@@ -246,6 +246,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
     setSending(true)
     setText('')
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    presenceChannelRef.current?.track({ typing: false, userId: user.id })
     const { data: sent, error } = await supabase.from('messages').insert({
       thread_id: threadId,
       sender_id: user.id,
