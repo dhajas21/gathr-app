@@ -237,11 +237,23 @@ All RPCs return clear PostgreSQL errors (auth = 42501, validation = 22023) that 
 
 This is the core UX differentiator. Here's exactly how it works:
 
+**Match scoring (Phase 0.5):**
+- Compatibility between two users is computed by `compute_match_score()` — a weighted Postgres function that considers shared interests, onboarding signal alignment (social intent, social vibe, energy type, preferred event types), and profile completeness
+- Scores drive the ranked match list on the event detail page and filter for mutual dating intent in Paths Crossed
+- `get_event_matches(p_event_id)` RPC returns scored match cards for a given event; Gathr+ callers receive identity-enriched cards pre-RSVP; free callers receive only the count
+
+**Phase 0.5 onboarding signals** (collected during setup, after interests):
+- `social_intent` — Make friends / Date / Network professionally / All of the above
+- `social_vibe` — Introvert recharging / Extrovert energised / Depends on the day
+- `energy_type` — High-energy / Chill / Mix of both
+- `preferred_event_types` (`text[]`) — Small & Intimate, Large & Lively, Spontaneous, Planned Ahead, Daytime, Evening/Night (multi-select)
+- `offering` — free-text "What's your thing" field; shown on match cards and Paths Crossed as a conversation starter
+
 **Before the event:**
 - When you RSVP, the event detail page fetches other RSVPed users who have `matching_enabled = true` and aren't already connected to you
 - It counts them and shows a number ("3 people going share your vibe")
 - Their identities are hidden — you see a blurred silhouette card (the `MysteryMatchCard` component)
-- **Gathr+ members** see partial first names and shared interests even before RSVPing (pre-RSVP preview, gated by `isGathrPlus && !rsvped && upcoming`)
+- **Gathr+ members** see scored match cards (partial first names, shared interests, compatibility indicator) even before RSVPing via `get_event_matches()` RPC (gated by `isGathrPlus && !rsvped && upcoming`)
 - **Gathr+ members** can send a **wave** to any match; recipients who are also Gathr+ see the sender's first name, avatar, and shared interests via `get_incoming_waves()` RPC (SECURITY DEFINER — identity fields are NULL at the DB layer for non-Gathr+ callers, not just hidden in UI)
 
 **Waves:**
@@ -370,7 +382,8 @@ Gathr+ is the premium tier. Pricing: $4.99/month · $39.99/year. Billing not yet
 - **Pre-RSVP match preview** — see who's going before RSVPing (free users see count + silhouette only)
 - **Wave sender reveal** — Gathr+ recipients see sender's first name, avatar, shared interests via `get_incoming_waves()` RPC (gated at DB layer, not just UI)
 - **Unlimited waves** — send waves to any match
-- **Paths Crossed** — `/paths-crossed` page; co-attendance history across all shared events, cursor-paginated, powered by `get_paths_crossed()` SECURITY DEFINER RPC
+- **Paths Crossed** — `/paths-crossed` page; co-attendance history across all shared events, cursor-paginated, powered by `get_paths_crossed()` SECURITY DEFINER RPC. Pairs where both users have `open_to_dating = true` are flagged as `is_dating_match = true` and highlighted in the feed.
+- **Open to Dating Mode** — opt-in signal (`open_to_dating bool` on `profiles`). Visible only between mutually opted-in Gathr+ members — surfaces in Paths Crossed and pre-event match lists. Toggle managed by the `toggle-dating-intent` Supabase Edge Function (rate-limited to prevent abuse). Protected column — cannot be set by the client directly. Settings page has a dedicated toggle with inline error handling for rate-limit and network failures.
 - **Priority matching rank** — appears higher in other users' match lists
 - **Travel Mode** — coming soon
 - **Founding Member badge** — `profiles.founding_member = true` set by `grant_founding_member()` (capped at 1,000, service_role only); badge shows automatically on own + public profiles, doesn't count against 3-pin limit
@@ -381,6 +394,7 @@ Gathr+ is the premium tier. Pricing: $4.99/month · $39.99/year. Billing not yet
 - `gathr_plus_trial_used` (bool) — gates the one-time free trial
 - `gathr_plus_trial_levels` (int[]) — which level-milestone previews have been claimed
 - `founding_member` (bool) — permanent badge, survives subscription cancellation
+- `open_to_dating` (bool) — Open to Dating Mode flag; protected column, only `toggle-dating-intent` edge function can write it
 
 Client treats the user as Gathr+ if `gathr_plus === true` OR `gathr_plus_expires_at > now()`.
 
@@ -1176,6 +1190,9 @@ Tracking the major changes from the most recent audit pass so future code review
 - **Gathr+ trial error message surfaced** (`app/gathr-plus/page.tsx`): `supabase.functions.invoke` places the parsed JSON body of non-2xx responses inside the `error` object (not `data`). The handler was checking `data?.error` (always null on failure) and `error?.message` (a generic fetch string). Fix: priority order now checks `(error as any)?.error` first — the specific message from the edge function (e.g. "Trial already used", "Account too new") — before falling back to `error?.message` and a generic string.
 - **Gathr+ hero UI polish** (`app/gathr-plus/page.tsx`): Replaced the minimal 16×16 icon box with a premium hero — ambient radial glow behind the badge, larger 24×24 rounded badge with deeper gold gradient and stronger drop shadow, orbiting `✦` sparkles at three positions, "PREMIUM MEMBERSHIP" label in spaced mono caps above the title, and title size increased from `text-2xl` to `text-[28px]`.
 - **Tour monthly price** (`app/tour/page.tsx`): The Gathr+ slide showed `$3.33 / month` (the annual-plan monthly breakdown). Changed to `$4.99 / month` (the actual monthly plan price) to avoid confusion.
+- **Phase 0.5 onboarding signals** (migration, `app/onboarding/page.tsx`, `app/profile/edit/page.tsx`): Four new onboarding steps added after interests — social intent (Make friends / Date / Network / All), social vibe (Introvert / Extrovert / Depends), energy type (High-energy / Chill / Mix), and preferred event types (multi-select: Small & Intimate, Large & Lively, Spontaneous, Planned Ahead, Daytime, Evening/Night). Stored as `social_intent text`, `social_vibe text`, `energy_type text`, `preferred_event_types text[]` on `profiles`. Also added `offering text` — a "What's your thing" free-text field on the profile edit page, shown italicised on own-profile and match cards as a conversation starter.
+- **Match scoring Phase 0.5** (migration, `compute_match_score()`, `get_event_matches()` RPC): `compute_match_score(user_a uuid, user_b uuid)` is a weighted Postgres function scoring compatibility by shared interests, onboarding signal alignment, and profile completeness. `get_event_matches(p_event_id uuid)` is a SECURITY DEFINER RPC that returns scored, ranked match cards for an event — Gathr+ callers receive identity-enriched cards pre-RSVP; free callers get count only. Match scoring now drives the ranked match list on the event detail page and the mutual dating filter in Paths Crossed.
+- **Open to Dating Mode** (`supabase/functions/toggle-dating-intent/index.ts`, `app/settings/page.tsx`, migration): Gathr+ members can opt in to signal romantic openness. The `open_to_dating bool` column is protected — only the `toggle-dating-intent` edge function can write it (rate-limited to prevent abuse). Visible only between mutually opted-in Gathr+ members in Paths Crossed (flagged as `is_dating_match = true`) and pre-event match lists. Non-Gathr+ users never see the flag. Terms of Service (section 8) and Privacy Policy (section 11) updated with Open to Dating Mode clauses. Date bumped to May 16, 2026 on both pages.
 - **send-push vault/env-var mismatch fixed** (`supabase/functions/send-push/index.ts`, migration `20260516050000`): The `send-push` edge function compared `X-Internal-Token` against `Deno.env.get('INTERNAL_PUSH_TOKEN')` — an env var that didn't match the `internal_push_token` Vault secret read by the `dispatch_push_notification` DB trigger, causing persistent 401s. Fix: added `get_internal_push_token()` (SECURITY DEFINER, service_role only) which reads from Vault. `send-push` now calls `supabase.rpc('get_internal_push_token')` at request time — same source of truth as the trigger, mismatch structurally impossible.
 - **Activity page: actionError scoped per notification** (`app/notifications/page.tsx`): `actionError` was a single `string | null` shared across all rendered rows. If two connection requests were pending and one action failed, the error appeared under both rows simultaneously. Changed to `{ notifId: string; msg: string } | null` and the render condition checks `actionError.notifId === notif.id`.
 - **Activity page: back button + checkmark text chars replaced** (`app/notifications/page.tsx`): Back button `←` replaced with SVG chevron-left. Accepted-connection `✓ Connected` checkmark replaced with SVG polyline checkmark. Both were text characters inconsistent with the rest of the app's SVG icon system.
