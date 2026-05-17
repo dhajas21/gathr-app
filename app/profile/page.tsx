@@ -459,11 +459,12 @@ export default function ProfilePage() {
           {profile?.offering && (
             <div className="text-sm text-white/40 mt-1.5 leading-relaxed font-light italic">&ldquo;{profile.offering}&rdquo;</div>
           )}
-          {!profile?.looking_for?.length && !nudgeSeen && (
+          {/* Sparse profile: show nudge inline since there's room in the header */}
+          {!profile?.looking_for?.length && !nudgeSeen && !profile?.bio_social && !profile?.offering && (
             <div className="mt-3 bg-[#1C241C] border border-[#E8B84B]/20 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-semibold text-[#E8B84B]">Boost your matches</div>
-                <div className="text-[11px] text-white/40 mt-0.5">Tell us what brings you here — 30 seconds.</div>
+                <div className="text-[11px] font-semibold text-[#E8B84B]">Improve your match ranking</div>
+                <div className="text-[11px] text-white/40 mt-0.5">Tell us what brings you to Gathr — 30 seconds.</div>
               </div>
               <button
                 onClick={() => router.push('/setup?step=3')}
@@ -779,12 +780,31 @@ export default function ProfilePage() {
                 <span className="text-[10px] text-[#E8B84B]">{unlockedCount} / {ACHIEVEMENTS.length}</span>
               </div>
 
+              {/* Match-profile nudge — only shown here when profile has bio/offering (header would be too crowded) */}
+              {!profile?.looking_for?.length && !nudgeSeen && (profile?.bio_social || profile?.offering) && (
+                <div className="bg-[#1C241C] border border-[#E8B84B]/20 rounded-2xl px-3 py-2.5 flex items-center gap-2.5 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-semibold text-[#E8B84B]">Improve your match ranking</div>
+                    <div className="text-[11px] text-white/40 mt-0.5">Tell us what brings you to Gathr — shapes who you meet at events.</div>
+                  </div>
+                  <button
+                    onClick={() => router.push('/setup?step=3')}
+                    className="shrink-0 text-[11px] font-semibold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 rounded-lg px-2.5 py-1.5 active:scale-95 transition-transform">
+                    Complete →
+                  </button>
+                  <button
+                    onClick={() => { localStorage.setItem('gathr_match_profile_nudge_seen', '1'); setNudgeSeen(true) }}
+                    className="shrink-0 text-white/25">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              )}
               {showBadgeTip && (
                 <div className="flex items-center gap-2.5 bg-[#1C241C] border border-white/10 rounded-2xl px-3 py-2.5 mb-3">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,75,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
-                  <span className="flex-1 text-[10px] text-white/40 leading-snug">Pin up to 3 badges to your public profile. Gathr Founder and Founding Member badges show automatically — they don&apos;t count against your 3 pins.</span>
+                  <span className="flex-1 text-[10px] text-white/40 leading-snug">Pin up to 3 badges to your public profile. Founding Member badges show automatically — they don&apos;t count against your 3 pins.</span>
                   <button onClick={() => { setShowBadgeTip(false); try { localStorage.setItem('gathr_badge_tip_seen', '1') } catch {} }}
                     className="text-white/20 flex-shrink-0 pl-1">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
