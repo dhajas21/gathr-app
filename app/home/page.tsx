@@ -11,6 +11,8 @@ import { ALL_CITIES, CAT_GRADIENT, CAT_EMOJI, INTEREST_TO_CATS, cityToTimezone }
 import { isToday, isTomorrow, formatTime, formatDate, optimizedImgSrc } from '@/lib/utils'
 import { track } from '@/components/AnalyticsProvider'
 import PageTransition from '@/components/PageTransition'
+import EmptyState from '@/components/EmptyState'
+import { CalendarIcon, MapPinIcon, BookmarkIcon, PeopleIcon } from '@/components/icons'
 
 interface Event {
   id: string; title: string; category: string; start_datetime: string; end_datetime: string
@@ -349,15 +351,6 @@ export default function HomePage() {
     } catch {}
   }, [loading, user?.id])
 
-  const getEmptyMessage = () => {
-    switch (activeTab) {
-      case 1: return profile?.interests?.length > 0 ? 'No events match your interests yet' : 'Add interests to get personalized picks'
-      case 2: return geoGranted ? 'No events within 80km of you' : 'No events in ' + (profile?.city || 'your city') + ' yet'
-      case 3: return connectionIds.length > 0 ? 'No friends have upcoming events' : 'Connect with people to see their events here'
-      case 4: return 'No events yet — create or RSVP to one!'
-      default: return 'No events yet — be the first!'
-    }
-  }
 
   const filteredCities = ALL_CITIES.filter(c => !citySearch || c.toLowerCase().includes(citySearch.toLowerCase()))
 
@@ -598,43 +591,72 @@ export default function HomePage() {
         )}
         <div key={activeTab} className="animate-tab-in">
         {filteredEvents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center">
-              {activeTab === 3 ? (
-                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-white/35">
-                  <circle cx="7.5" cy="6.5" r="3.5"/>
-                  <path d="M1 21v-1c0-3.3 2.9-5.5 6.5-5.5"/>
-                  <circle cx="16.5" cy="6.5" r="3.5"/>
-                  <path d="M23 21v-1c0-3.3-2.9-5.5-6.5-5.5"/>
-                  <path d="M12 21v-2.5"/>
-                  <path d="M9.5 18.5h5"/>
-                </svg>
-              ) : activeTab === 4 ? (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-white/35"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <>
+            {activeTab === 0 && (
+              <EmptyState
+                icon={<CalendarIcon size={22} className="text-white/35" />}
+                headline="Nothing here yet"
+                body="Be the first to post an event in this city"
+              />
+            )}
+            {activeTab === 1 && (
+              profile?.interests?.length > 0 ? (
+                <EmptyState
+                  icon={<CalendarIcon size={22} className="text-white/35" />}
+                  headline="Nothing matched yet"
+                  body="More events are posted every day — check back soon"
+                />
               ) : (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-white/35"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              )}
-            </div>
-            <p className="text-white/40 text-sm text-center max-w-[240px]">{getEmptyMessage()}</p>
-            {activeTab === 1 && !profile?.interests?.length && (
-              <button onClick={() => router.push('/profile/edit')} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Add Interests</button>
+                <EmptyState
+                  icon={<CalendarIcon size={22} className="text-white/35" />}
+                  headline="Tell us what you're into"
+                  body="We'll surface events around your interests"
+                  action={{ label: 'Add Interests', onClick: () => router.push('/profile/edit'), variant: 'primary' }}
+                />
+              )
             )}
-            {activeTab === 2 && !geoGranted && (
-              <button onClick={requestGeolocation} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm flex items-center gap-2 mx-auto">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                Use My Location
-              </button>
+            {activeTab === 2 && (
+              geoGranted ? (
+                <EmptyState
+                  icon={<MapPinIcon size={22} className="text-white/35" />}
+                  headline="Nothing close by"
+                  body="No events within 80km right now"
+                  action={{ label: 'Host something nearby', onClick: () => router.push('/create'), variant: 'secondary' }}
+                />
+              ) : (
+                <EmptyState
+                  icon={<MapPinIcon size={22} className="text-white/35" />}
+                  headline="How close are you?"
+                  body="Share your location to find events nearby"
+                  action={{ label: 'Use My Location', onClick: requestGeolocation, variant: 'primary' }}
+                />
+              )
             )}
-            {activeTab === 2 && geoGranted && (
-              <button onClick={() => router.push('/create')} className="mt-1 bg-[#1C241C] border border-white/10 text-white/60 px-5 py-2.5 rounded-2xl font-semibold text-sm">Host something nearby</button>
-            )}
-            {activeTab === 3 && !connectionIds.length && (
-              <button onClick={() => router.push('/communities')} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Find People</button>
+            {activeTab === 3 && (
+              connectionIds.length > 0 ? (
+                <EmptyState
+                  icon={<PeopleIcon size={22} className="text-white/35" />}
+                  headline="Quiet circle right now"
+                  body="No friends have upcoming events"
+                />
+              ) : (
+                <EmptyState
+                  icon={<PeopleIcon size={22} className="text-white/35" />}
+                  headline="Find your people first"
+                  body="Connect with someone to see where they're showing up"
+                  action={{ label: 'Find People', onClick: () => router.push('/communities'), variant: 'primary' }}
+                />
+              )
             )}
             {activeTab === 4 && (
-              <button onClick={() => router.push('/create')} className="mt-1 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">Create Event</button>
+              <EmptyState
+                icon={<BookmarkIcon size={22} className="text-white/35" />}
+                headline="Your events live here"
+                body="Create something or RSVP to an event"
+                action={{ label: 'Create Event', onClick: () => router.push('/create'), variant: 'primary' }}
+              />
             )}
-          </div>
+          </>
         ) : (
           <div className="space-y-3">
             {filteredEvents.map(event => {
