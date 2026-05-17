@@ -8,6 +8,8 @@ import { CommunityDetailSkeleton } from '@/components/Skeleton'
 import { optimizedImgSrc, isValidUUID, formatDate } from '@/lib/utils'
 import { cityToTimezone } from '@/lib/constants'
 import { track } from '@/components/AnalyticsProvider'
+import EmptyState from '@/components/EmptyState'
+import { MessageIcon } from '@/components/icons'
 
 interface Post {
   id: string
@@ -788,14 +790,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             )}
 
             {(!isRestricted || isMember) && posts.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/35">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                </div>
-                <p className="text-white/40 text-sm text-center">No posts yet — start the conversation!</p>
-              </div>
+              <EmptyState
+                icon={<MessageIcon size={22} className="text-white/35" />}
+                headline="No posts yet"
+                body="Start the conversation — be the first to post"
+              />
             )}
 
             {(!isRestricted || isMember) && posts.map(post => {
@@ -1061,14 +1060,11 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                 <div className="text-xs text-white/40">Join the community to participate in the chat.</div>
               </div>
             ) : chatMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/35">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                </div>
-                <p className="text-white/40 text-sm text-center">No messages yet — say hello!</p>
-              </div>
+              <EmptyState
+                icon={<MessageIcon size={22} className="text-white/35" />}
+                headline="No messages yet"
+                body="Say hello — kick off the chat"
+              />
             ) : (
               <div className="space-y-0.5 pb-4">
                 {chatMessages.map((msg, i) => {

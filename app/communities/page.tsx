@@ -7,6 +7,8 @@ import BottomNav from '@/components/BottomNav'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { CommunitiesPageSkeleton } from '@/components/Skeleton'
 import PageTransition from '@/components/PageTransition'
+import EmptyState from '@/components/EmptyState'
+import { PeopleIcon } from '@/components/icons'
 
 const CATEGORIES = ['All', 'Social', 'Music', 'Fitness & Running', 'Food & Drink', 'Tech & Startups', 'Arts & Creativity', 'Outdoors & Adventure', 'Wellness', 'Gaming', 'Nightlife']
 
@@ -307,24 +309,12 @@ export default function CommunitiesPage() {
         </div>
 
         {filteredDiscover.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
-              style={{ background: 'linear-gradient(135deg, rgba(126,200,126,0.12), rgba(126,200,126,0.04))', border: '1px solid rgba(126,200,126,0.18)' }}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/50">
-                <circle cx="12" cy="6" r="3"/>
-                <path d="M7.5 19c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5"/>
-                <circle cx="4.5" cy="8" r="2.5"/>
-                <path d="M1 19c0-2.2 1.5-3.8 3.5-3.8"/>
-                <circle cx="19.5" cy="8" r="2.5"/>
-                <path d="M23 19c0-2.2-1.5-3.8-3.5-3.8"/>
-              </svg>
-            </div>
-            <p className="text-white/40 text-sm text-center">No communities yet — be the first to create one!</p>
-            <button onClick={() => router.push('/communities/create')}
-              className="mt-2 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">
-              Create Community
-            </button>
-          </div>
+          <EmptyState
+            icon={<PeopleIcon size={24} className="text-white/50" />}
+            headline="No communities yet"
+            body="Be the first to create one and bring people together"
+            action={{ label: 'Create Community', onClick: () => router.push('/communities/create'), variant: 'primary' }}
+          />
         ) : (
           <div className="space-y-3">
             {filteredDiscover.map(comm => (

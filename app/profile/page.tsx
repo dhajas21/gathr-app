@@ -21,6 +21,8 @@ import UndoToast from '@/components/UndoToast'
 import FadeIn from '@/components/FadeIn'
 import { optimizedImgSrc, formatDateLong } from '@/lib/utils'
 import { cityToTimezone, CAT_GRADIENT, FOUNDER_ID } from '@/lib/constants'
+import EmptyState from '@/components/EmptyState'
+import { CalendarIcon, UserIcon } from '@/components/icons'
 
 
 
@@ -704,18 +706,12 @@ export default function ProfilePage() {
             )}
 
             {hostedEvents.length === 0 && attendedEvents.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
-                </div>
-                <p className="text-white/40 text-sm">No events yet</p>
-                <button onClick={() => router.push('/create')}
-                  className="mt-2 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">
-                  Create Your First Event
-                </button>
-              </div>
+              <EmptyState
+                icon={<CalendarIcon size={22} className="text-white/30" />}
+                headline="No events yet"
+                body="Host or attend events and they'll show up here"
+                action={{ label: 'Create Your First Event', onClick: () => router.push('/create'), variant: 'primary' }}
+              />
             )}
           </>
         )}
@@ -914,20 +910,12 @@ export default function ProfilePage() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                </div>
-                <p className="text-white/40 text-sm text-center">No connections yet</p>
-                <p className="text-white/25 text-xs text-center max-w-[220px]">Find people at events and communities and connect with them</p>
-                <button onClick={() => router.push('/communities')}
-                  className="mt-2 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-2xl font-semibold text-sm">
-                  Find People
-                </button>
-              </div>
+              <EmptyState
+                icon={<UserIcon size={22} className="text-white/30" />}
+                headline="No connections yet"
+                body="Find people at events and communities and connect with them"
+                action={{ label: 'Find People', onClick: () => router.push('/communities'), variant: 'primary' }}
+              />
             )}
           </>
         )}

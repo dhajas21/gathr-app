@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import UndoToast from '@/components/UndoToast'
 import { BookmarksPageSkeleton } from '@/components/Skeleton'
+import EmptyState from '@/components/EmptyState'
+import { BookmarkIcon } from '@/components/icons'
 import { CAT_GRADIENT, cityToTimezone } from '@/lib/constants'
 import { optimizedImgSrc, formatDateShort, formatTime } from '@/lib/utils'
 
@@ -113,18 +115,13 @@ export default function BookmarksPage() {
       </div>
 
       {events.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3 px-4">
-          <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center empty-float">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <p className="text-white/40 text-sm text-center">No saved events yet</p>
-          <p className="text-white/25 text-xs text-center max-w-[220px]">Tap the bookmark icon on any event to save it here</p>
-          <button onClick={() => router.push('/home')}
-            className="mt-2 bg-[#E8B84B] text-[#0D110D] px-5 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-transform">
-            Browse Events
-          </button>
+        <div className="py-24">
+          <EmptyState
+            icon={<BookmarkIcon size={22} className="text-white/30" />}
+            headline="Nothing saved yet"
+            body="Tap the bookmark on any event to save it for later"
+            action={{ label: 'Browse Events', onClick: () => router.push('/home'), variant: 'primary' }}
+          />
         </div>
       ) : (
         <div className="px-4 py-4 space-y-3">

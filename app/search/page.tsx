@@ -7,6 +7,8 @@ import BottomNav from '@/components/BottomNav'
 import { optimizedImgSrc, formatDate } from '@/lib/utils'
 import { cityToTimezone, CAT_GRADIENT } from '@/lib/constants'
 import PageTransition from '@/components/PageTransition'
+import EmptyState from '@/components/EmptyState'
+import { SearchIcon } from '@/components/icons'
 
 const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding', 'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness', 'Networking']
 
@@ -597,13 +599,11 @@ export default function SearchPage() {
             )}
 
             {totalResults === 0 && (
-              <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <div className="w-14 h-14 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mb-1">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                </div>
-                <p className="text-white/40 text-sm text-center">No results for &quot;{query}&quot;</p>
-                <p className="text-white/35 text-xs text-center max-w-[220px]">Try different words or browse by category above</p>
-              </div>
+              <EmptyState
+                icon={<SearchIcon size={22} className="text-white/30" />}
+                headline={`Nothing for "${query}"`}
+                body="Try different words or browse by category above"
+              />
             )}
 
             {/* Events */}

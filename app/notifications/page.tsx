@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import { NotificationsPageSkeleton } from '@/components/Skeleton'
+import EmptyState from '@/components/EmptyState'
+import { BellIcon } from '@/components/icons'
 import { optimizedImgSrc } from '@/lib/utils'
 import PageTransition from '@/components/PageTransition'
 
@@ -396,12 +398,12 @@ export default function NotificationsPage() {
       </div>
 
       {notifications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3 px-4">
-          <div className="w-14 h-14 rounded-2xl bg-[#1C241C] border border-white/10 flex items-center justify-center mb-1">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#7EC87E]/45"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          </div>
-          <p className="text-white/40 text-sm text-center">No activity yet</p>
-          <p className="text-white/25 text-xs text-center max-w-[240px]">RSVPs, connection requests, comments, and messages will show up here.</p>
+        <div className="py-24">
+          <EmptyState
+            icon={<BellIcon size={22} className="text-[#7EC87E]/45" />}
+            headline="All caught up"
+            body="RSVPs, connections, waves, and messages will show up here"
+          />
         </div>
       ) : (
         <div>
