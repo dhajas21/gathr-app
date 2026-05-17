@@ -47,7 +47,8 @@ Optional (see `GATHR_OVERVIEW.md` → Deployment Setup Checklist for the full li
 - **Tailwind v4**: `@import "tailwindcss"` syntax, no `tailwind.config.js`
 - **Supabase client**: singleton at `lib/supabase.ts` — never re-instantiate per component
 - **Count integrity**: all count updates (spots left, member counts, XP triggers) owned by Postgres DB triggers — never write counts directly from the client
-- **SVG icon system**: no emoji in the UI layer; inline SVG everywhere. Two exceptions: achievement badge emoji (semantic identity for 32 badges) and `community.icon` (user-configured)
+- **SVG icon system**: all UI icons live in `components/icons.tsx` — a shared barrel of named exports (`MapPinIcon`, `CalendarIcon`, `SearchIcon`, `BookmarkIcon`, `BellIcon`, `UserIcon`, `PeopleIcon`, `InfoCircleIcon`, `ChevronDownIcon`, `XIcon`, `MessageIcon`). Consistent defaults: `strokeWidth 1.75`, `strokeLinecap/Join round`. No emoji in the UI layer. Two exceptions: achievement badge emoji (semantic identity for 32 badges) and `community.icon` (user-configured)
+- **Empty states**: use `components/EmptyState` — accepts `icon` (ReactNode from the icon barrel), `headline` (Fraunces italic), optional `body`, and optional `action` (`primary` or `secondary` variant). The icon wrapper has `empty-float` applied for a gentle bounce. Never write inline empty state blocks in page files
 - **Category colors**: `CAT_GRADIENT` in `lib/constants.ts` is the source of truth for image-less event tile backgrounds
 - **Font classes**: `font-display` (Bricolage Grotesque), `font-editorial` (Fraunces), `font-mono-ui` (Geist Mono)
 - **Light mode**: CSS class `data-theme="light"` on `<html>`; 130+ overrides in `app/globals.css`; inline gradient colors must use CSS variables (e.g. `var(--gradient-event-hero)`) so they can be themed
