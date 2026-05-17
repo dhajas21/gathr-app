@@ -44,10 +44,8 @@ export default function HomePage() {
   const [geoGranted, setGeoGranted] = useState(false)
   const [bookmarkedEventIds, setBookmarkedEventIds] = useState<string[]>([])
   const [friendRsvpEventIds, setFriendRsvpEventIds] = useState<string[]>([])
-  const [cityToast, setCityToast] = useState('')
-  const cityToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [bookmarkToast, setBookmarkToast] = useState('')
-  const bookmarkToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [toast, setToast] = useState('')
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastFetchRef = useRef(0)
   const [hasDraft, setHasDraft] = useState(false)
   const [fetchError, setFetchError] = useState(false)
@@ -100,8 +98,7 @@ export default function HomePage() {
       cancelled = true
       document.removeEventListener('visibilitychange', onVisible)
       subscription.unsubscribe()
-      if (cityToastTimerRef.current) clearTimeout(cityToastTimerRef.current)
-      if (bookmarkToastTimerRef.current) clearTimeout(bookmarkToastTimerRef.current)
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     }
   }, [router])
 
@@ -252,10 +249,10 @@ export default function HomePage() {
     }
   }
 
-  const showBookmarkToast = (label: string) => {
-    setBookmarkToast(label)
-    if (bookmarkToastTimerRef.current) clearTimeout(bookmarkToastTimerRef.current)
-    bookmarkToastTimerRef.current = setTimeout(() => setBookmarkToast(''), 1800)
+  const showToast = (message: string, duration = 2000) => {
+    setToast(message)
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    toastTimerRef.current = setTimeout(() => setToast(''), duration)
   }
 
   const handleBookmark = async (e: React.MouseEvent, eventId: string) => {
@@ -264,15 +261,15 @@ export default function HomePage() {
     try { (navigator as any).vibrate?.(8) } catch {}
     if (bookmarkedEventIds.includes(eventId)) {
       setBookmarkedEventIds(prev => prev.filter(id => id !== eventId))
-      showBookmarkToast('Removed from bookmarks')
+      showToast('Removed from bookmarks')
       const { error } = await supabase.from('event_bookmarks').delete().eq('event_id', eventId).eq('user_id', user.id)
-      if (error) { setBookmarkedEventIds(prev => [...prev, eventId]); showBookmarkToast('Couldn\'t remove — try again') }
+      if (error) { setBookmarkedEventIds(prev => [...prev, eventId]); showToast('Couldn\'t remove — try again') }
       else track('event_unbookmarked', { event_id: eventId })
     } else {
       setBookmarkedEventIds(prev => [...prev, eventId])
-      showBookmarkToast('Bookmarked ✦')
+      showToast('Bookmarked ✦')
       const { error } = await supabase.from('event_bookmarks').insert({ event_id: eventId, user_id: user.id })
-      if (error) { setBookmarkedEventIds(prev => prev.filter(id => id !== eventId)); showBookmarkToast('Couldn\'t save — try again') }
+      if (error) { setBookmarkedEventIds(prev => prev.filter(id => id !== eventId)); showToast('Couldn\'t save — try again') }
       else track('event_bookmarked', { event_id: eventId })
     }
   }
@@ -284,9 +281,7 @@ export default function HomePage() {
     await supabase.from('profiles').update({ city: newCity }).eq('id', user.id)
     setProfile((prev: any) => prev ? { ...prev, city: newCity } : prev)
     track('city_changed', { city: newCity })
-    setCityToast(newCity)
-    if (cityToastTimerRef.current) clearTimeout(cityToastTimerRef.current)
-    cityToastTimerRef.current = setTimeout(() => setCityToast(''), 2500)
+    showToast('📍 ' + newCity, 2500)
     fetchAll(user.id)
   }
 
@@ -368,6 +363,14 @@ export default function HomePage() {
 
   if (loading) return <HomePageSkeleton />
 
+  // Scope the "Happening Soon" strip to match the active tab context.
+  // Tabs 0–2 show all city soon events; Friends/Mine show only relevant ones.
+  const displayedSoonEvents = activeTab === 3
+    ? soonEvents.filter(e => friendRsvpEventIds.includes(e.id))
+    : activeTab === 4
+    ? soonEvents.filter(e => rsvpEventIds.includes(e.id) || e.host_id === user?.id)
+    : soonEvents
+
   return (
     <PageTransition>
     <div className="min-h-screen bg-[#0D110D] pb-24"
@@ -380,12 +383,7 @@ export default function HomePage() {
             style={!refreshing ? { width: pullProgress * 100 + '%', boxShadow: '0 0 8px rgba(232,184,75,0.6)' } : { boxShadow: '0 0 8px rgba(232,184,75,0.6)' }} />
         </div>
       )}
-      {cityToast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[90] bg-[#1C241C] border border-[#E8B84B]/25 text-[#E8B84B] text-xs font-semibold px-4 py-2 rounded-full shadow-lg pointer-events-none">
-          {cityToast}
-        </div>
-      )}
-      {bookmarkToast && (
+      {toast && (
         <div
           role="status"
           aria-live="polite"
@@ -394,7 +392,7 @@ export default function HomePage() {
             bottom: 'calc(env(safe-area-inset-bottom, 0px) + 92px)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(232,184,75,0.15)',
           }}>
-          {bookmarkToast}
+          {toast}
         </div>
       )}
       <div className="px-4 pt-14 pb-0 bg-[#0D110D]">
@@ -462,7 +460,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {soonEvents.length > 0 && (
+        {displayedSoonEvents.length > 0 && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
@@ -472,7 +470,7 @@ export default function HomePage() {
               <span className="text-[10px] text-white/30">{soonEvents.length} event{soonEvents.length !== 1 ? 's' : ''}</span>
             </div>
             <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
-              {soonEvents.map(event => {
+              {displayedSoonEvents.map(event => {
                 const isRsvpd = rsvpEventIds.includes(event.id)
                 return (
                   <div key={event.id} onClick={() => handleEventTap(event.id)}
@@ -583,6 +581,19 @@ export default function HomePage() {
           <div className="flex items-center gap-2.5 bg-[#E85B5B]/8 border border-[#E85B5B]/20 rounded-2xl px-4 py-3 mb-3">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E85B5B" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
             <span className="text-xs text-[#E85B5B] flex-1">Couldn't load events — pull down to retry.</span>
+          </div>
+        )}
+        {activeTab === 2 && !geoGranted && (
+          <div className="flex items-center gap-3 bg-[#E8B84B]/8 border border-[#E8B84B]/15 rounded-2xl px-4 py-3 mb-3">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B84B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span className="text-xs text-[#E8B84B]/80 flex-1">
+              Showing events in <strong className="text-[#E8B84B] font-semibold">{profile?.city || 'your city'}</strong> — enable GPS for closer results
+            </span>
+            <button onClick={requestGeolocation} className="text-[10px] font-semibold text-[#E8B84B] bg-[#E8B84B]/10 border border-[#E8B84B]/20 px-2.5 py-1 rounded-lg active:scale-95 transition-transform flex-shrink-0">
+              Use GPS
+            </button>
           </div>
         )}
         <div key={activeTab} className="animate-tab-in">
