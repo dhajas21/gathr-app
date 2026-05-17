@@ -129,7 +129,9 @@ export default function SetupPage() {
           if (data.looking_for?.length) setLookingFor(data.looking_for)
           if (data.vibe)     setVibe(data.vibe)
           if (data.offering) setOffering(data.offering)
-          if (data.name) {
+          // Only treat as resuming if the user has already picked interests —
+          // Google OAuth users get name pre-populated but have no interests yet.
+          if (data.name && data.interests?.length) {
             const paramStep = parseInt(searchParams.get('step') ?? '', 10)
             setStep(paramStep >= 3 && paramStep <= 5 ? paramStep : 2)
             setIsResuming(true)
