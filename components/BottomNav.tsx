@@ -107,7 +107,7 @@ export default function BottomNav() {
         </button>
 
         <button onClick={() => { try { (navigator as any).vibrate?.(12) } catch {}; router.push('/create') }} className="flex-1 flex flex-col items-center -mt-3">
-          <div className="w-12 h-12 rounded-[18px] bg-[#E8B84B] flex items-center justify-center active:scale-95 transition-transform"
+          <div className="w-12 h-12 rounded-2xl bg-[#E8B84B] flex items-center justify-center active:scale-95 transition-transform"
             style={{ boxShadow: '0 4px 20px rgba(232,184,75,0.35), 0 0 0 1px rgba(232,184,75,0.2)' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D110D" strokeWidth="2.5" strokeLinecap="round">
               <path d="M12 5v14M5 12h14"/>

@@ -375,9 +375,9 @@ export default function HomePage() {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}>
       {(refreshing || pullProgress > 0) && (
-        <div className="fixed top-0 left-0 right-0 h-0.5 z-[100]" style={{ background: 'rgba(232,184,75,0.25)' }}>
+        <div className="fixed top-0 left-0 right-0 h-1 z-[100]" style={{ background: 'rgba(232,184,75,0.15)' }}>
           <div className={'h-full bg-[#E8B84B] ' + (refreshing ? 'animate-pulse w-full' : 'transition-none')}
-            style={!refreshing ? { width: pullProgress * 100 + '%' } : undefined} />
+            style={!refreshing ? { width: pullProgress * 100 + '%', boxShadow: '0 0 8px rgba(232,184,75,0.6)' } : { boxShadow: '0 0 8px rgba(232,184,75,0.6)' }} />
         </div>
       )}
       {cityToast && (
@@ -477,7 +477,7 @@ export default function HomePage() {
                 return (
                   <div key={event.id} onClick={() => handleEventTap(event.id)}
                     className={'flex-shrink-0 w-44 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-transform border ' + (isRsvpd ? 'border-[#7EC87E]/30' : 'border-white/10')}>
-                    <div className="category-gradient-card h-20 relative overflow-hidden"
+                    <div className="category-gradient-card h-24 relative overflow-hidden"
                       style={{ '--cat-bg': CAT_GRADIENT[event.category] || CAT_GRADIENT['Social'] } as React.CSSProperties}>
                       <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-70"></div>
                       {CAT_EMOJI[event.category] && (
@@ -485,10 +485,10 @@ export default function HomePage() {
                           {CAT_EMOJI[event.category]}
                         </div>
                       )}
-                      {isRsvpd && <div className="absolute top-1.5 right-1.5 bg-[#7EC87E] text-[#0D110D] text-[8px] font-bold px-1.5 py-0.5 rounded-full">Going ✓</div>}
+                      {isRsvpd && <div className="absolute top-1.5 right-1.5 bg-[#7EC87E] text-[#0D110D] text-[10px] font-bold px-1.5 py-0.5 rounded-full">✓</div>}
                       <div className="absolute bottom-1.5 left-2 right-2">
                         {(() => { const tz = cityToTimezone(event.city); return (
-                          <div className={'text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-block ' + (isToday(event.start_datetime, tz) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>
+                          <div className={'text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-block ' + (isToday(event.start_datetime, tz) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>
                             {isToday(event.start_datetime, tz) ? 'Today' : 'Tomorrow'} · {formatTime(event.start_datetime, tz)}
                           </div>
                         )})()}
@@ -519,7 +519,7 @@ export default function HomePage() {
               {optimizedImgSrc(featuredEvent.cover_url, 800) && <img src={optimizedImgSrc(featuredEvent.cover_url, 800)!} alt="" className="absolute inset-0 w-full h-full object-cover cover-img" loading="lazy" onLoad={e => (e.currentTarget as HTMLImageElement).classList.add('loaded')} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0D110D] via-transparent to-transparent"></div>
               <div className="absolute top-3 left-3">
-                <span className="bg-[#E8B84B] text-[#0D110D] text-[9px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1">
+                <span className="bg-[#E8B84B] text-[#0D110D] text-[10px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1">
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="#0D110D" stroke="none">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                   </svg>
@@ -528,7 +528,7 @@ export default function HomePage() {
               </div>
               {rsvpEventIds.includes(featuredEvent.id) && (
                 <div className="absolute top-3 right-3">
-                  <span className="bg-[#7EC87E] text-[#0D110D] text-[9px] font-bold px-2 py-1 rounded-full">Going ✓</span>
+                  <span className="bg-[#7EC87E] text-[#0D110D] text-[10px] font-bold px-2 py-1 rounded-full">Going ✓</span>
                 </div>
               )}
             </div>
@@ -562,7 +562,7 @@ export default function HomePage() {
       <div className="px-4 pt-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-base font-bold text-[#F0EDE6]">
+            <h2 className="text-base font-bold text-[#F0EDE6] font-display">
               {activeTab === 0 ? "What's Popular" : activeTab === 1 ? 'Picked For You' : activeTab === 2 ? (geoGranted ? 'Near You' : 'In ' + (profile?.city || 'Bellingham')) : activeTab === 3 ? "Friends' Events" : 'Your Events'}
             </h2>
             <p className="text-[10px] text-white/40 mt-0.5">
@@ -647,17 +647,17 @@ export default function HomePage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1C241C] via-transparent to-transparent opacity-80"></div>
                     <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
                       <div className="flex gap-1">
-                        {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1"><svg width="7" height="7" viewBox="0 0 24 24" fill="#0D110D" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Featured</span>}
+                        {event.is_featured && <span className="bg-[#E8B84B] text-[#0D110D] text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1"><svg width="7" height="7" viewBox="0 0 24 24" fill="#0D110D" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Featured</span>}
                         {isSoon && (
-                          <span className={'text-[8px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 ' + (isToday(event.start_datetime, evtTz) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>
+                          <span className={'text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 ' + (isToday(event.start_datetime, evtTz) ? 'bg-[#E85B5B]/90 text-white' : 'bg-[#E8B84B]/90 text-[#0D110D]')}>
                             <span className={'w-[5px] h-[5px] rounded-full flex-shrink-0 ' + (isToday(event.start_datetime, evtTz) ? 'bg-white/80' : 'bg-[#0D110D]/50')} />
                             {isToday(event.start_datetime, evtTz) ? 'Today' : 'Tomorrow'}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        {isRsvpd && <span className="bg-[#7EC87E]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Going ✓</span>}
-                        {isHost && !isRsvpd && <span className="bg-[#E8B84B]/90 text-[#0D110D] text-[8px] font-bold px-2 py-0.5 rounded-full">Hosting</span>}
+                        {isRsvpd && <span className="bg-[#7EC87E]/90 text-[#0D110D] text-[10px] font-bold px-2 py-0.5 rounded-full">✓ Going</span>}
+                        {isHost && !isRsvpd && <span className="bg-[#E8B84B]/90 text-[#0D110D] text-[10px] font-bold px-2 py-0.5 rounded-full">Hosting</span>}
                         <button
                           onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleBookmark(e, event.id) }}
                           onPointerDown={(e) => e.stopPropagation()}

@@ -93,7 +93,7 @@ export default function MysteryMatchCard({
           <div className={'text-[10px] truncate ' + (isRevealed ? 'text-white/35' : 'text-white/20')}>
             {visibleInterests.join(' · ')}
             {hiddenInterestCount > 0 && !isRevealed && (
-              <span className="text-white/15"> +{hiddenInterestCount}</span>
+              <span className="text-white/30"> +{hiddenInterestCount}</span>
             )}
           </div>
         ) : (
@@ -102,13 +102,13 @@ export default function MysteryMatchCard({
 
         <div className="text-[9px] mt-0.5">
           {eventState === 'upcoming' && !gathrPlus && (
-            <span className="text-white/18">Reveal unlocks when you attend</span>
+            <span className="font-editorial-italic text-[11px] text-white/40">Reveal unlocks when you attend</span>
           )}
           {eventState === 'upcoming' && gathrPlus && !incomingMutual && (
-            <span className="text-[#E8B84B]/35">Also going ✦</span>
+            <span className="font-editorial-italic text-[11px] text-[#E8B84B]/50">Also going ✦</span>
           )}
           {eventState === 'ongoing' && (
-            <span className="text-[#7EC87E]/50">They're here right now — find them</span>
+            <span className="font-editorial-italic text-[11px] text-[#7EC87E]/60">They're here right now — find them</span>
           )}
         </div>
       </div>
