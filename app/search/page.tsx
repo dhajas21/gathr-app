@@ -9,8 +9,6 @@ import { cityToTimezone, CAT_GRADIENT } from '@/lib/constants'
 import PageTransition from '@/components/PageTransition'
 
 const CATEGORIES = ['All', 'Music', 'Fitness', 'Food & Drink', 'Tech & Coding', 'Outdoors & Adventure', 'Arts & Culture', 'Social & Parties', 'Wellness & Mindfulness', 'Networking']
-const RECENT_SEARCHES_KEY = 'gathr_recent_searches'
-const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
 
 const SUBCAT_TO_PARENT: Record<string, string> = {
   // Music
@@ -189,36 +187,39 @@ export default function SearchPage() {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
       fetchRecommendations(session.user.id)
+      // Load from localStorage with user-scoped keys to prevent cross-user leakage
+      try {
+        const uid = session.user.id
+        const saved = localStorage.getItem(`gathr_recent_searches_${uid}`)
+        if (saved) setRecentSearches(JSON.parse(saved))
+        const viewed = localStorage.getItem(`gathr_recently_viewed_${uid}`)
+        if (viewed) setRecentlyViewed(JSON.parse(viewed))
+      } catch {}
     })
-    // Load from localStorage
-    try {
-      const saved = localStorage.getItem(RECENT_SEARCHES_KEY)
-      if (saved) setRecentSearches(JSON.parse(saved))
-      const viewed = localStorage.getItem(RECENTLY_VIEWED_KEY)
-      if (viewed) setRecentlyViewed(JSON.parse(viewed))
-    } catch {}
   }, [router])
 
   const saveRecentSearch = (term: string) => {
-    if (!term.trim()) return
+    if (!term.trim() || !user?.id) return
     setRecentSearches(prev => {
       const updated = [term, ...prev.filter(s => s !== term)].slice(0, 8)
-      try { localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated)) } catch {}
+      try { localStorage.setItem(`gathr_recent_searches_${user.id}`, JSON.stringify(updated)) } catch {}
       return updated
     })
   }
 
   const removeRecentSearch = (term: string) => {
+    if (!user?.id) return
     setRecentSearches(prev => {
       const updated = prev.filter(s => s !== term)
-      try { localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated)) } catch {}
+      try { localStorage.setItem(`gathr_recent_searches_${user.id}`, JSON.stringify(updated)) } catch {}
       return updated
     })
   }
 
   const clearRecentSearches = () => {
+    if (!user?.id) return
     setRecentSearches([])
-    try { localStorage.removeItem(RECENT_SEARCHES_KEY) } catch {}
+    try { localStorage.removeItem(`gathr_recent_searches_${user.id}`) } catch {}
   }
 
   const fetchRecommendations = async (userId: string) => {

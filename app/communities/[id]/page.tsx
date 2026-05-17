@@ -218,6 +218,13 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
           .order('joined_at', { ascending: true })
         if (pending) setPendingRequests(pending)
       }
+    } else {
+      // Non-member landing on a restricted community — default to events tab so
+      // they see something useful instead of the locked feed screen.
+      if (commData.is_private || commData.visibility === 'unlisted') {
+        const urlTab = new URLSearchParams(window.location.search).get('tab')
+        if (!urlTab) setActiveTab('events')
+      }
     }
 
     if (postCountData.count !== null) setPostCount(postCountData.count)
@@ -499,21 +506,41 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
 
   const handleOpenAddEvent = async () => {
     if (!user) return
+    // Show events from any community member so the owner can link them
+    const memberIds = members.map((m: any) => m.user_id).filter(Boolean)
+    if (memberIds.length === 0) { setMyEvents([]); setShowAddEventModal(true); return }
+
     const { data } = await supabase.from('events')
-      .select('id, title, start_datetime, cover_url, community_id')
-      .eq('host_id', user.id)
+      .select('id, title, start_datetime, cover_url, community_id, host_id')
+      .in('host_id', memberIds)
+      .eq('visibility', 'public')
       .order('start_datetime', { ascending: false })
-      .limit(30)
-    const filtered = (data || []).filter((e: any) => e.community_id !== communityId)
+      .limit(50)
+
+    // Attach host name from the already-loaded members list
+    const memberMap: Record<string, string> = {}
+    members.forEach((m: any) => { if (m.user_id && m.profile?.name) memberMap[m.user_id] = m.profile.name })
+
+    const filtered = (data || [])
+      .filter((e: any) => e.community_id !== communityId)
+      .map((e: any) => ({ ...e, host_name: memberMap[e.host_id] || 'Member' }))
+
     setMyEvents(filtered)
     setShowAddEventModal(true)
   }
 
   const handleAddEventToCommunity = async (eventId: string) => {
     setAddingEvent(true)
-    await supabase.from('events').update({ community_id: communityId }).eq('id', eventId)
-    const { data } = await supabase.from('events').select('*').eq('id', eventId).single()
-    if (data) setEvents(prev => [...prev, data])
+    const { error } = await supabase.rpc('link_event_to_community', {
+      p_event_id: eventId,
+      p_community_id: communityId,
+    })
+    if (!error) {
+      const { data } = await supabase.from('events')
+        .select('id, title, cover_url, start_datetime, city')
+        .eq('id', eventId).single()
+      if (data) setEvents(prev => [...prev, data])
+    }
     setShowAddEventModal(false)
     setAddingEvent(false)
   }
@@ -907,12 +934,6 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   </button>
                 </div>
               )}
-              {isMember && !isOwnerOrAdmin && (
-                <button onClick={() => router.push('/create?community=' + communityId)}
-                  className="bg-[#1E3A1E] border border-[#E8B84B]/20 text-[#E8B84B] text-[10px] font-semibold px-2.5 py-1 rounded-lg">
-                  + Event
-                </button>
-              )}
             </div>
             {events.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8">
@@ -922,7 +943,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                   </svg>
                 </div>
                 <p className="text-sm text-white/40 text-center">No events yet</p>
-                {(isMember) && (
+                {isOwnerOrAdmin && (
                   <button onClick={() => router.push('/create?community=' + communityId)}
                     className="mt-1 bg-[#E8B84B] text-[#0D110D] px-4 py-2 rounded-xl text-xs font-bold active:scale-95 transition-transform">
                     Create an Event
@@ -1124,11 +1145,18 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
               className="flex-1 py-3.5 rounded-2xl bg-[#1C241C] border border-white/10 text-white/50 text-sm font-medium text-center disabled:opacity-30">
               {memberRole === 'owner' ? 'Owner' : 'Leave'}
             </button>
-            <button onClick={() => router.push('/create?community=' + communityId)}
-              className="flex-[2] py-3.5 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold text-center active:scale-95 transition-transform"
-              style={{ boxShadow: '0 4px 18px rgba(232,184,75,0.28)' }}>
-              Create Event
-            </button>
+            {isOwnerOrAdmin ? (
+              <button onClick={() => router.push('/create?community=' + communityId)}
+                className="flex-[2] py-3.5 rounded-2xl bg-[#E8B84B] text-[#0D110D] text-sm font-bold text-center active:scale-95 transition-transform"
+                style={{ boxShadow: '0 4px 18px rgba(232,184,75,0.28)' }}>
+                Create Event
+              </button>
+            ) : (
+              <button onClick={handleShare}
+                className="flex-[2] py-3.5 rounded-2xl bg-[#1C241C] border border-white/15 text-white/60 text-sm font-medium text-center active:scale-95 transition-transform">
+                Share Community
+              </button>
+            )}
           </div>
         ) : isPending ? (
           <button onClick={handleCancelRequest} disabled={actionLoading}
@@ -1155,8 +1183,8 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center" onClick={() => setShowAddEventModal(false)}>
           <div className="w-full max-w-md bg-[#1C241C] rounded-t-3xl p-5 pb-10 max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4 flex-shrink-0" />
-            <div className="text-sm font-bold text-[#F0EDE6] mb-1 flex-shrink-0">Add an Existing Event</div>
-            <div className="text-xs text-white/40 mb-4 flex-shrink-0">Select one of your events to add to this community.</div>
+            <div className="text-sm font-bold text-[#F0EDE6] mb-1 flex-shrink-0">Link a Member's Event</div>
+            <div className="text-xs text-white/40 mb-4 flex-shrink-0">Feature any member's public event in this community.</div>
             {myEvents.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2 flex-1">
                 <div className="w-12 h-12 bg-[#1C241C] border border-white/10 rounded-2xl flex items-center justify-center mx-auto">
@@ -1182,6 +1210,9 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                       <div className="text-sm font-medium text-[#F0EDE6] truncate">{event.title}</div>
                       <div className="text-xs text-white/40 mt-0.5">
                         {new Date(event.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {event.host_name && event.host_id !== user?.id && (
+                          <span className="ml-1.5 text-white/30">· by {event.host_name}</span>
+                        )}
                       </div>
                     </div>
                     <span className="text-[#E8B84B] text-lg flex-shrink-0">{addingEvent ? '...' : '+'}</span>

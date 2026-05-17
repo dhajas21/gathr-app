@@ -254,11 +254,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     }
 
     try {
-      const RECENTLY_VIEWED_KEY = 'gathr_recently_viewed'
-      const stored = localStorage.getItem(RECENTLY_VIEWED_KEY)
+      const key = `gathr_recently_viewed_${userId}`
+      const stored = localStorage.getItem(key)
       const viewed = stored ? JSON.parse(stored) : []
       const updated = [eventData, ...viewed.filter((e: any) => e.id !== eventData.id)].slice(0, 10)
-      localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(updated))
+      localStorage.setItem(key, JSON.stringify(updated))
     } catch {}
 
     const endTime = new Date(eventData.end_datetime).getTime()

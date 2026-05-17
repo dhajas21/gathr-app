@@ -377,6 +377,7 @@ export default function ProfilePage() {
 
   const hostedCount = profile?.hosted_count ?? hostedEvents.length
   const attendedCount = profile?.attended_count ?? attendedEvents.length
+  const upcomingHostedEvents = hostedEvents.filter(e => new Date(e.start_datetime) >= new Date())
   const connCount = profile?.connection_count ?? connections.length
   const xp = profile?.xp ?? ((hostedCount * 10) + (attendedCount * 5) + (connCount * 3) + (interests.length * 2))
   const level = Math.floor(xp / 50) + 1
@@ -666,10 +667,10 @@ export default function ProfilePage() {
                 </button>
               </div>
             )}
-            {hostedEvents.length > 0 && (
+            {upcomingHostedEvents.length > 0 && (
               <div className="bg-[#1C241C] border border-white/10 rounded-2xl p-3.5">
                 <div className="text-[9px] uppercase tracking-widest text-white/20 mb-2.5 font-medium">Hosted by you</div>
-                {hostedEvents.map(event => (
+                {upcomingHostedEvents.map(event => (
                   <div key={event.id} onClick={() => router.push('/events/' + event.id)}
                     className="flex items-center gap-3 py-2.5 border-b border-white/10 last:border-0 cursor-pointer active:opacity-70">
                     <div className="category-gradient-card w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden relative"

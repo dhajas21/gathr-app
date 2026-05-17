@@ -88,7 +88,17 @@ export default function GathrPlusPage() {
     const { data, error } = await supabase.functions.invoke('claim-gathr-plus-trial', { method: 'POST' })
     setLoading(false)
     if (error || !data?.success) {
-      const message = (error as any)?.error || (data as any)?.error || error?.message || 'Could not activate your trial. Try again.'
+      let message = 'Could not activate your trial. Try again.'
+      if (data?.error) {
+        message = data.error
+      } else if (error) {
+        try {
+          const body = await (error as any).context?.json()
+          if (body?.error) message = body.error
+        } catch {
+          if (error.message && !error.message.includes('non-2xx')) message = error.message
+        }
+      }
       setErrorMsg(message)
       return
     }

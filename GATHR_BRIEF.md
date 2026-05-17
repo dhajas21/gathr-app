@@ -64,11 +64,13 @@ After every event, attendees get a short anonymous post-event review (3 yes/no q
 - Persistent community groups around shared interests
 - Post text + photos, comment, like, and real-time group chat
 - **Three visibility levels:** Public (instant join, posts readable by non-members) · Unlisted (direct link only — not in discovery, anyone with the link joins instantly, posts gated to members) · Private (join request → owner approval, posts fully gated) — private communities show a lock icon and "🔒 Request"; unlisted shows an "Unlisted" badge
+- **Browse before joining**: anyone can tap a community and browse its Events and Members tabs without joining. Non-members of private/unlisted communities land on the Events tab by default (not the locked Feed) so they see real content immediately
 - Pending join requests stay in the Discover list with a disabled "Pending" button — not moved to "Your communities" until approved
 - Leave community requires confirmation ("Yes, Leave Community" sheet — prevents accidental exits); private communities show context-aware text: "You'll need to request approval to rejoin"
 - Community roles: owner, admin, member, pending
 - Owners and admins can moderate all content
-- Create an event directly from inside a community to link it to the group
+- **Event creation is owner/admin only**: only the owner or an admin can add events to a community — prevents member spam. Two paths: "+ New" (creates a fresh event pre-linked to the community) and "+ Add Existing" (owner picks from any public event hosted by any community member, with the host name shown for events they didn't create themselves). Regular members see a "Share Community" button in the bottom bar instead
+- **Member event linking flow**: member creates their event normally → tells the owner → owner opens "+ Add Existing" in the Events tab → finds the member's event in the list → taps to link. The `link_event_to_community` RPC handles the cross-ownership update securely
 - Tap a post image to view full-screen
 - Discovery page: interest-based "Suggested for you" section, category filter pills with gold active glow, member counts formatted as k-abbreviations (1.2k, 10k); unlisted communities excluded from discovery
 
